@@ -356,23 +356,23 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
   return (
     <div className="p-6 space-y-6 relative">
       <div className="text-center py-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">智能套题测评</h1>
-        <p className="text-gray-500">模拟真实考试，AI分析薄弱环节</p>
+        <h1 className="text-2xl font-bold text-[#1c1917] mb-2">智能套题测评</h1>
+        <p className="text-[#a8a29e]">模拟真实考试，AI分析薄弱环节</p>
       </div>
 
       {/* 悬浮挑战入口 */}
-      <button onClick={startChallenge} className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white rounded-full p-4 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all animate-bounce">
+      <button onClick={startChallenge} className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white rounded-full p-4 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all animate-bounce">
         <Sparkles className="w-6 h-6" />
       </button>
-      <div className="fixed bottom-20 right-6 z-40 text-xs text-gray-500 bg-white/80 px-2 py-1 rounded shadow">点我有惊喜！</div>
+      <div className="fixed bottom-20 right-6 z-40 text-xs text-[#a8a29e] bg-white/80 px-2 py-1 rounded shadow">点我有惊喜！</div>
 
       {/* 正式考试入口 */}
       <div className="max-w-2xl mx-auto space-y-4">
-        <div onClick={startExam} className="bg-white border-2 border-gray-200 rounded-xl p-6 cursor-pointer hover:border-primary-400 hover:shadow-lg transition-all">
+        <div onClick={startExam} className="bg-white border-2 border-[#e7e5e4] rounded-xl p-6 cursor-pointer hover:border-primary-400 hover:shadow-lg transition-all">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">行政职业能力测验</h3>
-              <p className="text-sm text-gray-500 mt-1">135题 | 120分钟 | 言语+数量+判断+资料+常识</p>
+              <h3 className="text-lg font-semibold text-[#1c1917]">行政职业能力测验</h3>
+              <p className="text-sm text-[#a8a29e] mt-1">135题 | 120分钟 | 言语+数量+判断+资料+常识</p>
             </div>
             <div className="flex items-center gap-2 text-primary-600">
               <Clock className="w-5 h-5" />
@@ -381,13 +381,13 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
           </div>
         </div>
 
-        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-xl p-6 opacity-60">
-          <h3 className="text-lg font-semibold text-gray-500">申论</h3>
-          <p className="text-sm text-gray-400 mt-1">即将上线</p>
+        <div className="bg-[#fafaf9] border-2 border-dashed border-[#d6d3d1] rounded-xl p-6 opacity-60">
+          <h3 className="text-lg font-semibold text-[#a8a29e]">申论</h3>
+          <p className="text-sm text-[#a8a29e] mt-1">即将上线</p>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+      <div className="max-w-2xl mx-auto bg-yellow-50 border border-[#fef9c3] rounded-xl p-4">
         <p className="text-sm text-yellow-800">💡 <strong>提示：</strong>请先在错题本中导入题目，或系统将使用模拟题目进行测评</p>
       </div>
 
@@ -396,7 +396,7 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
         <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[9999]">
           <div className="text-center">
             <div className="text-9xl font-bold text-white animate-bounce mb-4">{challengeCountdown}</div>
-            {challengeCountdown > 0 && <p className="text-3xl text-gray-300">准备好了吗...</p>}
+            {challengeCountdown > 0 && <p className="text-3xl text-[#d6d3d1]">准备好了吗...</p>}
           </div>
         </div>
       )}
@@ -409,8 +409,8 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
             <h2 className={`text-2xl font-bold mb-2 ${challengeResult === 'win' ? 'text-green-600' : 'text-red-600'}`}>
               {challengeResult === 'win' ? '挑战成功！' : '挑战失败'}
             </h2>
-            <p className="text-gray-600 mb-2">正确率：{Math.round((Array.from(answers.values()).filter((a: any) => a.correct).length / questions.length) * 100)}%</p>
-            <p className="text-sm text-gray-500 mb-2">用时：{challengeTimer}秒</p>
+            <p className="text-[#57534e] mb-2">正确率：{Math.round((Array.from(answers.values()).filter((a: any) => a.correct).length / questions.length) * 100)}%</p>
+            <p className="text-sm text-[#a8a29e] mb-2">用时：{challengeTimer}秒</p>
             <p className={`text-lg font-medium mt-4 ${challengeResult === 'win' ? 'text-green-600' : 'text-orange-600'}`}>{challengeMessage}</p>
             <button onClick={resetChallenge} className="mt-6 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700">再来一次</button>
           </div>
@@ -438,7 +438,7 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
             </div>
             <div className="flex items-center gap-4">
               <span className="text-white/80">已答 {answers.size} 题</span>
-              <div className={`flex items-center gap-2 font-mono text-xl px-3 py-1 rounded-full ${challengeTimeLeft < 60 ? 'bg-red-500/40 animate-pulse' : 'bg-white/20'}`}>
+              <div className={`flex items-center gap-2 font-mono text-xl px-3 py-1 rounded-full ${challengeTimeLeft < 60 ? 'bg-[#dc2626]/40 animate-pulse' : 'bg-white/20'}`}>
                 <Clock className="w-5 h-5" />
                 {formatTime(challengeTimeLeft)}
               </div>
@@ -455,7 +455,7 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
           <div className="max-w-4xl mx-auto">
             {q && (
               <div className="bg-white rounded-2xl shadow-2xl p-8">
-                <p className="text-xl text-gray-800 leading-relaxed mb-8">{q.content}</p>
+                <p className="text-xl text-[#1c1917] leading-relaxed mb-8">{q.content}</p>
                 <div className="space-y-4">
                   {q.options.map((opt: string, i: number) => {
                     const isSelected = answers.get(q.id)?.myAnswer === opt[0];
@@ -483,12 +483,12 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
       <div className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-gray-600">{q?.type}</span>
-            <span className="text-sm text-gray-400">第 {currentIndex + 1} / {questions.length} 题</span>
+            <span className="text-sm font-medium text-[#57534e]">{q?.type}</span>
+            <span className="text-sm text-[#a8a29e]">第 {currentIndex + 1} / {questions.length} 题</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-400">已答 {answers.size} 题</span>
-            <div className={`flex items-center gap-1 font-mono text-lg ${timeLeft < 600 ? 'text-red-500 animate-pulse' : 'text-gray-800'}`}>
+            <span className="text-sm text-[#a8a29e]">已答 {answers.size} 题</span>
+            <div className={`flex items-center gap-1 font-mono text-lg ${timeLeft < 600 ? 'text-red-500 animate-pulse' : 'text-[#1c1917]'}`}>
               <Clock className="w-4 h-4" />
               {formatTime(timeLeft)}
             </div>
@@ -506,7 +506,7 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
         <div className="max-w-4xl mx-auto p-6">
           {q && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <p className="text-lg text-gray-800 leading-relaxed mb-6">{q.content}</p>
+              <p className="text-lg text-[#1c1917] leading-relaxed mb-6">{q.content}</p>
               <div className="space-y-3">
                 {q.options.map((opt: string, i: number) => {
                   const isSelected = answers.get(q.id)?.myAnswer === opt[0];
@@ -525,9 +525,9 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
       {/* 底部导航 */}
       <div className="bg-white border-t border-gray-200 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <button onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-30">上一题</button>
+          <button onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0} className="px-4 py-2 text-sm text-[#57534e] hover:text-[#1c1917] disabled:opacity-30">上一题</button>
           <button onClick={handleSubmit} className="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700">交卷</button>
-          <button onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))} disabled={currentIndex === questions.length - 1} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-30">下一题</button>
+          <button onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))} disabled={currentIndex === questions.length - 1} className="px-4 py-2 text-sm text-[#57534e] hover:text-[#1c1917] disabled:opacity-30">下一题</button>
         </div>
       </div>
 
@@ -535,11 +535,11 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
       <div className="bg-gray-100 border-t border-gray-200 px-4 py-2 overflow-x-auto">
         <div className="max-w-4xl mx-auto flex gap-1 flex-wrap">
           {questions.slice(0, 50).map((_q: any, i: number) => (
-            <button key={i} onClick={() => setCurrentIndex(i)} className={`w-7 h-7 text-xs rounded ${currentIndex === i ? 'bg-primary-500 text-white' : answers.has(questions[i]?.id) ? 'bg-green-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-200'}`}>
+            <button key={i} onClick={() => setCurrentIndex(i)} className={`w-7 h-7 text-xs rounded ${currentIndex === i ? 'bg-primary-500 text-white' : answers.has(questions[i]?.id) ? 'bg-green-500 text-white' : 'bg-white text-[#57534e] hover:bg-gray-200'}`}>
               {i + 1}
             </button>
           ))}
-          {questions.length > 50 && <span className="w-7 h-7 flex items-center justify-center text-xs text-gray-400">...</span>}
+          {questions.length > 50 && <span className="w-7 h-7 flex items-center justify-center text-xs text-[#a8a29e]">...</span>}
         </div>
       </div>
 
@@ -547,14 +547,14 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
       {showConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">确认交卷？</h3>
-            <div className="text-sm text-gray-600 mb-4 space-y-1">
+            <h3 className="text-lg font-semibold text-[#1c1917] mb-3">确认交卷？</h3>
+            <div className="text-sm text-[#57534e] mb-4 space-y-1">
               <p>已答题数：{answers.size} / {questions.length}</p>
               <p>未答题数：{questions.length - answers.size}</p>
               {questions.length - answers.size > 0 && <p className="text-orange-500">⚠️ 还有 {questions.length - answers.size} 题未作答</p>}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirm(false)} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">继续答题</button>
+              <button onClick={() => setShowConfirm(false)} className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-[#57534e] hover:bg-gray-50">继续答题</button>
               <button onClick={confirmSubmit} className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">确认交卷</button>
             </div>
           </div>
@@ -569,32 +569,32 @@ function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
   return (
     <div className="p-6 space-y-6">
       <div className="text-center py-4">
-        <h1 className="text-2xl font-bold text-gray-800">测评报告</h1>
+        <h1 className="text-2xl font-bold text-[#1c1917]">测评报告</h1>
       </div>
 
       {/* 核心数据 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-3xl font-bold text-primary-600">{report.correctCount}</p>
-          <p className="text-sm text-gray-500 mt-1">正确题数</p>
+          <p className="text-sm text-[#a8a29e] mt-1">正确题数</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
           <p className="text-3xl font-bold text-red-500">{report.unansweredCount}</p>
-          <p className="text-sm text-gray-500 mt-1">未作答</p>
+          <p className="text-sm text-[#a8a29e] mt-1">未作答</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-3xl font-bold text-gray-800">{report.accuracy}%</p>
-          <p className="text-sm text-gray-500 mt-1">正确率</p>
+          <p className="text-3xl font-bold text-[#1c1917]">{report.accuracy}%</p>
+          <p className="text-sm text-[#a8a29e] mt-1">正确率</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
-          <p className="text-3xl font-bold text-gray-800">{formatTime(report.timeUsed)}</p>
-          <p className="text-sm text-gray-500 mt-1">用时</p>
+          <p className="text-3xl font-bold text-[#1c1917]">{formatTime(report.timeUsed)}</p>
+          <p className="text-sm text-[#a8a29e] mt-1">用时</p>
         </div>
       </div>
 
       {/* 各题型正确率 */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-primary-500" />各题型正确率</h2>
+        <h2 className="text-base font-semibold text-[#1c1917] mb-4 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-primary-500" />各题型正确率</h2>
         <div className="space-y-4">
           {report.weaknesses.map((w: any) => {
             const pct = w.accuracy;
@@ -605,8 +605,8 @@ function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
             return (
               <div key={w.type}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-700">{w.type.split('-')[1]}</span>
-                  <span className="text-sm text-gray-500">{w.correct}/{w.total} | {pct.toFixed(0)}%</span>
+                  <span className="text-sm font-medium text-[#57534e]">{w.type.split('-')[1]}</span>
+                  <span className="text-sm text-[#a8a29e]">{w.correct}/{w.total} | {pct.toFixed(0)}%</span>
                 </div>
                 <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
                   <div className={`h-full ${color} rounded-full transition-all`} style={{ width: `${pct}%` }} />
@@ -620,23 +620,23 @@ function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
       {/* AI分析 */}
       {(aiAnalyzing || aiAnalysisText || report.aiAnalysis) ? (
         <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-200 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <h2 className="text-base font-semibold text-[#1c1917] mb-4 flex items-center gap-2">
             <Target className="w-5 h-5 text-purple-500" />
             AI深度分析
             {aiAnalyzing && <span className="text-xs text-purple-500 animate-pulse">分析中...</span>}
           </h2>
           <div className="prose prose-sm max-w-none whitespace-pre-wrap">
             {(aiAnalysisText || report.aiAnalysis || '').split('\n').map((line: string, i: number) => (
-              <p key={i} className="text-gray-700 mb-2">{line}</p>
+              <p key={i} className="text-[#57534e] mb-2">{line}</p>
             ))}
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-br from-primary-50 to-blue-50 rounded-xl border border-primary-200 p-6">
-          <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2"><Target className="w-5 h-5 text-primary-500" />智能分析建议</h2>
+        <div className="bg-gradient-to-br from-[#fed7aa] to-blue-50 rounded-xl border border-[#fdba74] p-6">
+          <h2 className="text-base font-semibold text-[#1c1917] mb-4 flex items-center gap-2"><Target className="w-5 h-5 text-primary-500" />智能分析建议</h2>
           <div className="space-y-3">
             {report.suggestions.map((s: string, i: number) => (
-              <div key={i} className="bg-white/80 rounded-lg p-3 text-sm text-gray-700">{s}</div>
+              <div key={i} className="bg-white/80 rounded-lg p-3 text-sm text-[#57534e]">{s}</div>
             ))}
           </div>
           <div className="mt-4 p-3 bg-yellow-50 rounded-lg text-xs text-yellow-700">💡 配置AI接口后可获得更详细的深度分析，<a href="#/settings" className="underline">去设置</a></div>
@@ -658,7 +658,7 @@ function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
 
       {/* 操作按钮 */}
       <div className="flex justify-center gap-4">
-        <button onClick={resetExam} className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+        <button onClick={resetExam} className="flex items-center gap-2 px-6 py-3 bg-gray-100 text-[#57534e] rounded-lg hover:bg-gray-200">
           <RefreshCw className="w-4 h-4" />
           再测一次
         </button>

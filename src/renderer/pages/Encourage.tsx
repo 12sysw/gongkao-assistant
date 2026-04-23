@@ -95,14 +95,14 @@ const typeLabels: Record<string, string> = {
 };
 
 const typeIcons: Record<string, React.ReactNode> = {
-  streak: <Flame className="w-5 h-5 text-orange-500" />,
-  questions: <BookOpen className="w-5 h-5 text-blue-500" />,
-  study_time: <Clock className="w-5 h-5 text-green-500" />,
-  mastered: <Target className="w-5 h-5 text-purple-500" />,
-  flashcard: <Layers className="w-5 h-5 text-cyan-500" />,
-  flashcard_master: <Sparkles className="w-5 h-5 text-amber-500" />,
-  pomodoro: <Timer className="w-5 h-5 text-red-500" />,
-  checkin: <CalendarCheck className="w-5 h-5 text-teal-500" />,
+  streak: <Flame className="w-5 h-5 text-[#c2410c]" />,
+  questions: <BookOpen className="w-5 h-5 text-[#c2410c]" />,
+  study_time: <Clock className="w-5 h-5 text-[#c2410c]" />,
+  mastered: <Target className="w-5 h-5 text-[#c2410c]" />,
+  flashcard: <Layers className="w-5 h-5 text-[#c2410c]" />,
+  flashcard_master: <Sparkles className="w-5 h-5 text-[#c2410c]" />,
+  pomodoro: <Timer className="w-5 h-5 text-[#c2410c]" />,
+  checkin: <CalendarCheck className="w-5 h-5 text-[#c2410c]" />,
 };
 
 /* ─── Sub-components ─── */
@@ -123,12 +123,12 @@ const UnlockModal: React.FC<{
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-7xl mb-4 animate-bounce">{achievement.icon}</div>
-        <h2 className="text-xl font-bold text-gray-800 mb-2">🎉 成就解锁！</h2>
-        <p className="text-lg font-semibold text-primary-600 mb-1">{achievement.title}</p>
-        <p className="text-sm text-gray-500 mb-4">{achievement.description}</p>
+        <h2 className="text-xl font-bold text-[#1c1917] mb-2">🎉 成就解锁！</h2>
+        <p className="text-lg font-semibold text-[#c2410c] mb-1">{achievement.title}</p>
+        <p className="text-sm text-[#a8a29e] mb-4">{achievement.description}</p>
         <button
           onClick={onClose}
-          className="px-6 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 transition-colors"
+          className="px-6 py-2 bg-[#c2410c] text-white rounded-lg text-sm hover:bg-[#9a3412] transition-colors"
         >
           太棒了！
         </button>
@@ -144,7 +144,7 @@ const HeroCard: React.FC<{
   onRefresh: () => void;
 }> = ({ quote, sticker, isRefreshing, onRefresh }) => (
   <div
-    className={`bg-gradient-to-br from-primary-500 via-primary-600 to-accent-600 rounded-2xl p-8 text-white relative overflow-hidden ${
+    className={`bg-gradient-to-br from-[#c2410c] via-[#9a3412] to-[#7c2d12] rounded-2xl p-8 text-white relative overflow-hidden ${
       isRefreshing ? 'opacity-60' : ''
     } transition-opacity`}
   >
@@ -162,7 +162,7 @@ const HeroCard: React.FC<{
       <div className="text-6xl animate-bounce">{sticker.emoji}</div>
       <div>
         <p className="text-2xl font-bold leading-relaxed">{quote.text}</p>
-        <p className="mt-3 text-primary-100 text-sm">{sticker.message}</p>
+        <p className="mt-3 text-white/90 text-sm">{sticker.message}</p>
       </div>
     </div>
   </div>
@@ -176,11 +176,11 @@ const DailyQuotes: React.FC<{
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-3">
         <Star className="w-5 h-5 text-yellow-500" />
-        <h2 className="text-base font-semibold text-gray-800">今日寄语</h2>
+        <h2 className="text-base font-semibold text-[#1c1917]">今日寄语</h2>
       </div>
       <button
         onClick={onRefresh}
-        className="text-xs text-primary-600 hover:text-primary-700 transition-colors"
+        className="text-xs text-[#c2410c] hover:text-[#9a3412] transition-colors"
       >
         换一批
       </button>
@@ -192,7 +192,7 @@ const DailyQuotes: React.FC<{
           className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50"
         >
           <span className="text-yellow-500 text-lg mt-0.5">💡</span>
-          <p className="text-sm text-gray-700 leading-relaxed">{q.text}</p>
+          <p className="text-sm text-[#57534e] leading-relaxed">{q.text}</p>
         </div>
       ))}
     </div>
@@ -202,26 +202,16 @@ const DailyQuotes: React.FC<{
 const AchievementCard: React.FC<{
   achievement: Achievement;
 }> = ({ achievement }) => {
-  const progress = achievement.progress ?? 0;
-  const progressPct = Math.min((progress / achievement.threshold) * 100, 100);
   const isUnlocked = !!achievement.unlocked_at;
 
   return (
     <div
       className={`rounded-xl p-4 border-2 transition-all duration-300 relative overflow-hidden ${
         isUnlocked
-          ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50 shadow-md'
-          : 'border-gray-300 bg-gray-100 hover:border-gray-400'
+          ? 'border-[#fcd34d] bg-gradient-to-br from-[#fef9c3] to-[#fed7aa] shadow-md'
+          : 'bg-[#fafaf9] hover:border-[#e7e5e4]'
       }`}
     >
-      {isUnlocked && (
-        <div className="absolute top-0 right-0 w-12 h-12 bg-yellow-200/40 rounded-full -translate-y-1/3 translate-x-1/3" />
-      )}
-      {!isUnlocked && (
-        <div className="absolute top-2 right-2">
-          <span className="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded">🔒 未解锁</span>
-        </div>
-      )}
       <div
         className={`text-3xl text-center mb-2 relative ${
           !isUnlocked ? 'grayscale opacity-50' : ''
@@ -231,28 +221,28 @@ const AchievementCard: React.FC<{
       </div>
       <p
         className={`text-sm font-medium text-center ${
-          isUnlocked ? 'text-gray-800' : 'text-gray-500'
+          isUnlocked ? 'text-[#1c1917]' : 'text-[#a8a29e]'
         }`}
       >
         {achievement.title}
       </p>
-      <p className="text-xs text-center text-gray-500 mt-1">{achievement.description}</p>
+      <p className="text-xs text-center text-[#a8a29e] mt-1">{achievement.description}</p>
       {!isUnlocked && (
         <div className="mt-3">
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-[#e7e5e4] rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all duration-500"
-              style={{ width: `${progressPct}%` }}
+              className="h-full bg-gradient-to-r bg-gradient-to-r from-[#fed7aa] to-[#c2410c] rounded-full transition-all duration-500"
+              style={{ width: `${(achievement.progress ?? 0) / achievement.threshold * 100}%` }}
             />
           </div>
-          <p className="text-xs text-center text-gray-400 mt-1">
-            {progress} / {achievement.threshold}
+          <p className="text-xs text-center text-[#a8a29e] mt-1">
+            {achievement.progress ?? 0} / {achievement.threshold}
           </p>
         </div>
       )}
       {isUnlocked && (
         <div className="mt-2 text-center">
-          <span className="inline-flex items-center text-xs text-yellow-600 bg-yellow-100 px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center text-xs text-[#c2410c] bg-[#fed7aa] px-2 py-0.5 rounded-full">
             ✅ 已解锁
           </span>
         </div>
@@ -271,7 +261,7 @@ const AchievementGroup: React.FC<{
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {typeIcons[type] || <Star className="w-5 h-5 text-gray-400" />}
-          <h3 className="text-sm font-medium text-gray-700">{typeLabels[type] || type}</h3>
+          <h3 className="text-sm font-medium text-[#57534e]">{typeLabels[type] || type}</h3>
         </div>
         <span className="text-xs text-gray-400">
           {typeUnlocked}/{items.length}
@@ -319,15 +309,15 @@ const AchievementWall: React.FC<{
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <Trophy className="w-5 h-5 text-yellow-500" />
-          <h2 className="text-base font-semibold text-gray-800">成就墙</h2>
+          <h2 className="text-base font-semibold text-[#1c1917]">成就墙</h2>
         </div>
         {!loading && !error && (
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500">
-              已解锁 <span className="text-yellow-600 font-semibold">{unlockedCount}</span> /{' '}
+            <span className="text-sm text-[#a8a29e]">
+              已解锁 <span className="text-[#c2410c] font-semibold">{unlockedCount}</span> /{' '}
               {achievements.length}
             </span>
-            <span className="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
+            <span className="text-xs px-2 py-1 rounded-full bg-[#fed7aa] text-[#c2410c]">
               解锁率 {achievements.length ? Math.round((unlockedCount / achievements.length) * 100) : 0}%
             </span>
           </div>
@@ -336,7 +326,7 @@ const AchievementWall: React.FC<{
 
       {loading && (
         <div className="py-12 text-center text-gray-400">
-          <div className="animate-spin w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-3" />
+          <div className="animate-spin w-8 h-8 border-2 border-[#c2410c] border-t-transparent rounded-full mx-auto mb-3" />
           <p>加载成就中...</p>
         </div>
       )}
@@ -355,7 +345,7 @@ const AchievementWall: React.FC<{
 
       {!loading && !error && achievements.length > 0 && (
         <>
-          <div className="w-full h-3 bg-gray-100 rounded-full mb-6 overflow-hidden">
+          <div className="w-full h-3 bg-[#fafaf9] rounded-full mb-6 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400 rounded-full transition-all duration-700 relative"
               style={{
@@ -370,10 +360,10 @@ const AchievementWall: React.FC<{
             <span className="px-3 py-1.5 text-xs rounded-full bg-primary-100 text-primary-700 font-medium">
               全部 ({achievements.length})
             </span>
-            <span className="px-3 py-1.5 text-xs rounded-full bg-green-100 text-green-700 font-medium">
+            <span className="px-3 py-1.5 text-xs rounded-full bg-[#dcfce7] text-[#166534] font-medium">
               已解锁 ({unlockedCount})
             </span>
-            <span className="px-3 py-1.5 text-xs rounded-full bg-gray-100 text-gray-700 font-medium">
+            <span className="px-3 py-1.5 text-xs rounded-full bg-[#fafaf9] text-[#57534e] font-medium">
               未解锁 ({achievements.length - unlockedCount})
             </span>
           </div>
@@ -403,17 +393,17 @@ const TipsSection: React.FC = () => {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
-      <h2 className="text-base font-semibold text-gray-800 mb-4">学习小贴士</h2>
+      <h2 className="text-base font-semibold text-[#1c1917] mb-4">学习小贴士</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {tips.map((tip, i) => (
           <div
             key={i}
-            className="flex gap-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+            className="flex gap-3 p-3 rounded-lg bg-gray-50 hover:bg-[#fafaf9] transition-colors"
           >
             <span className="text-2xl">{tip.icon}</span>
             <div>
-              <p className="text-sm font-medium text-gray-800">{tip.title}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{tip.desc}</p>
+              <p className="text-sm font-medium text-[#1c1917]">{tip.title}</p>
+              <p className="text-xs text-[#a8a29e] mt-0.5">{tip.desc}</p>
             </div>
           </div>
         ))}

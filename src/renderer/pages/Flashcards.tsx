@@ -48,10 +48,10 @@ function getDifficultyLabel(d: Difficulty): string {
 
 function getDifficultyClass(d: Difficulty): string {
   return d === 'easy'
-    ? 'bg-green-100 text-green-700'
+    ? 'bg-[#166534]'
     : d === 'hard'
     ? 'bg-red-100 text-red-700'
-    : 'bg-yellow-100 text-yellow-700';
+    : 'bg-[#fef9c3] text-[#854d0e]';
 }
 
 /* ─── Sub-components ─── */
@@ -132,7 +132,7 @@ const FlashCard: React.FC<{
     >
       {/* Front */}
       <div
-        className="absolute inset-0 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg flex items-center justify-center p-8"
+        className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg flex items-center justify-center p-8"
         style={{ backfaceVisibility: 'hidden' }}
       >
         <div className="text-white text-center">
@@ -143,7 +143,7 @@ const FlashCard: React.FC<{
       </div>
       {/* Back */}
       <div
-        className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg flex items-center justify-center p-8"
+        className="absolute inset-0 bg-gradient-to-br bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl shadow-lg flex items-center justify-center p-8"
         style={{
           backfaceVisibility: 'hidden',
           transform: 'rotateY(180deg)',
@@ -169,7 +169,7 @@ const CardActions: React.FC<{
     <div className="flex justify-center gap-3">
       <button
         onClick={() => onResult(false)}
-        className="flex items-center gap-2 px-6 py-2.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm transition-colors"
+        className="flex items-center gap-2 px-6 py-2.5 bg-[#fee2e2] text-[#991b1b] rounded-lg hover:bg-red-100 text-sm transition-colors"
       >
         <X className="w-4 h-4" /> 不会
       </button>
@@ -232,7 +232,7 @@ const CardMeta: React.FC<{
         {getDifficultyLabel(card.difficulty)}
       </span>
       {card.mastered ? (
-        <span className="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">已掌握</span>
+        <span className="px-2 py-0.5 rounded text-xs bg-[#166534]">已掌握</span>
       ) : null}
     </div>
   </div>

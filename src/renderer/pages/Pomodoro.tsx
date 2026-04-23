@@ -16,9 +16,9 @@ interface HistoryRecord {
 }
 
 const MODES: Record<TimerMode, ModeConfig> = {
-  work: { label: '专注', color: 'text-red-500', bg: 'from-red-500 to-pink-600' },
-  shortBreak: { label: '短休息', color: 'text-green-500', bg: 'from-green-500 to-emerald-600' },
-  longBreak: { label: '长休息', color: 'text-blue-500', bg: 'from-blue-500 to-indigo-600' },
+  work: { label: '专注', color: 'text-[#dc2626]00', bg: 'from-red-500 to-pink-600' },
+  shortBreak: { label: '短休息', color: 'text-[#16a34a]00', bg: 'from-green-500 to-emerald-600' },
+  longBreak: { label: '长休息', color: 'text-[#2563eb]00', bg: 'from-blue-500 to-indigo-600' },
 };
 
 const MODE_BUTTONS: { key: TimerMode; icon: React.ReactNode; label: string }[] = [
@@ -45,8 +45,8 @@ const SettingsPanel: React.FC<{
   onShortChange: (v: number) => void;
   onLongChange: (v: number) => void;
 }> = ({ workMin, shortBreakMin, longBreakMin, onWorkChange, onShortChange, onLongChange }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-5">
-    <h2 className="text-sm font-semibold text-gray-700 mb-3">番茄钟设置</h2>
+  <div className="text-[#fafaf9] rounded-xl border border-gray-200 p-5">
+    <h2 className="text-sm font-semibold text-[#57534e]0 mb-3">番茄钟设置</h2>
     <div className="grid grid-cols-3 gap-4 mb-4">
       <NumberInput label="专注(分钟)" value={workMin} onChange={onWorkChange} min={1} max={120} />
       <NumberInput label="短休息(分钟)" value={shortBreakMin} onChange={onShortChange} min={1} max={30} />
@@ -85,7 +85,7 @@ const ModeSelector: React.FC<{
         key={key}
         onClick={() => onSwitch(key)}
         className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-          mode === key ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          mode === key ? 'bg-primary-600 text-white' : 'text-[#f5f3f0]0 text-[#57534e]0 hover:text-[#fafaf9]0'
         }`}
       >
         {icon} {label}
@@ -102,7 +102,7 @@ const TimerDisplay: React.FC<{
 }> = ({ mode, timeLeft, progress, completed }) => (
   <div className={`bg-gradient-to-br ${MODES[mode].bg} rounded-2xl p-10 text-white text-center relative overflow-hidden`}>
     <div
-      className="absolute bottom-0 left-0 h-1.5 bg-white/20 transition-all duration-1000"
+      className="absolute bottom-0 left-0 h-1.5 text-[#fafaf9]/20 transition-all duration-1000"
       style={{ width: `${progress}%` }}
     />
     <div className="text-7xl font-mono font-bold tracking-wider">{formatTime(timeLeft)}</div>
@@ -122,7 +122,7 @@ const TimerControls: React.FC<{
   <div className="flex justify-center gap-3">
     <button
       onClick={onReset}
-      className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm transition-colors"
+      className="flex items-center gap-2 px-5 py-3 text-[#f5f3f0]0 hover:text-[#fafaf9]0 text-[#57534e]0 rounded-xl text-sm transition-colors"
     >
       <RotateCcw className="w-4 h-4" /> 重置
     </button>
@@ -144,7 +144,7 @@ const TimerControls: React.FC<{
     </button>
     <button
       onClick={onSkip}
-      className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm transition-colors"
+      className="flex items-center gap-2 px-5 py-3 text-[#f5f3f0]0 hover:text-[#fafaf9]0 text-[#57534e]0 rounded-xl text-sm transition-colors"
     >
       <SkipForward className="w-4 h-4" /> 跳过
     </button>
@@ -154,21 +154,21 @@ const TimerControls: React.FC<{
 const ProgressTracker: React.FC<{
   completed: number;
 }> = ({ completed }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-5">
-    <h2 className="text-sm font-semibold text-gray-700 mb-3">今日进度</h2>
+  <div className="text-[#fafaf9] rounded-xl border border-gray-200 p-5">
+    <h2 className="text-sm font-semibold text-[#57534e]0 mb-3">今日进度</h2>
     <div className="flex gap-2">
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
           className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-            i < completed ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-400'
+            i < completed ? 'bg-red-500 text-white' : 'text-[#f5f3f0]0 text-[#a8a29e]0'
           }`}
         >
           {i < completed ? '✓' : i + 1}
         </div>
       ))}
     </div>
-    <p className="text-xs text-gray-400 mt-2">每4个番茄后长休息 · 目标8个/天</p>
+    <p className="text-xs text-[#a8a29e]0 mt-2">每4个番茄后长休息 · 目标8个/天</p>
   </div>
 );
 
@@ -321,14 +321,14 @@ const Pomodoro: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">番茄钟</h1>
+          <h1 className="text-xl font-bold text-[#1c1917]0">番茄钟</h1>
           <p className="text-sm text-gray-500 mt-1">
             已完成 {completed} 个专注时段 · 本周 {Math.round((totalWeekMin / 60) * 10) / 10} 小时
           </p>
         </div>
         <button
           onClick={() => setShowSettings((s) => !s)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:text-[#f5f3f0]0 rounded-lg transition-colors"
         >
           <Settings className="w-5 h-5 text-gray-500" />
         </button>

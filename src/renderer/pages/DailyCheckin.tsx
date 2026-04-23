@@ -41,16 +41,16 @@ const CountdownBanner: React.FC<{ examName: string; examDate: string; daysLeft: 
   examDate,
   daysLeft,
 }) => (
-  <div className="bg-gradient-to-r from-primary-600 to-indigo-600 rounded-2xl p-6 text-white">
+  <div className="bg-gradient-to-r from-[#c2410c] to-[#9a3412] rounded-3xl p-6 text-white">
     <div className="flex items-center justify-between">
       <div>
-        <p className="text-primary-100 text-sm">目标考试</p>
+        <p className="text-white/80 text-sm">目标考试</p>
         <h2 className="text-xl font-bold mt-1">{examName}</h2>
-        <p className="text-primary-200 text-sm mt-1">{examDate}</p>
+        <p className="text-white/70 text-sm mt-1">{examDate}</p>
       </div>
       <div className="text-center">
         <div className="text-5xl font-bold">{daysLeft}</div>
-        <div className="text-primary-200 text-sm">天后考试</div>
+        <div className="text-white/70 text-sm">天后考试</div>
       </div>
     </div>
   </div>
@@ -62,11 +62,11 @@ const StatCard: React.FC<{
   label: string;
   value: string;
 }> = ({ icon, iconBg, label, value }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-    <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center`}>{icon}</div>
+  <div className="surface hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-3">
+    <div className={`w-11 h-11 rounded-2xl ${iconBg} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>{icon}</div>
     <div>
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-lg font-semibold text-gray-800">{value}</p>
+      <p className="text-[11px] font-semibold text-[#a8a29e] uppercase tracking-wider">{label}</p>
+      <p className="text-lg font-bold text-[#1c1917]">{value}</p>
     </div>
   </div>
 );
@@ -76,14 +76,16 @@ const TimeSelector: React.FC<{
   onChange: (minutes: number) => void;
 }> = ({ value, onChange }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">学习时长</label>
+    <label className="block text-sm font-semibold text-[#1c1917] mb-2">学习时长</label>
     <div className="grid grid-cols-4 gap-2">
       {TIME_OPTIONS.map((m) => (
         <button
           key={m}
           onClick={() => onChange(m)}
-          className={`py-2 rounded-lg text-sm transition-colors ${
-            value === m ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          className={`py-2 rounded-xl text-sm transition-all duration-200 font-medium ${
+            value === m
+              ? 'bg-[#c2410c] text-white shadow-md active:scale-[0.96]'
+              : 'bg-[#f5f3f0] text-[#57534e] hover:bg-[#e7e5e4]'
           }`}
         >
           {m >= 60 ? `${m / 60}h` : `${m}m`}
@@ -115,19 +117,19 @@ const CheckinCalendar: React.FC<{
   const todayStr = dayjs().format('YYYY-MM-DD');
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="surface p-5">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={onPrev} className="p-1 hover:bg-gray-100 rounded">
+        <button onClick={onPrev} className="p-2 rounded-xl text-[#a8a29e] hover:text-[#1c1917] hover:bg-[#f5f3f0] transition-colors">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-base font-semibold text-gray-800">{currentMonth.format('YYYY年MM月')}</h2>
-        <button onClick={onNext} className="p-1 hover:bg-gray-100 rounded">
+        <h2 className="text-base font-semibold text-[#1c1917]">{currentMonth.format('YYYY年MM月')}</h2>
+        <button onClick={onNext} className="p-2 rounded-xl text-[#a8a29e] hover:text-[#1c1917] hover:bg-[#f5f3f0] transition-colors">
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1">
         {WEEK_DAYS.map((d) => (
-          <div key={d} className="text-center text-xs text-gray-400 py-2">
+          <div key={d} className="text-center text-[11px] text-[#a8a29e] py-2 font-medium">
             {d}
           </div>
         ))}
@@ -138,12 +140,12 @@ const CheckinCalendar: React.FC<{
           return (
             <div
               key={d.date}
-              className={`aspect-square flex items-center justify-center text-sm rounded-lg transition-colors ${
+              className={`aspect-square flex items-center justify-center text-sm rounded-xl transition-all duration-200 font-bold ${
                 isToday
-                  ? 'bg-primary-100 text-primary-700 font-bold ring-2 ring-primary-300'
+                  ? 'bg-[#fed7aa] text-[#c2410c] ring-2 ring-[#fca5a5]'
                   : isChecked
-                  ? 'bg-green-100 text-green-700'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-[#dcfce7] text-[#166534]'
+                  : 'text-[#57534e] hover:bg-[#f5f3f0]'
               }`}
             >
               {d.day}
@@ -151,12 +153,12 @@ const CheckinCalendar: React.FC<{
           );
         })}
       </div>
-      <div className="flex items-center gap-4 mt-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-green-100" /> 已打卡
+      <div className="flex items-center gap-4 mt-4 text-[11px] text-[#a8a29e]">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded bg-[#dcfce7]" /> 已打卡
         </span>
-        <span className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded bg-primary-100 ring-1 ring-primary-300" /> 今天
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded bg-[#fed7aa] ring-1 ring-[#fca5a5]" /> 今天
         </span>
       </div>
     </div>
@@ -271,40 +273,40 @@ const DailyCheckin: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 打卡面板 */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center">
-            <Calendar className="w-4 h-4 mr-2 text-primary-500" />
+        <div className="surface hover:shadow-card-hover transition-all duration-300 p-5">
+          <h2 className="text-base font-semibold text-[#1c1917] mb-4 flex items-center">
+            <Calendar className="w-[18px] h-[18px] mr-2 text-[#c2410c]" />
             今日打卡
           </h2>
           <div className="space-y-4">
             <TimeSelector value={studyMinutes} onChange={setStudyMinutes} />
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">今日总结</label>
+              <label className="block text-sm font-semibold text-[#1c1917] mb-1">今日总结</label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-primary-400"
+                className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm resize-none h-20 focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 placeholder:text-[#a8a29e]"
                 placeholder="今天学了什么？"
               />
             </div>
 
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">考试名称</label>
+                <label className="block text-sm font-semibold text-[#1c1917] mb-1">考试名称</label>
                 <input
                   value={examName}
                   onChange={(e) => setExamName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                  className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 placeholder:text-[#a8a29e]"
                 />
               </div>
               <div className="w-36">
-                <label className="block text-sm font-medium text-gray-700 mb-1">考试日期</label>
+                <label className="block text-sm font-semibold text-[#1c1917] mb-1">考试日期</label>
                 <input
                   type="date"
                   value={examDate}
                   onChange={(e) => setExamDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                  className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 placeholder:text-[#a8a29e]"
                 />
               </div>
             </div>
@@ -312,12 +314,12 @@ const DailyCheckin: React.FC = () => {
             <button
               onClick={handleCheckin}
               disabled={isCheckedIn || !canCheckin}
-              className={`w-full py-3 rounded-lg font-semibold text-sm transition-colors ${
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 isCheckedIn
-                  ? 'bg-green-50 text-green-700 cursor-default'
+                  ? 'bg-[#dcfce7] text-[#166534] cursor-default'
                   : !canCheckin
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-primary-600 hover:bg-primary-700 text-white'
+                  ? 'bg-[#f5f3f0] text-[#a8a29e] cursor-not-allowed'
+                  : 'bg-[#c2410c] hover:bg-[#9a3412] text-white shadow-[0_2px_8px_rgba(194,65,12,0.3)] active:scale-[0.98]'
               }`}
             >
               {isCheckedIn ? (

@@ -28,11 +28,11 @@ interface CategoryConfig {
 }
 
 const CATEGORIES: CategoryConfig[] = [
-  { key: 'formula', label: '行测公式', icon: Calculator, color: 'bg-blue-50 text-blue-700' },
-  { key: 'politics', label: '政治常识', icon: Landmark, color: 'bg-red-50 text-red-700' },
+  { key: 'formula', label: '行测公式', icon: Calculator, color: 'bg-[#dbeafe] text-[#1e40af]' },
+  { key: 'politics', label: '政治常识', icon: Landmark, color: 'bg-[#fee2e2] text-[#991b1b]' },
   { key: 'law', label: '法律常识', icon: Scale, color: 'bg-purple-50 text-purple-700' },
-  { key: 'economy', label: '经济常识', icon: BookOpen, color: 'bg-green-50 text-green-700' },
-  { key: 'tech', label: '科技常识', icon: FlaskConical, color: 'bg-cyan-50 text-cyan-700' },
+  { key: 'economy', label: '经济常识', icon: BookOpen, color: 'bg-[#dcfce7] text-[#166534]' },
+  { key: 'tech', label: '科技常识', icon: FlaskConical, color: 'bg-[#ecfeff] text-[#0e7490]' },
   { key: 'shenlun', label: '申论金句', icon: PenTool, color: 'bg-amber-50 text-amber-700' },
 ];
 

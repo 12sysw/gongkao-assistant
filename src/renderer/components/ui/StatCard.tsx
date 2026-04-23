@@ -17,8 +17,8 @@ interface StatCardProps {
 
 export const StatCard: React.FC<StatCardProps> = ({
   icon: Icon,
-  iconColor = 'text-primary-600',
-  iconBgColor = 'bg-primary-50',
+  iconColor = 'text-[#c2410c]',
+  iconBgColor = 'bg-[#fed7aa]',
   label,
   value,
   trend,
@@ -27,9 +27,8 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <div
       className={cn(
-        'bg-white rounded-2xl border border-slate-200/60 p-5',
-        'card-shadow transition-all duration-300 ease-out',
-        'hover:card-shadow-hover hover:-translate-y-0.5',
+        'surface hover:shadow-card-hover transition-all duration-300',
+        'hover:-translate-y-0.5',
         className
       )}
     >
@@ -37,24 +36,24 @@ export const StatCard: React.FC<StatCardProps> = ({
         <div className="flex items-center gap-3">
           <div
             className={cn(
-              'w-11 h-11 rounded-xl flex items-center justify-center shrink-0',
+              'w-11 h-11 rounded-2xl flex items-center justify-center shrink-0',
               iconBgColor
             )}
           >
-            <Icon className={cn('w-5 h-5', iconColor)} />
+            <Icon className={cn('w-[20px] h-[20px]', iconColor)} />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500">{label}</p>
-            <p className="text-xl font-bold text-slate-900 mt-0.5">{value}</p>
+            <p className="text-[11px] font-semibold text-[#a8a29e] uppercase tracking-wider">{label}</p>
+            <p className="text-xl font-bold text-[#1c1917] mt-0.5 tracking-tight font-display">{value}</p>
           </div>
         </div>
         {trend && (
           <span
             className={cn(
-              'text-xs font-medium px-2 py-0.5 rounded-full',
+              'text-[11px] font-bold px-2.5 py-1 rounded-full',
               trend.isPositive
-                ? 'bg-success-50 text-success-700'
-                : 'bg-error-50 text-error-700'
+                ? 'bg-[#dcfce7] text-[#166534]'
+                : 'bg-[#fee2e2] text-[#991b1b]'
             )}
           >
             {trend.isPositive ? '+' : ''}{trend.value}%

@@ -7,11 +7,11 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantMap = {
-  success: 'bg-success-50 text-success-700 border-success-200',
-  warning: 'bg-warning-50 text-warning-700 border-warning-200',
-  error: 'bg-error-50 text-error-700 border-error-200',
-  info: 'bg-info-50 text-info-700 border-info-200',
-  default: 'bg-slate-100 text-slate-700 border-slate-200',
+  success: 'bg-[#dcfce7] text-[#166534] border border-[#bbf7d0]',
+  warning: 'bg-[#fef9c3] text-[#854d0e] border border-[#fde047]',
+  error: 'bg-[#fee2e2] text-[#991b1b] border border-[#fecaca]',
+  info: 'bg-[#dbeafe] text-[#1e40af] border border-[#bfdbfe]',
+  default: 'bg-[#f5f3f0] text-[#57534e] border border-[#e7e5e4]',
 };
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -23,8 +23,8 @@ export const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-        'border transition-colors duration-200',
+        'inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-semibold transition-colors duration-200',
+        'border',
         variantMap[variant],
         className
       )}

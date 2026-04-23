@@ -24,9 +24,8 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={cn(
-        'bg-white rounded-2xl border border-slate-200/60 card-shadow',
-        'transition-all duration-300 ease-out',
-        hover && 'hover:card-shadow-hover hover:-translate-y-0.5',
+        'surface',
+        hover && 'shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300',
         paddingMap[padding],
         className
       )}
@@ -42,7 +41,7 @@ export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   className,
   ...props
 }) => (
-  <div className={cn('flex items-center justify-between mb-4', className)} {...props}>
+  <div className={cn('flex items-center justify-between mb-5', className)} {...props}>
     {children}
   </div>
 );
@@ -52,7 +51,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   className,
   ...props
 }) => (
-  <h3 className={cn('text-base font-semibold text-slate-800 flex items-center gap-2', className)} {...props}>
+  <h3 className={cn('text-[15px] font-bold text-[#1c1917] flex items-center gap-2 tracking-tight font-display', className)} {...props}>
     {children}
   </h3>
 );

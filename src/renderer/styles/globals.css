@@ -3,9 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --sidebar-width: 240px;
+  --sidebar-width: 220px;
   --header-height: 56px;
+  --font-display: 'Outfit', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  /* Warm neutral palette - sophisticated, not generic */
+  --bg-base: #f5f3f0;
+  --bg-surface: #ffffff;
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+  --text-muted: #a8a29e;
+  --border-soft: rgba(28, 25, 23, 0.06);
+  --accent: #c2410c;
+  --accent-hover: #9a3412;
+  --accent-soft: #fed7aa;
 }
+
+/* Premium typography: Outfit for display, Plus Jakarta Sans for body */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
 
 html {
   scroll-behavior: smooth;
@@ -15,20 +30,20 @@ html {
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, 'Segoe UI', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial,
-    sans-serif;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   user-select: none;
-  background-color: #f1f5f9;
-  color: #1e293b;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  letter-spacing: -0.015em;
+  line-height: 1.6;
 }
 
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -36,53 +51,69 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 100px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: rgba(0, 0, 0, 0.25);
 }
 
 /* ===== Utility Classes ===== */
 @layer utilities {
   .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 
-  .card-shadow {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  .surface {
+    background: var(--bg-surface);
+    border-radius: 16px;
+    border: 1px solid var(--border-soft);
   }
 
-  .card-shadow-hover {
-    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  .surface-elevated {
+    background: var(--bg-surface);
+    box-shadow: 0 4px 24px rgba(28, 25, 23, 0.06), 0 1px 2px rgba(28, 25, 23, 0.04);
+    border-radius: 16px;
   }
 
   .text-balance {
     text-wrap: balance;
   }
 
-  .gradient-primary {
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  /* Warm accent - burnt orange, sophisticated */
+  .accent {
+    color: var(--accent);
   }
 
-  .gradient-success {
-    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  .accent-bg {
+    background: var(--accent);
   }
 
-  .gradient-warning {
-    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  /* Warm tinted shadows */
+  .shadow-soft {
+    box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
   }
 
-  .gradient-error {
-    background: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%);
+  .shadow-card {
+    box-shadow: 0 2px 12px rgba(28, 25, 23, 0.05), 0 1px 2px rgba(28, 25, 23, 0.03);
   }
 
-  .gradient-dark {
-    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  .shadow-card-hover {
+    box-shadow: 0 8px 32px rgba(28, 25, 23, 0.08), 0 2px 8px rgba(28, 25, 23, 0.04);
+  }
+
+  /* Premium text styles */
+  .text-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+  }
+
+  .text-heavy {
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -119,7 +150,7 @@ body {
 
 /* ===== Mind Map Node ===== */
 .mind-node {
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 .mind-node:hover {
@@ -128,5 +159,50 @@ body {
 
 /* ===== Focus Ring ===== */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-1 focus:ring-offset-transparent;
+  @apply focus:outline-none focus:ring-2 focus:ring-[#c2410c]/30 focus:ring-offset-1 focus:ring-offset-transparent;
+}
+
+/* ===== Gradient Primary (backwards compat) ===== */
+.gradient-primary {
+  background: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
+}
+
+/* ===== Premium scrollbar ===== */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(28, 25, 23, 0.12);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(28, 25, 23, 0.2);
+}
+
+/* ===== Page title style ===== */
+h1, h2 {
+  font-family: var(--font-display);
+  letter-spacing: -0.025em;
+}
+
+/* ===== Custom scrollbar for inner panels ===== */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(28, 25, 23, 0.08);
+  border-radius: 100px;
+}
+
+/* ===== Selection color ===== */
+::selection {
+  background: rgba(194, 65, 12, 0.15);
+  color: #1c1917;
 }

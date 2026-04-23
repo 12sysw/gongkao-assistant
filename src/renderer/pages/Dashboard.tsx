@@ -6,7 +6,7 @@ import {
   TrendingUp,
   AlertTriangle,
   BookOpen,
-  CheckCircle,
+  CheckCircle2,
   Timer,
   Zap,
   ArrowRight,
@@ -51,7 +51,6 @@ export default function Dashboard() {
 
   const countdown = getExamCountdown(examConfig?.date);
 
-  // 计算各题型正确率
   const typeAccuracy = React.useMemo(() => {
     const typeStats: Record<string, { correct: number; total: number }> = {};
     wrongRecords.forEach((r: any) => {
@@ -63,87 +62,85 @@ export default function Dashboard() {
   }, [wrongRecords]);
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
-      {/* 考试倒计时 */}
+    <div className="p-6 space-y-6">
+      {/* Exam countdown - sophisticated gradient banner */}
       {examConfig && (
         <div
           className={cn(
-            'relative overflow-hidden rounded-2xl p-6 text-white',
-            countdown.passed
-              ? 'bg-slate-500'
-              : 'gradient-primary'
+            'relative overflow-hidden rounded-3xl p-7 text-white',
+            countdown.passed ? 'bg-[#57534e]' : 'bg-gradient-to-br from-[#c2410c] to-[#9a3412]'
           )}
         >
-          {/* Decorative circles */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
+          {/* Ambient orbs */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/8 rounded-full -translate-y-1/2 translate-x-1/4" />
+          <div className="absolute bottom-0 left-0 w-56 h-56 bg-white/6 rounded-full translate-y-1/2 -translate-x-1/4" />
 
           <div className="relative flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Zap className="w-4 h-4 text-white/70" />
-                <p className="text-white/80 text-sm font-medium">{examConfig.name}</p>
+                <Zap className="w-4 h-4 text-white/80" />
+                <p className="text-white/90 text-sm font-semibold">{examConfig.name}</p>
               </div>
-              <p className="text-white/50 text-xs">{examConfig.date}</p>
+              <p className="text-white/60 text-xs uppercase tracking-wide">{examConfig.date}</p>
             </div>
             {!countdown.passed ? (
-              <div className="flex items-center gap-1">
-                <div className="text-center px-3">
-                  <p className="text-4xl font-bold tabular-nums">{countdown.days}</p>
-                  <p className="text-xs text-white/70 mt-0.5">天</p>
+              <div className="flex items-center gap-2">
+                <div className="text-center px-4">
+                  <p className="text-5xl font-bold tabular-nums tracking-tight">{countdown.days}</p>
+                  <p className="text-[11px] text-white/70 mt-0.5 font-medium">天</p>
                 </div>
-                <span className="text-white/30 text-2xl font-light pb-4">:</span>
-                <div className="text-center px-3">
-                  <p className="text-4xl font-bold tabular-nums">{countdown.hours}</p>
-                  <p className="text-xs text-white/70 mt-0.5">小时</p>
+                <span className="text-white/40 text-3xl font-light pb-5">:</span>
+                <div className="text-center px-4">
+                  <p className="text-5xl font-bold tabular-nums tracking-tight">{countdown.hours}</p>
+                  <p className="text-[11px] text-white/70 mt-0.5 font-medium">小时</p>
                 </div>
               </div>
             ) : (
-              <p className="text-white/80 text-sm">考试已结束</p>
+              <p className="text-white/90 text-sm font-medium">考试已结束</p>
             )}
           </div>
         </div>
       )}
 
-      {/* 核心数据 */}
+      {/* Core stats - asymmetric grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={Flame}
-          iconColor="text-warning-500"
-          iconBgColor="bg-warning-50"
+          iconColor="text-[#c2410c]"
+          iconBgColor="bg-[#fed7aa]"
           label="连续学习"
           value={`${stats?.streak || 0}天`}
         />
         <StatCard
           icon={BookOpen}
-          iconColor="text-primary-500"
-          iconBgColor="bg-primary-50"
+          iconColor="text-[#ca8a04]"
+          iconBgColor="bg-[#fef9c3]"
           label="累计刷题"
           value={`${stats?.total_questions || 0}道`}
         />
         <StatCard
           icon={Clock}
-          iconColor="text-success-500"
-          iconBgColor="bg-success-50"
+          iconColor="text-[#16a34a]"
+          iconBgColor="bg-[#dcfce7]"
           label="学习时长"
           value={stats?.total_minutes ? formatMinutes(stats.total_minutes) : '0分钟'}
         />
         <StatCard
-          icon={CheckCircle}
-          iconColor="text-info-500"
-          iconBgColor="bg-info-50"
+          icon={CheckCircle2}
+          iconColor="text-[#059669]"
+          iconBgColor="bg-[#d1fae5]"
           label="已掌握错题"
           value={`${stats?.mastered_count || 0}道`}
         />
       </div>
 
-      {/* 待复习 + 正确率 */}
+      {/* Due reviews + Accuracy */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <DueReviewCard dueReviews={dueReviews} />
         <AccuracyCard typeAccuracy={typeAccuracy} />
       </div>
 
-      {/* 快捷入口 */}
+      {/* Quick links */}
       <Card padding="md">
         <CardHeader>
           <CardTitle>
@@ -156,8 +153,8 @@ export default function Dashboard() {
             <QuickLink
               href="#/wrong-book"
               icon={AlertTriangle}
-              iconColor="text-error-500"
-              iconBgColor="bg-error-50"
+              iconColor="text-red-500"
+              iconBgColor="bg-red-50"
               label="添加错题"
             />
             <QuickLink
@@ -170,15 +167,15 @@ export default function Dashboard() {
             <QuickLink
               href="#/flashcards"
               icon={BookOpen}
-              iconColor="text-warning-500"
-              iconBgColor="bg-warning-50"
+              iconColor="text-amber-500"
+              iconBgColor="bg-amber-50"
               label="记忆卡片"
             />
             <QuickLink
               href="#/pomodoro"
               icon={Clock}
-              iconColor="text-success-500"
-              iconBgColor="bg-success-50"
+              iconColor="text-emerald-500"
+              iconBgColor="bg-emerald-50"
               label="番茄专注"
             />
           </div>
@@ -193,39 +190,39 @@ function DueReviewCard({ dueReviews }: { dueReviews: any[] }) {
     <Card>
       <CardHeader>
         <CardTitle>
-          <Target className="w-4 h-4 text-error-500" />
+          <Target className="w-[18px] h-[18px] text-[#dc2626]" />
           待复习错题
         </CardTitle>
         <Badge variant="error">{dueReviews.length} 道</Badge>
       </CardHeader>
       <CardContent>
         {dueReviews.length === 0 ? (
-          <div className="text-center py-10">
-            <div className="w-14 h-14 bg-success-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <CheckCircle className="w-7 h-7 text-success-400" />
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-[#dcfce7] rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-[#16a34a]" />
             </div>
-            <p className="text-sm text-slate-500">暂无待复习的错题</p>
-            <p className="text-xs text-slate-400 mt-1">继续保持！</p>
+            <p className="text-base font-medium text-[#57534e]">暂无待复习的错题</p>
+            <p className="text-sm text-[#a8a29e] mt-1.5">继续保持！</p>
           </div>
         ) : (
-          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+          <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1.5 custom-scrollbar">
             {dueReviews.slice(0, 5).map((item: any) => (
               <div
                 key={item.id}
-                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors group"
+                className="flex items-center gap-3 p-3.5 rounded-xl bg-[#f5f3f0] hover:bg-white hover:shadow-sm transition-all duration-200 group"
               >
-                <Badge variant="info" className="shrink-0 text-[10px]">
+                <Badge variant="info" className="shrink-0 text-[10px] py-0.5">
                   {item.type?.split('-')[1] || item.type}
                 </Badge>
-                <span className="text-sm text-slate-700 truncate flex-1">
-                  {item.content?.slice(0, 30)}...
+                <span className="text-sm font-medium text-[#1c1917] truncate flex-1">
+                  {item.content?.slice(0, 28)}...
                 </span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                <ArrowRight className="w-4 h-4 text-[#a8a29e] opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all shrink-0" />
               </div>
             ))}
             {dueReviews.length > 5 && (
-              <p className="text-xs text-slate-400 text-center py-2">
-                还有 {dueReviews.length - 5} 道...
+              <p className="text-xs text-[#a8a29e] text-center py-3 font-medium">
+                还有 {dueReviews.length - 5} 道
               </p>
             )}
           </div>
@@ -240,35 +237,35 @@ function AccuracyCard({ typeAccuracy }: { typeAccuracy: any[] }) {
     <Card>
       <CardHeader>
         <CardTitle>
-          <TrendingUp className="w-4 h-4 text-success-500" />
+          <TrendingUp className="w-[18px] h-[18px] text-[#16a34a]" />
           各题型掌握情况
         </CardTitle>
       </CardHeader>
       <CardContent>
         {typeAccuracy.length === 0 ? (
-          <div className="text-center py-10">
-            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <TrendingUp className="w-7 h-7 text-slate-300" />
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-[#f5f3f0] rounded-3xl flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="w-8 h-8 text-[#a8a29e]" />
             </div>
-            <p className="text-sm text-slate-500">暂无数据</p>
-            <p className="text-xs text-slate-400 mt-1">开始添加错题后查看</p>
+            <p className="text-base font-medium text-[#57534e]">暂无数据</p>
+            <p className="text-sm text-[#a8a29e] mt-1.5">开始添加错题后查看</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {typeAccuracy.map((item: any) => {
               const pct = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
               const variant = getAccuracyVariant(pct);
               return (
-                <div key={item.type}>
+                <div key={item.type} className="group">
                   <div className="flex items-center justify-between text-sm mb-2">
-                    <span className="text-slate-600 font-medium">
+                    <span className="text-[#1c1917] font-semibold">
                       {item.type.split('-')[1] || item.type}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-xs text-[#a8a29e] font-medium">
                         {item.correct}/{item.total}
                       </span>
-                      <Badge variant={variant} className="text-[10px] min-w-[44px] justify-center">
+                      <Badge variant={variant} className="text-[10px] min-w-[44px] justify-center font-semibold py-0.5">
                         {pct}%
                       </Badge>
                     </div>
@@ -284,7 +281,7 @@ function AccuracyCard({ typeAccuracy }: { typeAccuracy: any[] }) {
                         ? 'primary'
                         : 'success'
                     }
-                    size="sm"
+                    size="md"
                   />
                 </div>
               );
@@ -313,26 +310,22 @@ function QuickLink({
     <a
       href={href}
       className={cn(
-        'flex items-center gap-3 p-3.5 rounded-xl',
-        'bg-slate-50 hover:bg-white',
-        'border border-transparent hover:border-slate-200',
-        'card-shadow hover:card-shadow-hover',
-        'transition-all duration-300 ease-out',
+        'flex items-center gap-3 p-4 rounded-2xl surface hover:shadow-card-hover transition-all duration-300',
         'hover:-translate-y-0.5 group'
       )}
     >
       <div
         className={cn(
-          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+          'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110',
           iconBgColor
         )}
       >
         <Icon className={cn('w-5 h-5', iconColor)} />
       </div>
-      <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">
+      <span className="text-sm font-semibold text-[#1c1917] group-hover:text-[#c2410c] transition-colors">
         {label}
       </span>
-      <ArrowRight className="w-3.5 h-3.5 text-slate-300 ml-auto opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
+      <ArrowRight className="w-4 h-4 text-[#a8a29e] ml-auto opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
     </a>
   );
 }

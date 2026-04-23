@@ -334,7 +334,7 @@ const MindMapCanvas: React.FC<{
               width={NODE_WIDTH}
               height={NODE_HEIGHT}
               rx={8}
-              fill={selectedNode === node.id ? '#dbeafe' : 'white'}
+              fill={selectedNode === node.id ? 'from-[#dbeafe]' : 'white'}
               stroke={LEVEL_COLORS[level % LEVEL_COLORS.length]}
               strokeWidth={selectedNode === node.id ? 2.5 : 1.5}
               className="mind-node"
@@ -387,12 +387,12 @@ const SaveButton: React.FC<{
 }> = ({ disabled, status, onSave }) => {
   const statusClass =
     status === 'saved'
-      ? 'bg-green-500 text-white'
+      ? 'bg-[#dc2626] text-white'
       : status === 'error'
-      ? 'bg-red-500 text-white'
+      ? 'bg-[#dc2626] text-white'
       : status === 'saving'
-      ? 'bg-green-400 text-white cursor-wait'
-      : 'bg-green-600 text-white hover:bg-green-700';
+      ? 'bg-[#dc2626] text-white'
+      : 'bg-[#dc2626] text-white hover:bg-green-700';
 
   const label =
     status === 'saving' ? '保存中...' : status === 'saved' ? '已保存 ✓' : status === 'error' ? '保存失败' : '保存';

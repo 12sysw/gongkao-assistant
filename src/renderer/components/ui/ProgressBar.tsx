@@ -4,24 +4,25 @@ import { cn } from '../../lib/utils';
 interface ProgressBarProps {
   value: number;
   max?: number;
-  variant?: 'primary' | 'success' | 'warning' | 'error' | 'gradient';
-  size?: 'sm' | 'md';
+  variant?: 'primary' | 'success' | 'warning' | 'error' | 'muted';
+  size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
   label?: string;
   className?: string;
 }
 
 const variantMap = {
-  primary: 'bg-primary-500',
-  success: 'bg-success-500',
-  warning: 'bg-warning-500',
-  error: 'bg-error-500',
-  gradient: 'gradient-primary',
+  primary: 'bg-[#c2410c]',
+  success: 'bg-[#16a34a]',
+  warning: 'bg-[#ca8a04]',
+  error: 'bg-[#dc2626]',
+  muted: 'bg-[#d6d3d1]',
 };
 
 const sizeMap = {
-  sm: 'h-1.5',
-  md: 'h-2.5',
+  sm: 'h-1',
+  md: 'h-2',
+  lg: 'h-3',
 };
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({
@@ -39,9 +40,9 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     <div className={cn('w-full', className)}>
       {(showLabel || label) && (
         <div className="flex items-center justify-between mb-1.5">
-          {label && <span className="text-sm text-slate-600">{label}</span>}
+          {label && <span className="text-sm text-[#57534e]">{label}</span>}
           {showLabel && (
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-sm font-semibold text-[#1c1917]">
               {Math.round(percentage)}%
             </span>
           )}
@@ -49,7 +50,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       )}
       <div
         className={cn(
-          'w-full bg-slate-100 rounded-full overflow-hidden',
+          'w-full bg-[#e7e5e4] rounded-full overflow-hidden',
           sizeMap[size]
         )}
       >
