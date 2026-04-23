@@ -1,5 +1,16 @@
-import React, { useState } from 'react';
-import { Search, BookOpen, Calculator, Scale, Landmark, FlaskConical, PenTool, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import {
+  Search,
+  BookOpen,
+  Calculator,
+  Scale,
+  Landmark,
+  FlaskConical,
+  PenTool,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface KnowledgeItem {
   id: string;
@@ -9,7 +20,14 @@ interface KnowledgeItem {
   tags: string[];
 }
 
-const CATEGORIES = [
+interface CategoryConfig {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  color: string;
+}
+
+const CATEGORIES: CategoryConfig[] = [
   { key: 'formula', label: '行测公式', icon: Calculator, color: 'bg-blue-50 text-blue-700' },
   { key: 'politics', label: '政治常识', icon: Landmark, color: 'bg-red-50 text-red-700' },
   { key: 'law', label: '法律常识', icon: Scale, color: 'bg-purple-50 text-purple-700' },
@@ -49,76 +67,165 @@ const KNOWLEDGE_DATA: KnowledgeItem[] = [
   { id: 's4', category: 'shenlun', title: '治理类金句', content: '"治国之道，富民为始。"\n"法令者，民之命也，为治之本也。"\n"天下之治，天下之民共治之。"\n"治国常富，而乱国必贫。"', tags: ['申论', '治理'] },
 ];
 
+/* ─── Sub-components ─── */
+
+const SearchBar: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ value, onChange }) => (
+  <div className="relative">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder="搜索知识点..."
+      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+    />
+  </div>
+);
+
+const CategoryGrid: React.FC<{
+  activeCategory: string;
+  onToggle: (key: string) => void;
+}> = ({ activeCategory, onToggle }) => (
+  <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+    {CATEGORIES.map((cat) => {
+      const Icon = cat.icon;
+      const count = KNOWLEDGE_DATA.filter((k) => k.category === cat.key).length;
+      const isActive = activeCategory === cat.key;
+      return (
+        <button
+          key={cat.key}
+          onClick={() => onToggle(cat.key)}
+          className={`p-3 rounded-xl border transition-colors text-left ${
+            isActive
+              ? 'border-primary-300 bg-primary-50'
+              : 'border-gray-200 bg-white hover:border-gray-300'
+          }`}
+        >
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center ${cat.color} mb-2`}
+          >
+            <Icon className="w-4 h-4" />
+          </div>
+          <p className="text-sm font-medium text-gray-800">{cat.label}</p>
+          <p className="text-xs text-gray-400">{count} 条</p>
+        </button>
+      );
+    })}
+  </div>
+);
+
+const KnowledgeCard: React.FC<{
+  item: KnowledgeItem;
+  isExpanded: boolean;
+  onToggle: () => void;
+}> = ({ item, isExpanded, onToggle }) => {
+  const category = CATEGORIES.find((c) => c.key === item.category);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+        onClick={onToggle}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className={`px-2 py-0.5 rounded text-xs ${
+                category?.color || 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              {category?.label || item.category}
+            </span>
+            <h3 className="text-sm font-medium text-gray-800">{item.title}</h3>
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            {item.tags.map((tag) => (
+              <span key={tag} className="text-xs text-gray-400">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        </div>
+        {isExpanded ? (
+          <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+        )}
+      </div>
+      {isExpanded && (
+        <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+          <pre className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
+            {item.content}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const EmptyState: React.FC = () => (
+  <div className="text-center py-12 text-gray-400">
+    <BookOpen className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+    <p>没有找到相关知识点</p>
+  </div>
+);
+
+/* ─── Main Page ─── */
+
 const KnowledgeBase: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('formula');
   const [searchText, setSearchText] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const filtered = KNOWLEDGE_DATA.filter(item => {
-    if (activeCategory !== 'all' && item.category !== activeCategory) return false;
-    if (searchText) {
-      const s = searchText.toLowerCase();
-      return item.title.toLowerCase().includes(s) || item.content.toLowerCase().includes(s) || item.tags.some(t => t.toLowerCase().includes(s));
-    }
-    return true;
-  });
+  const filtered = useMemo(() => {
+    const term = searchText.toLowerCase().trim();
+    return KNOWLEDGE_DATA.filter((item) => {
+      if (activeCategory !== 'all' && item.category !== activeCategory) return false;
+      if (!term) return true;
+      return (
+        item.title.toLowerCase().includes(term) ||
+        item.content.toLowerCase().includes(term) ||
+        item.tags.some((t) => t.toLowerCase().includes(term))
+      );
+    });
+  }, [activeCategory, searchText]);
+
+  const handleCategoryToggle = (key: string) => {
+    setActiveCategory((prev) => (prev === key ? 'all' : key));
+  };
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
 
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-xl font-bold text-gray-800">知识点速查</h1>
-        <p className="text-sm text-gray-500 mt-1">行测公式、常识考点、申论金句，一键速查</p>
+        <p className="text-sm text-gray-500 mt-1">
+          行测公式、常识考点、申论金句，一键速查
+        </p>
       </div>
 
-      {/* 搜索 */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input type="text" value={searchText} onChange={e => setSearchText(e.target.value)} placeholder="搜索知识点..." className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400" />
-      </div>
+      <SearchBar value={searchText} onChange={setSearchText} />
+      <CategoryGrid activeCategory={activeCategory} onToggle={handleCategoryToggle} />
 
-      {/* 分类 */}
-      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
-        {CATEGORIES.map(cat => {
-          const Icon = cat.icon;
-          const count = KNOWLEDGE_DATA.filter(k => k.category === cat.key).length;
-          return (
-            <button key={cat.key} onClick={() => setActiveCategory(activeCategory === cat.key ? 'all' : cat.key)}
-              className={`p-3 rounded-xl border transition-colors text-left ${activeCategory === cat.key ? 'border-primary-300 bg-primary-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${cat.color} mb-2`}><Icon className="w-4 h-4" /></div>
-              <p className="text-sm font-medium text-gray-800">{cat.label}</p>
-              <p className="text-xs text-gray-400">{count} 条</p>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* 知识列表 */}
       <div className="space-y-2">
         {filtered.length === 0 ? (
-          <div className="text-center py-12 text-gray-400"><BookOpen className="w-12 h-12 mx-auto mb-2 text-gray-300" /><p>没有找到相关知识点</p></div>
-        ) : filtered.map(item => (
-          <div key={item.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50" onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`px-2 py-0.5 rounded text-xs ${CATEGORIES.find(c => c.key === item.category)?.color || 'bg-gray-100 text-gray-600'}`}>
-                    {CATEGORIES.find(c => c.key === item.category)?.label || item.category}
-                  </span>
-                  <h3 className="text-sm font-medium text-gray-800">{item.title}</h3>
-                </div>
-                <div className="flex gap-1 flex-wrap">
-                  {item.tags.map(tag => <span key={tag} className="text-xs text-gray-400">#{tag}</span>)}
-                </div>
-              </div>
-              {expandedId === item.id ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
-            </div>
-            {expandedId === item.id && (
-              <div className="px-4 pb-4 pt-2 border-t border-gray-100">
-                <pre className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">{item.content}</pre>
-              </div>
-            )}
-          </div>
-        ))}
+          <EmptyState />
+        ) : (
+          filtered.map((item) => (
+            <KnowledgeCard
+              key={item.id}
+              item={item}
+              isExpanded={expandedId === item.id}
+              onToggle={() => handleToggleExpand(item.id)}
+            />
+          ))
+        )}
       </div>
     </div>
   );

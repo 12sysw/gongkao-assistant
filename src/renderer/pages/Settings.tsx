@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Key, Globe, Cpu, Save, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface AIConfig {
   provider: string;
@@ -8,7 +9,18 @@ interface AIConfig {
   model: string;
 }
 
-const AI_PROVIDERS = [
+interface ProviderOption {
+  name: string;
+  url: string;
+  model: string;
+}
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
+
+const AI_PROVIDERS: ProviderOption[] = [
   { name: '硅基流动', url: 'https://api.siliconflow.cn/v1/chat/completions', model: 'Qwen/Qwen2.5-72B-Instruct' },
   { name: 'DeepSeek', url: 'https://api.deepseek.com/v1/chat/completions', model: 'deepseek-chat' },
   { name: 'OpenAI', url: 'https://api.openai.com/v1/chat/completions', model: 'gpt-4o-mini' },
@@ -16,6 +28,114 @@ const AI_PROVIDERS = [
   { name: '月之暗面', url: 'https://api.moonshot.cn/v1/chat/completions', model: 'moonshot-v1-8k' },
   { name: '自定义', url: '', model: '' },
 ];
+
+/* ─── Sub-components ─── */
+
+interface FormInputProps {
+  label: ReactNode;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  type?: string;
+}
+
+const FormInput: React.FC<FormInputProps> = ({ label, value, onChange, placeholder, type = 'text' }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <input
+      type={type}
+      value={value}
+      onChange={onChange}
+      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+      placeholder={placeholder}
+    />
+  </div>
+);
+
+interface FormSelectProps {
+  label: ReactNode;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  options: SelectOption[];
+}
+
+const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, options }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <select
+      value={value}
+      onChange={onChange}
+      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>{opt.label}</option>
+      ))}
+    </select>
+  </div>
+);
+
+const TestResultBanner: React.FC<{ result: 'success' | 'error' }> = ({ result }) => (
+  <div className={`flex items-center gap-2 p-3 rounded-lg ${result === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+    {result === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+    <span className="text-sm">{result === 'success' ? '连接成功！API配置正确' : '连接失败，请检查配置'}</span>
+  </div>
+);
+
+const ApiKeyInput: React.FC<{
+  value: string;
+  showKey: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onToggle: () => void;
+}> = ({ value, showKey, onChange, onToggle }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      <Key className="w-4 h-4 inline mr-1" />
+      API密钥
+    </label>
+    <div className="relative">
+      <input
+        type={showKey ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        className="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+        placeholder="sk-xxxxxxxxxxxxxxxx"
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+      </button>
+    </div>
+    <p className="text-xs text-gray-400 mt-1">密钥仅保存在本地，不会上传服务器</p>
+  </div>
+);
+
+const InstructionsCard: React.FC = () => (
+  <div className="bg-blue-50 rounded-xl p-4">
+    <h3 className="text-sm font-medium text-blue-800 mb-2">使用说明</h3>
+    <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+      <li>选择服务商或自定义API地址</li>
+      <li>填入你的API密钥（从各平台控制台获取）</li>
+      <li>点击测试连接验证配置</li>
+      <li>保存后即可在套题测评中使用AI分析</li>
+    </ol>
+  </div>
+);
+
+const RecommendationsCard: React.FC = () => (
+  <div className="bg-gray-50 rounded-xl p-4">
+    <h3 className="text-sm font-medium text-gray-700 mb-2">推荐服务商</h3>
+    <div className="text-xs text-gray-500 space-y-1">
+      <p><strong>硅基流动</strong> - 国内访问快，价格便宜，支持多种模型</p>
+      <p><strong>DeepSeek</strong> - 国产大模型，中文理解好，性价比高</p>
+      <p><strong>智谱AI</strong> - 清华技术，GLM系列模型</p>
+    </div>
+  </div>
+);
+
+/* ─── Main Page ─── */
 
 const SettingsPage: React.FC = () => {
   const [config, setConfig] = useState<AIConfig>({
@@ -31,38 +151,29 @@ const SettingsPage: React.FC = () => {
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
 
   useEffect(() => {
-    loadConfig();
-  }, []);
-
-  function loadConfig() {
     try {
-      const saved = localStorage.getItem('ai_config');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // 只显示密钥的后4位
-        if (parsed.apiKey) {
-          parsed.apiKey = parsed.apiKey;
-        }
-        setConfig(parsed);
+      const savedStr = localStorage.getItem('ai_config');
+      if (savedStr) {
+        setConfig(JSON.parse(savedStr) as AIConfig);
       }
     } catch (e) {
       console.error('加载配置失败', e);
     }
-  }
+  }, []);
 
-  function handleProviderChange(providerName: string) {
-    const provider = AI_PROVIDERS.find(p => p.name === providerName);
+  const handleProviderChange = useCallback((providerName: string) => {
+    const provider = AI_PROVIDERS.find((p) => p.name === providerName);
     if (provider) {
-      setConfig(prev => ({
+      setConfig((prev) => ({
         ...prev,
         provider: providerName,
         apiUrl: provider.url || prev.apiUrl,
         model: provider.model || prev.model,
       }));
     }
-  }
+  }, []);
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
     setSaving(true);
     try {
       localStorage.setItem('ai_config', JSON.stringify(config));
@@ -73,9 +184,9 @@ const SettingsPage: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }
+  }, [config]);
 
-  async function handleTest() {
+  const handleTest = useCallback(async () => {
     if (!config.apiKey || !config.apiUrl) {
       setTestResult('error');
       return;
@@ -98,121 +209,62 @@ const SettingsPage: React.FC = () => {
         }),
       });
 
-      if (response.ok) {
-        setTestResult('success');
-      } else {
-        const error = await response.json();
-        console.error('API测试失败:', error);
-        setTestResult('error');
-      }
-    } catch (e) {
-      console.error('API测试失败:', e);
+      setTestResult(response.ok ? 'success' : 'error');
+    } catch {
       setTestResult('error');
     } finally {
       setTesting(false);
     }
-  }
+  }, [config]);
+
+  const providerOptions: SelectOption[] = AI_PROVIDERS.map((p) => ({
+    value: p.name,
+    label: p.name,
+  }));
 
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">设置</h1>
-          <p className="text-sm text-gray-500 mt-1">配置AI分析接口</p>
-        </div>
+      <div>
+        <h1 className="text-xl font-bold text-gray-800">设置</h1>
+        <p className="text-sm text-gray-500 mt-1">配置AI分析接口</p>
       </div>
 
-      {/* AI配置 */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
         <div className="flex items-center gap-2 mb-4">
           <Cpu className="w-5 h-5 text-primary-500" />
           <h2 className="text-base font-semibold text-gray-800">AI分析配置</h2>
         </div>
 
-        {/* 服务商选择 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">服务商</label>
-          <select
-            value={config.provider}
-            onChange={e => handleProviderChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
-          >
-            {AI_PROVIDERS.map(p => (
-              <option key={p.name} value={p.name}>{p.name}</option>
-            ))}
-          </select>
-        </div>
+        <FormSelect
+          label="服务商"
+          value={config.provider}
+          onChange={(e) => handleProviderChange(e.target.value)}
+          options={providerOptions}
+        />
 
-        {/* API地址 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <Globe className="w-4 h-4 inline mr-1" />
-            API地址
-          </label>
-          <input
-            type="text"
-            value={config.apiUrl}
-            onChange={e => setConfig({ ...config, apiUrl: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
-            placeholder="https://api.example.com/v1/chat/completions"
-          />
-        </div>
+        <FormInput
+          label={<><Globe className="w-4 h-4 inline mr-1" />API地址</>}
+          value={config.apiUrl}
+          onChange={(e) => setConfig({ ...config, apiUrl: e.target.value })}
+          placeholder="https://api.example.com/v1/chat/completions"
+        />
 
-        {/* API密钥 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            <Key className="w-4 h-4 inline mr-1" />
-            API密钥
-          </label>
-          <div className="relative">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={config.apiKey}
-              onChange={e => setConfig({ ...config, apiKey: e.target.value })}
-              className="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
-              placeholder="sk-xxxxxxxxxxxxxxxx"
-            />
-            <button
-              type="button"
-              onClick={() => setShowKey(!showKey)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          </div>
-          <p className="text-xs text-gray-400 mt-1">密钥仅保存在本地，不会上传服务器</p>
-        </div>
+        <ApiKeyInput
+          value={config.apiKey}
+          showKey={showKey}
+          onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
+          onToggle={() => setShowKey((s) => !s)}
+        />
 
-        {/* 模型选择 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">模型</label>
-          <input
-            type="text"
-            value={config.model}
-            onChange={e => setConfig({ ...config, model: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
-            placeholder="model-name"
-          />
-        </div>
+        <FormInput
+          label="模型"
+          value={config.model}
+          onChange={(e) => setConfig({ ...config, model: e.target.value })}
+          placeholder="model-name"
+        />
 
-        {/* 测试结果 */}
-        {testResult && (
-          <div className={`flex items-center gap-2 p-3 rounded-lg ${testResult === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-            {testResult === 'success' ? (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                <span className="text-sm">连接成功！API配置正确</span>
-              </>
-            ) : (
-              <>
-                <AlertCircle className="w-4 h-4" />
-                <span className="text-sm">连接失败，请检查配置</span>
-              </>
-            )}
-          </div>
-        )}
+        {testResult && <TestResultBanner result={testResult} />}
 
-        {/* 按钮 */}
         <div className="flex gap-3 pt-2">
           <button
             onClick={handleTest}
@@ -232,26 +284,8 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 使用说明 */}
-      <div className="bg-blue-50 rounded-xl p-4">
-        <h3 className="text-sm font-medium text-blue-800 mb-2">使用说明</h3>
-        <ul className="text-xs text-blue-700 space-y-1">
-          <li>1. 选择服务商或自定义API地址</li>
-          <li>2. 填入你的API密钥（从各平台控制台获取）</li>
-          <li>3. 点击测试连接验证配置</li>
-          <li>4. 保存后即可在套题测评中使用AI分析</li>
-        </ul>
-      </div>
-
-      {/* 推荐服务商 */}
-      <div className="bg-gray-50 rounded-xl p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">推荐服务商</h3>
-        <div className="text-xs text-gray-500 space-y-1">
-          <p><strong>硅基流动</strong> - 国内访问快，价格便宜，支持多种模型</p>
-          <p><strong>DeepSeek</strong> - 国产大模型，中文理解好，性价比高</p>
-          <p><strong>智谱AI</strong> - 清华技术，GLM系列模型</p>
-        </div>
-      </div>
+      <InstructionsCard />
+      <RecommendationsCard />
     </div>
   );
 };
