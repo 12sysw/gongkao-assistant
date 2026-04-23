@@ -8,8 +8,15 @@ import {
   BookOpen,
   CheckCircle,
   Timer,
+  Zap,
+  ArrowRight,
 } from 'lucide-react';
 import { useExamConfig, useDailyStats, useDueReviews, useWrongBookRecords } from '../hooks/use-api';
+import { StatCard } from '../components/ui/StatCard';
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
+import { Badge } from '../components/ui/Badge';
+import { ProgressBar } from '../components/ui/ProgressBar';
+import { cn } from '../lib/utils';
 
 function formatMinutes(m: number) {
   if (m < 60) return `${m}分钟`;
@@ -29,11 +36,11 @@ function getExamCountdown(date?: string): { days: number; hours: number; passed:
   return { days, hours, passed: false };
 }
 
-function getAccuracyColor(pct: number): string {
-  if (pct < 50) return 'bg-red-500';
-  if (pct < 70) return 'bg-yellow-500';
-  if (pct < 85) return 'bg-blue-500';
-  return 'bg-green-500';
+function getAccuracyVariant(pct: number): 'error' | 'warning' | 'info' | 'success' {
+  if (pct < 50) return 'error';
+  if (pct < 70) return 'warning';
+  if (pct < 85) return 'info';
+  return 'success';
 }
 
 export default function Dashboard() {
@@ -56,38 +63,78 @@ export default function Dashboard() {
   }, [wrongRecords]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 animate-fade-in">
       {/* 考试倒计时 */}
       {examConfig && (
-        <div className={`rounded-2xl p-6 text-white ${countdown.passed ? 'bg-gray-500' : 'bg-gradient-to-r from-red-500 to-orange-500'}`}>
-          <div className="flex items-center justify-between">
+        <div
+          className={cn(
+            'relative overflow-hidden rounded-2xl p-6 text-white',
+            countdown.passed
+              ? 'bg-slate-500'
+              : 'gradient-primary'
+          )}
+        >
+          {/* Decorative circles */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
+
+          <div className="relative flex items-center justify-between">
             <div>
-              <p className="text-white/80 text-sm">{examConfig.name}</p>
-              <p className="text-white/60 text-xs mt-1">{examConfig.date}</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Zap className="w-4 h-4 text-white/70" />
+                <p className="text-white/80 text-sm font-medium">{examConfig.name}</p>
+              </div>
+              <p className="text-white/50 text-xs">{examConfig.date}</p>
             </div>
-            {!countdown.passed && (
-              <div className="text-right flex items-center gap-4">
-                <div className="text-center">
-                  <p className="text-4xl font-bold">{countdown.days}</p>
-                  <p className="text-xs text-white/80">天</p>
+            {!countdown.passed ? (
+              <div className="flex items-center gap-1">
+                <div className="text-center px-3">
+                  <p className="text-4xl font-bold tabular-nums">{countdown.days}</p>
+                  <p className="text-xs text-white/70 mt-0.5">天</p>
                 </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold">{countdown.hours}</p>
-                  <p className="text-xs text-white/80">小时</p>
+                <span className="text-white/30 text-2xl font-light pb-4">:</span>
+                <div className="text-center px-3">
+                  <p className="text-4xl font-bold tabular-nums">{countdown.hours}</p>
+                  <p className="text-xs text-white/70 mt-0.5">小时</p>
                 </div>
               </div>
+            ) : (
+              <p className="text-white/80 text-sm">考试已结束</p>
             )}
           </div>
-          {countdown.passed && <p className="text-center mt-2 text-white/80">考试已结束</p>}
         </div>
       )}
 
       {/* 核心数据 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={Flame} iconColor="text-orange-500" bgColor="bg-orange-100" label="连续学习" value={`${stats?.streak || 0}天`} />
-        <StatCard icon={BookOpen} iconColor="text-blue-500" bgColor="bg-blue-100" label="累计刷题" value={`${stats?.total_questions || 0}道`} />
-        <StatCard icon={Clock} iconColor="text-green-500" bgColor="bg-green-100" label="学习时长" value={stats?.total_minutes ? formatMinutes(stats.total_minutes) : '0分钟'} />
-        <StatCard icon={CheckCircle} iconColor="text-purple-500" bgColor="bg-purple-100" label="已掌握错题" value={`${stats?.mastered_count || 0}道`} />
+        <StatCard
+          icon={Flame}
+          iconColor="text-warning-500"
+          iconBgColor="bg-warning-50"
+          label="连续学习"
+          value={`${stats?.streak || 0}天`}
+        />
+        <StatCard
+          icon={BookOpen}
+          iconColor="text-primary-500"
+          iconBgColor="bg-primary-50"
+          label="累计刷题"
+          value={`${stats?.total_questions || 0}道`}
+        />
+        <StatCard
+          icon={Clock}
+          iconColor="text-success-500"
+          iconBgColor="bg-success-50"
+          label="学习时长"
+          value={stats?.total_minutes ? formatMinutes(stats.total_minutes) : '0分钟'}
+        />
+        <StatCard
+          icon={CheckCircle}
+          iconColor="text-info-500"
+          iconBgColor="bg-info-50"
+          label="已掌握错题"
+          value={`${stats?.mastered_count || 0}道`}
+        />
       </div>
 
       {/* 待复习 + 正确率 */}
@@ -97,108 +144,195 @@ export default function Dashboard() {
       </div>
 
       {/* 快捷入口 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="text-base font-semibold text-gray-800 mb-4">快捷功能</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <QuickLink href="#/wrong-book" icon={AlertTriangle} iconColor="text-red-500" bgColor="bg-red-50" label="添加错题" />
-          <QuickLink href="#/mock-exam" icon={Timer} iconColor="text-blue-500" bgColor="bg-blue-50" label="套题测评" />
-          <QuickLink href="#/flashcards" icon={BookOpen} iconColor="text-purple-500" bgColor="bg-purple-50" label="记忆卡片" />
-          <QuickLink href="#/pomodoro" icon={Clock} iconColor="text-green-500" bgColor="bg-green-50" label="番茄专注" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ icon: Icon, iconColor, bgColor, label, value }: any) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg ${bgColor} flex items-center justify-center`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
-        </div>
-        <div>
-          <p className="text-xs text-gray-500">{label}</p>
-          <p className="text-xl font-bold text-gray-800">{value}</p>
-        </div>
-      </div>
+      <Card padding="md">
+        <CardHeader>
+          <CardTitle>
+            <Zap className="w-4 h-4 text-primary-500" />
+            快捷功能
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <QuickLink
+              href="#/wrong-book"
+              icon={AlertTriangle}
+              iconColor="text-error-500"
+              iconBgColor="bg-error-50"
+              label="添加错题"
+            />
+            <QuickLink
+              href="#/mock-exam"
+              icon={Timer}
+              iconColor="text-primary-500"
+              iconBgColor="bg-primary-50"
+              label="套题测评"
+            />
+            <QuickLink
+              href="#/flashcards"
+              icon={BookOpen}
+              iconColor="text-warning-500"
+              iconBgColor="bg-warning-50"
+              label="记忆卡片"
+            />
+            <QuickLink
+              href="#/pomodoro"
+              icon={Clock}
+              iconColor="text-success-500"
+              iconBgColor="bg-success-50"
+              label="番茄专注"
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 function DueReviewCard({ dueReviews }: { dueReviews: any[] }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-          <Target className="w-4 h-4 text-red-500" />
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <Target className="w-4 h-4 text-error-500" />
           待复习错题
-        </h2>
-        <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-600">{dueReviews.length} 道</span>
-      </div>
-      {dueReviews.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <CheckCircle className="w-10 h-10 mx-auto mb-2 text-green-300" />
-          <p>暂无待复习的错题</p>
-        </div>
-      ) : (
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-          {dueReviews.slice(0, 5).map((item: any) => (
-            <div key={item.id} className="flex items-center p-3 rounded-lg bg-gray-50 text-sm">
-              <span className="px-2 py-0.5 rounded text-xs bg-primary-100 text-primary-700 mr-3 shrink-0">
-                {item.type?.split('-')[1] || item.type}
-              </span>
-              <span className="text-gray-700 truncate flex-1">{item.content?.slice(0, 30)}...</span>
+        </CardTitle>
+        <Badge variant="error">{dueReviews.length} 道</Badge>
+      </CardHeader>
+      <CardContent>
+        {dueReviews.length === 0 ? (
+          <div className="text-center py-10">
+            <div className="w-14 h-14 bg-success-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <CheckCircle className="w-7 h-7 text-success-400" />
             </div>
-          ))}
-          {dueReviews.length > 5 && (
-            <p className="text-xs text-gray-400 text-center py-2">还有 {dueReviews.length - 5} 道...</p>
-          )}
-        </div>
-      )}
-    </div>
+            <p className="text-sm text-slate-500">暂无待复习的错题</p>
+            <p className="text-xs text-slate-400 mt-1">继续保持！</p>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            {dueReviews.slice(0, 5).map((item: any) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 p-3 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 transition-colors group"
+              >
+                <Badge variant="info" className="shrink-0 text-[10px]">
+                  {item.type?.split('-')[1] || item.type}
+                </Badge>
+                <span className="text-sm text-slate-700 truncate flex-1">
+                  {item.content?.slice(0, 30)}...
+                </span>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              </div>
+            ))}
+            {dueReviews.length > 5 && (
+              <p className="text-xs text-slate-400 text-center py-2">
+                还有 {dueReviews.length - 5} 道...
+              </p>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
 function AccuracyCard({ typeAccuracy }: { typeAccuracy: any[] }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2 mb-4">
-        <TrendingUp className="w-4 h-4 text-green-500" />
-        各题型掌握情况
-      </h2>
-      {typeAccuracy.length === 0 ? (
-        <div className="text-center py-8 text-gray-400">
-          <p>暂无数据</p>
-          <p className="text-xs mt-1">开始添加错题后查看</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {typeAccuracy.map((item: any) => {
-            const pct = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
-            return (
-              <div key={item.type}>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-gray-600">{item.type.split('-')[1] || item.type}</span>
-                  <span className="text-gray-500">{item.correct}/{item.total} | {pct}%</span>
+    <Card>
+      <CardHeader>
+        <CardTitle>
+          <TrendingUp className="w-4 h-4 text-success-500" />
+          各题型掌握情况
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {typeAccuracy.length === 0 ? (
+          <div className="text-center py-10">
+            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <TrendingUp className="w-7 h-7 text-slate-300" />
+            </div>
+            <p className="text-sm text-slate-500">暂无数据</p>
+            <p className="text-xs text-slate-400 mt-1">开始添加错题后查看</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {typeAccuracy.map((item: any) => {
+              const pct = item.total > 0 ? Math.round((item.correct / item.total) * 100) : 0;
+              const variant = getAccuracyVariant(pct);
+              return (
+                <div key={item.type}>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span className="text-slate-600 font-medium">
+                      {item.type.split('-')[1] || item.type}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-400">
+                        {item.correct}/{item.total}
+                      </span>
+                      <Badge variant={variant} className="text-[10px] min-w-[44px] justify-center">
+                        {pct}%
+                      </Badge>
+                    </div>
+                  </div>
+                  <ProgressBar
+                    value={pct}
+                    variant={
+                      variant === 'error'
+                        ? 'error'
+                        : variant === 'warning'
+                        ? 'warning'
+                        : variant === 'info'
+                        ? 'primary'
+                        : 'success'
+                    }
+                    size="sm"
+                  />
                 </div>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full ${getAccuracyColor(pct)} rounded-full`} style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
-function QuickLink({ href, icon: Icon, iconColor, bgColor, label }: any) {
+function QuickLink({
+  href,
+  icon: Icon,
+  iconColor,
+  iconBgColor,
+  label,
+}: {
+  href: string;
+  icon: React.ElementType;
+  iconColor: string;
+  iconBgColor: string;
+  label: string;
+}) {
   return (
-    <a href={href} className={`flex items-center gap-3 p-3 rounded-lg ${bgColor} hover:opacity-80 transition-colors`}>
-      <Icon className={`w-5 h-5 ${iconColor}`} />
-      <span className="text-sm font-medium text-gray-700">{label}</span>
+    <a
+      href={href}
+      className={cn(
+        'flex items-center gap-3 p-3.5 rounded-xl',
+        'bg-slate-50 hover:bg-white',
+        'border border-transparent hover:border-slate-200',
+        'card-shadow hover:card-shadow-hover',
+        'transition-all duration-300 ease-out',
+        'hover:-translate-y-0.5 group'
+      )}
+    >
+      <div
+        className={cn(
+          'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+          iconBgColor
+        )}
+      >
+        <Icon className={cn('w-5 h-5', iconColor)} />
+      </div>
+      <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900">
+        {label}
+      </span>
+      <ArrowRight className="w-3.5 h-3.5 text-slate-300 ml-auto opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0.5" />
     </a>
   );
 }
