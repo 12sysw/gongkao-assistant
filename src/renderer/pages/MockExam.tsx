@@ -195,13 +195,21 @@ export default function MockExam() {
     }
   }, [store.challengeCountdown]);
 
-  // 挑战模式计时
+  // 挑战模式计时（20分钟倒计时）
   useEffect(() => {
     if (store.challengeMode && !store.challengeResult) {
-      const timer = setInterval(() => store.incrementChallengeTimer(), 1000);
+      const timer = setInterval(() => {
+        store.incrementChallengeTimer();
+        if (store.challengeTimeLeft <= 1) {
+          // 时间到，自动结束
+          finishChallenge();
+        } else {
+          store.decrementChallengeTime();
+        }
+      }, 1000);
       return () => clearInterval(timer);
     }
-  }, [store.challengeMode, store.challengeResult]);
+  }, [store.challengeMode, store.challengeResult, store.challengeTimeLeft]);
 
   // 开始正式考试
   const startExam = useCallback(() => {
@@ -217,6 +225,7 @@ export default function MockExam() {
   const startChallenge = useCallback(() => {
     store.setChallengeCountdown(3);
     store.setChallengeResult(null);
+    store.setChallengeTimeLeft(20 * 60);  // 20分钟
   }, []);
 
   // 答题
@@ -322,7 +331,7 @@ export default function MockExam() {
   }, []);
 
   // ==================== 渲染 ====================
-  const { step, questions, currentIndex, answers, timeLeft, report, showConfirm, challengeMode, challengeCountdown, challengeTimer, challengeResult, challengeMessage, aiAnalyzing, aiAnalysisText } = store;
+  const { step, questions, currentIndex, answers, timeLeft, report, showConfirm, challengeMode, challengeCountdown, challengeTimer, challengeTimeLeft, challengeResult, challengeMessage, aiAnalyzing, aiAnalysisText } = store;
 
   // 选择界面
   if (step === 'select') {
@@ -331,7 +340,7 @@ export default function MockExam() {
 
   // 答题界面
   if (step === 'exam') {
-    return <ExamPage questions={questions} currentIndex={currentIndex} answers={answers} timeLeft={timeLeft} challengeMode={challengeMode} challengeTimer={challengeTimer} handleAnswer={handleAnswer} handleSubmit={handleSubmit} showConfirm={showConfirm} confirmSubmit={confirmSubmit} setShowConfirm={store.setShowConfirm} setCurrentIndex={store.setCurrentIndex} />;
+    return <ExamPage questions={questions} currentIndex={currentIndex} answers={answers} timeLeft={timeLeft} challengeMode={challengeMode} challengeTimeLeft={challengeTimeLeft} handleAnswer={handleAnswer} handleSubmit={handleSubmit} showConfirm={showConfirm} confirmSubmit={confirmSubmit} setShowConfirm={store.setShowConfirm} setCurrentIndex={store.setCurrentIndex} />;
   }
 
   // 结果界面
@@ -412,7 +421,7 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
 }
 
 // ==================== 答题页面 ====================
-function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, challengeTimer, handleAnswer, handleSubmit, showConfirm, confirmSubmit, setShowConfirm, setCurrentIndex }: any) {
+function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, challengeTimeLeft, handleAnswer, handleSubmit, showConfirm, confirmSubmit, setShowConfirm, setCurrentIndex }: any) {
   const q = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
@@ -429,9 +438,9 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
             </div>
             <div className="flex items-center gap-4">
               <span className="text-white/80">已答 {answers.size} 题</span>
-              <div className="flex items-center gap-2 font-mono text-xl bg-white/20 px-3 py-1 rounded-full">
+              <div className={`flex items-center gap-2 font-mono text-xl px-3 py-1 rounded-full ${challengeTimeLeft < 60 ? 'bg-red-500/40 animate-pulse' : 'bg-white/20'}`}>
                 <Clock className="w-5 h-5" />
-                {formatTime(challengeTimer)}
+                {formatTime(challengeTimeLeft)}
               </div>
             </div>
           </div>
@@ -462,7 +471,7 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
           </div>
         </div>
 
-        <div className="p-4 text-center text-white/60 text-sm">选择答案后自动跳转下一题 · 共 {questions.length} 题</div>
+        <div className="p-4 text-center text-white/60 text-sm">选择答案后自动跳转下一题 · 剩余时间 {formatTime(challengeTimeLeft)} · 共 {questions.length} 题</div>
       </div>
     );
   }

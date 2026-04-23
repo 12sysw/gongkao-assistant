@@ -81,8 +81,11 @@ interface MockExamState {
   setChallengeMode: (mode: boolean) => void;
   challengeCountdown: number | null;
   setChallengeCountdown: (countdown: number | null) => void;
-  challengeTimer: number;
+  challengeTimer: number;          // 已用时间（秒）
+  challengeTimeLeft: number;        // 剩余时间（秒），默认20分钟
   setChallengeTimer: (timer: number) => void;
+  setChallengeTimeLeft: (time: number) => void;
+  decrementChallengeTime: () => void;
   incrementChallengeTimer: () => void;
   challengeResult: 'win' | 'lose' | null;
   setChallengeResult: (result: 'win' | 'lose' | null) => void;
@@ -132,7 +135,10 @@ export const useMockExamStore = create<MockExamState>((set, get) => ({
   challengeCountdown: null,
   setChallengeCountdown: (countdown) => set({ challengeCountdown: countdown }),
   challengeTimer: 0,
+  challengeTimeLeft: 20 * 60,  // 20分钟
   setChallengeTimer: (timer) => set({ challengeTimer: timer }),
+  setChallengeTimeLeft: (time) => set({ challengeTimeLeft: time }),
+  decrementChallengeTime: () => set({ challengeTimeLeft: get().challengeTimeLeft - 1 }),
   incrementChallengeTimer: () => set({ challengeTimer: get().challengeTimer + 1 }),
   challengeResult: null,
   setChallengeResult: (result) => set({ challengeResult: result }),
