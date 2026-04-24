@@ -28,12 +28,12 @@ interface CategoryConfig {
 }
 
 const CATEGORIES: CategoryConfig[] = [
-  { key: 'formula', label: '行测公式', icon: Calculator, color: 'bg-[#dbeafe] text-[#1e40af]' },
-  { key: 'politics', label: '政治常识', icon: Landmark, color: 'bg-[#fee2e2] text-[#991b1b]' },
-  { key: 'law', label: '法律常识', icon: Scale, color: 'bg-purple-50 text-purple-700' },
-  { key: 'economy', label: '经济常识', icon: BookOpen, color: 'bg-[#dcfce7] text-[#166534]' },
-  { key: 'tech', label: '科技常识', icon: FlaskConical, color: 'bg-[#ecfeff] text-[#0e7490]' },
-  { key: 'shenlun', label: '申论金句', icon: PenTool, color: 'bg-amber-50 text-amber-700' },
+  { key: 'formula', label: '行测公式', icon: Calculator, color: 'bg-brand-100 text-brand-600' },
+  { key: 'politics', label: '政治常识', icon: Landmark, color: 'bg-danger-light text-danger-dark' },
+  { key: 'law', label: '法律常识', icon: Scale, color: 'bg-warning-light text-warning-dark' },
+  { key: 'economy', label: '经济常识', icon: BookOpen, color: 'bg-success-light text-success-dark' },
+  { key: 'tech', label: '科技常识', icon: FlaskConical, color: 'bg-blue-100 text-blue-700' },
+  { key: 'shenlun', label: '申论金句', icon: PenTool, color: 'bg-amber-100 text-amber-700' },
 ];
 
 const KNOWLEDGE_DATA: KnowledgeItem[] = [
@@ -74,13 +74,13 @@ const SearchBar: React.FC<{
   onChange: (value: string) => void;
 }> = ({ value, onChange }) => (
   <div className="relative">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
     <input
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder="搜索知识点..."
-      className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+      className="w-full pl-9 pr-4 py-2.5 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
     />
   </div>
 );
@@ -100,8 +100,8 @@ const CategoryGrid: React.FC<{
           onClick={() => onToggle(cat.key)}
           className={`p-3 rounded-xl border transition-colors text-left ${
             isActive
-              ? 'border-primary-300 bg-primary-50'
-              : 'border-gray-200 bg-white hover:border-gray-300'
+              ? 'border-brand-300 bg-brand-50'
+              : 'border-surface-200 bg-white hover:border-surface-300'
           }`}
         >
           <div
@@ -109,8 +109,8 @@ const CategoryGrid: React.FC<{
           >
             <Icon className="w-4 h-4" />
           </div>
-          <p className="text-sm font-medium text-gray-800">{cat.label}</p>
-          <p className="text-xs text-gray-400">{count} 条</p>
+          <p className="text-sm font-medium text-surface-900">{cat.label}</p>
+          <p className="text-xs text-surface-400">{count} 条</p>
         </button>
       );
     })}
@@ -125,39 +125,39 @@ const KnowledgeCard: React.FC<{
   const category = CATEGORIES.find((c) => c.key === item.category);
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
       <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-0 transition-colors"
         onClick={onToggle}
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span
               className={`px-2 py-0.5 rounded text-xs ${
-                category?.color || 'bg-gray-100 text-gray-600'
+                category?.color || 'bg-surface-100 text-surface-600'
               }`}
             >
               {category?.label || item.category}
             </span>
-            <h3 className="text-sm font-medium text-gray-800">{item.title}</h3>
+            <h3 className="text-sm font-medium text-surface-900">{item.title}</h3>
           </div>
           <div className="flex gap-1 flex-wrap">
             {item.tags.map((tag) => (
-              <span key={tag} className="text-xs text-gray-400">
+              <span key={tag} className="text-xs text-surface-400">
                 #{tag}
               </span>
             ))}
           </div>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" />
+          <ChevronUp className="w-4 h-4 text-surface-400 shrink-0" />
         ) : (
-          <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />
+          <ChevronDown className="w-4 h-4 text-surface-400 shrink-0" />
         )}
       </div>
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-gray-100">
-          <pre className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed font-sans">
+        <div className="px-4 pb-4 pt-2 border-t border-surface-100">
+          <pre className="text-sm text-surface-700 whitespace-pre-wrap leading-relaxed font-sans">
             {item.content}
           </pre>
         </div>
@@ -167,8 +167,8 @@ const KnowledgeCard: React.FC<{
 };
 
 const EmptyState: React.FC = () => (
-  <div className="text-center py-12 text-gray-400">
-    <BookOpen className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+  <div className="text-center py-12 text-surface-400">
+    <BookOpen className="w-12 h-12 mx-auto mb-2 text-surface-300" />
     <p>没有找到相关知识点</p>
   </div>
 );
@@ -204,8 +204,8 @@ const KnowledgeBase: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-gray-800">知识点速查</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-xl font-bold text-surface-900 font-display">知识点速查</h1>
+        <p className="text-sm text-surface-500 mt-1">
           行测公式、常识考点、申论金句，一键速查
         </p>
       </div>

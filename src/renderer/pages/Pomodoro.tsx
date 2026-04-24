@@ -16,9 +16,9 @@ interface HistoryRecord {
 }
 
 const MODES: Record<TimerMode, ModeConfig> = {
-  work: { label: '专注', color: 'text-[#dc2626]00', bg: 'from-red-500 to-pink-600' },
-  shortBreak: { label: '短休息', color: 'text-[#16a34a]00', bg: 'from-green-500 to-emerald-600' },
-  longBreak: { label: '长休息', color: 'text-[#2563eb]00', bg: 'from-blue-500 to-indigo-600' },
+  work: { label: '专注', color: 'text-brand-500', bg: 'from-brand-500 via-brand-600 to-brand-700' },
+  shortBreak: { label: '短休息', color: 'text-success-dark', bg: 'from-success-light via-[#bbf7d0] to-[#86efac]' },
+  longBreak: { label: '长休息', color: 'text-brand-400', bg: 'from-brand-100 via-brand-200 to-brand-300' },
 };
 
 const MODE_BUTTONS: { key: TimerMode; icon: React.ReactNode; label: string }[] = [
@@ -45,8 +45,8 @@ const SettingsPanel: React.FC<{
   onShortChange: (v: number) => void;
   onLongChange: (v: number) => void;
 }> = ({ workMin, shortBreakMin, longBreakMin, onWorkChange, onShortChange, onLongChange }) => (
-  <div className="text-[#fafaf9] rounded-xl border border-gray-200 p-5">
-    <h2 className="text-sm font-semibold text-[#57534e]0 mb-3">番茄钟设置</h2>
+  <div className="bg-white rounded-xl border border-surface-200 p-5">
+    <h2 className="text-sm font-semibold text-surface-600 mb-3">番茄钟设置</h2>
     <div className="grid grid-cols-3 gap-4 mb-4">
       <NumberInput label="专注(分钟)" value={workMin} onChange={onWorkChange} min={1} max={120} />
       <NumberInput label="短休息(分钟)" value={shortBreakMin} onChange={onShortChange} min={1} max={30} />
@@ -63,12 +63,12 @@ const NumberInput: React.FC<{
   max: number;
 }> = ({ label, value, onChange, min, max }) => (
   <div>
-    <label className="block text-xs text-gray-500 mb-1">{label}</label>
+    <label className="block text-xs text-surface-500 mb-1">{label}</label>
     <input
       type="number"
       value={value}
       onChange={(e) => onChange(Math.max(min, Math.min(max, +e.target.value)))}
-      className="w-full px-3 py-2 border rounded-lg text-sm"
+      className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
       min={min}
       max={max}
     />
@@ -85,7 +85,7 @@ const ModeSelector: React.FC<{
         key={key}
         onClick={() => onSwitch(key)}
         className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-          mode === key ? 'bg-primary-600 text-white' : 'text-[#f5f3f0]0 text-[#57534e]0 hover:text-[#fafaf9]0'
+          mode === key ? 'bg-brand-500 text-white' : 'text-surface-500 hover:text-surface-900'
         }`}
       >
         {icon} {label}
@@ -102,7 +102,7 @@ const TimerDisplay: React.FC<{
 }> = ({ mode, timeLeft, progress, completed }) => (
   <div className={`bg-gradient-to-br ${MODES[mode].bg} rounded-2xl p-10 text-white text-center relative overflow-hidden`}>
     <div
-      className="absolute bottom-0 left-0 h-1.5 text-[#fafaf9]/20 transition-all duration-1000"
+      className="absolute bottom-0 left-0 h-1.5 bg-white/20 transition-all duration-1000"
       style={{ width: `${progress}%` }}
     />
     <div className="text-7xl font-mono font-bold tracking-wider">{formatTime(timeLeft)}</div>
@@ -122,15 +122,13 @@ const TimerControls: React.FC<{
   <div className="flex justify-center gap-3">
     <button
       onClick={onReset}
-      className="flex items-center gap-2 px-5 py-3 text-[#f5f3f0]0 hover:text-[#fafaf9]0 text-[#57534e]0 rounded-xl text-sm transition-colors"
+      className="flex items-center gap-2 px-5 py-3 text-surface-600 hover:bg-surface-50 rounded-xl text-sm transition-colors"
     >
       <RotateCcw className="w-4 h-4" /> 重置
     </button>
     <button
       onClick={onToggle}
-      className={`flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-white text-sm transition-colors ${
-        isRunning ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-primary-600 hover:bg-primary-700'
-      }`}
+      className="flex items-center gap-2 px-8 py-3 rounded-xl font-semibold text-white text-sm transition-colors bg-brand-500 hover:bg-brand-600"
     >
       {isRunning ? (
         <>
@@ -144,7 +142,7 @@ const TimerControls: React.FC<{
     </button>
     <button
       onClick={onSkip}
-      className="flex items-center gap-2 px-5 py-3 text-[#f5f3f0]0 hover:text-[#fafaf9]0 text-[#57534e]0 rounded-xl text-sm transition-colors"
+      className="flex items-center gap-2 px-5 py-3 text-surface-600 hover:bg-surface-50 rounded-xl text-sm transition-colors"
     >
       <SkipForward className="w-4 h-4" /> 跳过
     </button>
@@ -154,21 +152,21 @@ const TimerControls: React.FC<{
 const ProgressTracker: React.FC<{
   completed: number;
 }> = ({ completed }) => (
-  <div className="text-[#fafaf9] rounded-xl border border-gray-200 p-5">
-    <h2 className="text-sm font-semibold text-[#57534e]0 mb-3">今日进度</h2>
+  <div className="bg-white rounded-xl border border-surface-200 p-5">
+    <h2 className="text-sm font-semibold text-surface-600 mb-3">今日进度</h2>
     <div className="flex gap-2">
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
           className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
-            i < completed ? 'bg-red-500 text-white' : 'text-[#f5f3f0]0 text-[#a8a29e]0'
+            i < completed ? 'bg-brand-500 text-white' : 'bg-surface-50 text-surface-400'
           }`}
         >
           {i < completed ? '✓' : i + 1}
         </div>
       ))}
     </div>
-    <p className="text-xs text-[#a8a29e]0 mt-2">每4个番茄后长休息 · 目标8个/天</p>
+    <p className="text-xs text-surface-400 mt-2">每4个番茄后长休息 · 目标8个/天</p>
   </div>
 );
 
@@ -177,8 +175,8 @@ const TipCard: React.FC<{
   shortBreakMin: number;
   longBreakMin: number;
 }> = ({ workMin, shortBreakMin, longBreakMin }) => (
-  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-    <p className="font-semibold mb-1">💡 番茄工作法</p>
+  <div className="bg-brand-50 border border-brand-200 rounded-xl p-4 text-sm text-brand-700">
+    <p className="font-semibold mb-1">番茄工作法</p>
     <p>
       专注 {workMin} 分钟 → 休息 {shortBreakMin} 分钟，每4个循环后长休息 {longBreakMin} 分钟。专注时段自动记录到学习时长。
     </p>
@@ -321,16 +319,16 @@ const Pomodoro: React.FC = () => {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-[#1c1917]0">番茄钟</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-xl font-bold text-surface-900 font-display">番茄钟</h1>
+          <p className="text-sm text-surface-500 mt-1">
             已完成 {completed} 个专注时段 · 本周 {Math.round((totalWeekMin / 60) * 10) / 10} 小时
           </p>
         </div>
         <button
           onClick={() => setShowSettings((s) => !s)}
-          className="p-2 hover:text-[#f5f3f0]0 rounded-lg transition-colors"
+          className="p-2 rounded-lg hover:bg-surface-50 transition-colors"
         >
-          <Settings className="w-5 h-5 text-gray-500" />
+          <Settings className="w-5 h-5 text-surface-400" />
         </button>
       </div>
 

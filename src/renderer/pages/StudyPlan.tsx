@@ -53,18 +53,18 @@ interface LogForm {
 const SUBJECTS = ['行测-言语理解', '行测-数量关系', '行测-判断推理', '行测-资料分析', '行测-常识判断', '申论', '面试', '综合'];
 
 const priorityConfig: Record<string, { label: string; color: string }> = {
-  high: { label: '高优先', color: 'bg-red-100 text-red-700' },
-  medium: { label: '中优先', color: 'bg-yellow-100 text-yellow-700' },
-  low: { label: '低优先', color: 'bg-green-100 text-green-700' },
+  high: { label: '高优先', color: 'bg-danger-light text-danger-dark' },
+  medium: { label: '中优先', color: 'bg-warning-light text-warning-dark' },
+  low: { label: '低优先', color: 'bg-success-light text-success-dark' },
 };
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  pending: { label: '待开始', icon: Circle, color: 'text-gray-400' },
-  in_progress: { label: '进行中', icon: Play, color: 'text-blue-500' },
-  completed: { label: '已完成', icon: CheckCircle2, color: 'text-green-500' },
+  pending: { label: '待开始', icon: Circle, color: 'text-surface-400' },
+  in_progress: { label: '进行中', icon: Play, color: 'text-brand-500' },
+  completed: { label: '已完成', icon: CheckCircle2, color: 'text-success-dark' },
 };
 
-const HEATMAP_COLORS = ['bg-gray-100', 'bg-green-200', 'bg-green-300', 'bg-green-500', 'bg-green-700'];
+const HEATMAP_COLORS = ['bg-surface-50', 'bg-success-light', 'bg-[#bbf7d0]', 'bg-[#16a34a]', 'bg-success-dark'];
 
 function getApi() {
   return (window as unknown as Window & { api: Record<string, unknown> }).api;
@@ -84,20 +84,20 @@ const PageHeader: React.FC<{
 }> = ({ onLogStudy, onAddPlan }) => (
   <div className="flex items-center justify-between">
     <div>
-      <h1 className="text-xl font-bold text-gray-800">学习计划</h1>
-      <p className="text-sm text-gray-500 mt-1">规划目标，追踪进度，养成习惯</p>
+      <h1 className="text-xl font-bold text-surface-900 font-display">学习计划</h1>
+      <p className="text-sm text-surface-500 mt-1">规划目标，追踪进度，养成习惯</p>
     </div>
     <div className="flex items-center gap-2">
       <button
         onClick={onLogStudy}
-        className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm transition-colors"
+        className="flex items-center px-3 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm transition-colors"
       >
         <Clock className="w-4 h-4 mr-1" />
         记录学习
       </button>
       <button
         onClick={onAddPlan}
-        className="flex items-center px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors"
+        className="flex items-center px-3 py-2 border border-surface-200 text-surface-700 rounded-lg hover:bg-surface-50 text-sm transition-colors"
       >
         <Plus className="w-4 h-4 mr-1" />
         新建计划
@@ -119,10 +119,10 @@ const StatsCards: React.FC<{
 );
 
 const StatCard: React.FC<{ label: string; value: string; unit: string }> = ({ label, value, unit }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-4">
-    <p className="text-xs text-gray-500 mb-1">{label}</p>
-    <p className="text-2xl font-bold text-gray-800">
-      {value}<span className="text-sm font-normal text-gray-400 ml-1">{unit}</span>
+  <div className="bg-white rounded-xl border border-surface-200 p-4">
+    <p className="text-xs text-surface-400 mb-1">{label}</p>
+    <p className="text-2xl font-bold text-surface-900 font-display">
+      {value}<span className="text-sm font-normal text-surface-400 ml-1">{unit}</span>
     </p>
   </div>
 );
@@ -130,8 +130,8 @@ const StatCard: React.FC<{ label: string; value: string; unit: string }> = ({ la
 const Heatmap: React.FC<{
   days: { date: string; minutes: number }[];
 }> = ({ days }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-4">
-    <h2 className="text-sm font-medium text-gray-700 mb-3">近30天学习热力图</h2>
+  <div className="bg-white rounded-xl border border-surface-200 p-4">
+    <h2 className="text-sm font-medium text-surface-400 mb-3">近30天学习热力图</h2>
     <div className="flex gap-1 flex-wrap">
       {days.map((d) => {
         const intensity = d.minutes === 0 ? 0 : d.minutes < 30 ? 1 : d.minutes < 60 ? 2 : d.minutes < 120 ? 3 : 4;
@@ -144,7 +144,7 @@ const Heatmap: React.FC<{
         );
       })}
     </div>
-    <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+    <div className="flex items-center gap-2 mt-2 text-xs text-surface-400">
       <span>少</span>
       {HEATMAP_COLORS.map((c, i) => (
         <div key={i} className={`w-3 h-3 rounded-sm ${c}`} />
@@ -159,18 +159,18 @@ const PlanList: React.FC<{
   onStatusChange: (plan: StudyPlanItem) => void;
   onDelete: (id: number) => void;
 }> = ({ plans, onStatusChange, onDelete }) => (
-  <div className="bg-white rounded-xl border border-gray-200">
-    <div className="px-5 py-3 border-b border-gray-100">
-      <h2 className="text-sm font-medium text-gray-700">我的计划</h2>
+  <div className="bg-white rounded-xl border border-surface-200">
+    <div className="px-5 py-3 border-b border-surface-100">
+      <h2 className="text-sm font-medium text-surface-500">我的计划</h2>
     </div>
     {plans.length === 0 ? (
-      <div className="py-12 text-center text-gray-400">
-        <Calendar className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+      <div className="py-12 text-center text-surface-400">
+        <Calendar className="w-12 h-12 mx-auto mb-2 text-surface-300" />
         <p>暂无学习计划</p>
         <p className="text-xs mt-1">创建一个计划，开始你的备考之旅！</p>
       </div>
     ) : (
-      <div className="divide-y divide-gray-100">
+      <div className="divide-y divide-surface-100">
         {plans.map((plan) => (
           <PlanItem key={plan.id} plan={plan} onStatusChange={onStatusChange} onDelete={onDelete} />
         ))}
@@ -189,7 +189,7 @@ const PlanItem: React.FC<{
   const isOverdue = daysLeft < 0 && plan.status !== 'completed';
 
   return (
-    <div className="px-5 py-4 flex items-start gap-3 hover:bg-gray-50 transition-colors">
+    <div className="px-5 py-4 flex items-start gap-3 hover:bg-surface-0 transition-colors">
       <button
         onClick={() => onStatusChange(plan)}
         className={`mt-0.5 ${statusConfig[plan.status].color}`}
@@ -198,20 +198,20 @@ const PlanItem: React.FC<{
       </button>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`text-sm font-medium ${plan.status === 'completed' ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+          <span className={`text-sm font-medium ${plan.status === 'completed' ? 'line-through text-surface-400' : 'text-surface-900'}`}>
             {plan.title}
           </span>
           <span className={`text-xs px-1.5 py-0.5 rounded ${priorityConfig[plan.priority].color}`}>
             {priorityConfig[plan.priority].label}
           </span>
-          <span className="text-xs px-1.5 py-0.5 rounded bg-primary-50 text-primary-700">
+          <span className="text-xs px-1.5 py-0.5 rounded bg-surface-100 text-surface-500">
             {plan.subject.split('-').pop()}
           </span>
         </div>
         {plan.description && (
-          <p className="text-xs text-gray-500 mt-1 truncate">{plan.description}</p>
+          <p className="text-xs text-surface-400 mt-1 truncate">{plan.description}</p>
         )}
-        <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+        <div className="flex items-center gap-3 mt-1.5 text-xs text-surface-400">
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
             截止：{plan.target_date}
@@ -221,7 +221,7 @@ const PlanItem: React.FC<{
             每日{plan.daily_minutes}分钟
           </span>
           {isOverdue && (
-            <span className="flex items-center gap-1 text-red-500">
+            <span className="flex items-center gap-1 text-danger-dark">
               <AlertCircle className="w-3 h-3" />
               已逾期{Math.abs(daysLeft)}天
             </span>
@@ -233,7 +233,7 @@ const PlanItem: React.FC<{
       </div>
       <button
         onClick={() => onDelete(plan.id)}
-        className="text-gray-300 hover:text-red-500 transition-colors"
+        className="text-surface-300 hover:text-danger transition-colors"
       >
         <Trash2 className="w-4 h-4" />
       </button>
@@ -258,49 +258,49 @@ const AddPlanModal: React.FC<{
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl w-full max-w-md p-6 m-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">新建学习计划</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h2 className="text-lg font-semibold text-surface-900 font-display">新建学习计划</h2>
+          <button onClick={onClose} className="text-surface-400 hover:text-surface-600">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">计划名称</label>
+            <label className="block text-sm font-medium text-surface-600 mb-1">计划名称</label>
             <input
               value={form.title}
               onChange={(e) => update('title', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+              className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               placeholder="如：言语理解专项突破"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">科目</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">科目</label>
               <select
                 value={form.subject}
                 onChange={(e) => update('subject', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               >
                 {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">截止日期</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">截止日期</label>
               <input
                 type="date"
                 value={form.target_date}
                 onChange={(e) => update('target_date', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">优先级</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">优先级</label>
               <select
                 value={form.priority}
                 onChange={(e) => update('priority', e.target.value as PlanForm['priority'])}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               >
                 <option value="high">高</option>
                 <option value="medium">中</option>
@@ -308,33 +308,33 @@ const AddPlanModal: React.FC<{
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">每日时长(分钟)</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">每日时长(分钟)</label>
               <input
                 type="number"
                 value={form.daily_minutes}
                 onChange={(e) => update('daily_minutes', parseInt(e.target.value) || 60)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
                 min={10}
                 max={480}
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">描述</label>
+            <label className="block text-sm font-medium text-surface-600 mb-1">描述</label>
             <textarea
               value={form.description}
               onChange={(e) => update('description', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+              className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               rows={2}
               placeholder="计划的详细内容..."
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">取消</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm text-surface-500 hover:text-surface-900">取消</button>
             <button
               onClick={onSubmit}
               disabled={!form.title}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               创建
             </button>
@@ -362,60 +362,60 @@ const LogStudyModal: React.FC<{
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl w-full max-w-sm p-6 m-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">记录今日学习</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h2 className="text-lg font-semibold text-surface-900 font-display">记录今日学习</h2>
+          <button onClick={onClose} className="text-surface-400 hover:text-surface-600">
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">学习时长（分钟）</label>
+            <label className="block text-sm font-medium text-surface-600 mb-1">学习时长（分钟）</label>
             <input
               type="number"
               value={form.study_minutes}
               onChange={(e) => update('study_minutes', parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+              className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               min={1}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">做题数量</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">做题数量</label>
               <input
                 type="number"
                 value={form.questions_done}
                 onChange={(e) => update('questions_done', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
                 min={0}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">错题数量</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">错题数量</label>
               <input
                 type="number"
                 value={form.wrong_count}
                 onChange={(e) => update('wrong_count', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
                 min={0}
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">学习笔记</label>
+            <label className="block text-sm font-medium text-surface-600 mb-1">学习笔记</label>
             <textarea
               value={form.note}
               onChange={(e) => update('note', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+              className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               rows={2}
               placeholder="今天学了什么？有什么心得？"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">取消</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm text-surface-500 hover:text-surface-900">取消</button>
             <button
               onClick={onSubmit}
               disabled={form.study_minutes <= 0}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 bg-success text-white rounded-lg text-sm hover:bg-success-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               记录
             </button>

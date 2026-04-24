@@ -228,6 +228,20 @@ C:\Users\<你的用户名>\AppData\Roaming\gongkao-assistant\
 
 ---
 
+## 设计系统
+
+v1.2 统一了全新的设计系统，采用 warm burnt-orange 主色调 + 温暖中性色阶：
+
+| Token | 用途 | 示例 |
+|-------|------|------|
+| `brand-50`..`brand-900` | 主色调 | 按钮、链接、强调 |
+| `surface-0`..`surface-950` | 中性色阶 | 背景、文字、边框 |
+| `success` / `warning` / `danger` | 语义色 | 状态反馈 |
+
+字体：**Outfit**（标题）+ **Plus Jakarta Sans**（正文）
+
+---
+
 ## 技术栈
 
 | 技术 | 用途 |
@@ -240,7 +254,7 @@ C:\Users\<你的用户名>\AppData\Roaming\gongkao-assistant\
 | Drizzle ORM | 数据库 ORM |
 | TanStack Query | 服务端状态管理 |
 | Zustand | 客户端状态管理 |
-| Tailwind CSS | 样式框架 |
+| Tailwind CSS v3 | 样式框架 |
 
 ---
 

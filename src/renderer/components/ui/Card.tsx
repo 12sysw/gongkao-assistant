@@ -5,6 +5,7 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   hover?: boolean;
   padding?: 'none' | 'sm' | 'md' | 'lg';
+  variant?: 'default' | 'elevated';
 }
 
 const paddingMap = {
@@ -19,13 +20,20 @@ export const Card: React.FC<CardProps> = ({
   className,
   hover = true,
   padding = 'md',
+  variant = 'default',
   ...props
 }) => {
+  const variantStyles = {
+    default: 'bg-white border border-surface-100',
+    elevated: 'bg-white shadow-elevated border border-transparent',
+  };
+
   return (
     <div
       className={cn(
-        'surface',
-        hover && 'shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-300',
+        variantStyles[variant],
+        'rounded-xl',
+        hover && 'hover:shadow-card-hover hover:border-surface-200 transition-all duration-200',
         paddingMap[padding],
         className
       )}
@@ -41,7 +49,7 @@ export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   className,
   ...props
 }) => (
-  <div className={cn('flex items-center justify-between mb-5', className)} {...props}>
+  <div className={cn('flex items-center justify-between mb-4 border-b border-surface-100 pb-3', className)} {...props}>
     {children}
   </div>
 );
@@ -51,7 +59,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   className,
   ...props
 }) => (
-  <h3 className={cn('text-[15px] font-bold text-[#1c1917] flex items-center gap-2 tracking-tight font-display', className)} {...props}>
+  <h3 className={cn('text-base font-semibold text-surface-900 flex items-center gap-2 font-display', className)} {...props}>
     {children}
   </h3>
 );

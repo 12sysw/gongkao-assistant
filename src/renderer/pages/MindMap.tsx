@@ -50,7 +50,7 @@ const NODE_HEIGHT = 40;
 const H_GAP = 60;
 const V_GAP = 16;
 const LEVEL_COLORS = [
-  '#2563eb', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2',
+  '#c2410c', '#9a3412', '#166534', '#ca8a04', '#dc2626', '#0891b2',
 ];
 
 let idCounter = 0;
@@ -181,9 +181,9 @@ const MapList: React.FC<{
   onDelete: (id: number) => void;
 }> = ({ maps, currentMapId, onLoad, onDelete }) => (
   <div className="w-56 shrink-0 space-y-2">
-    <h3 className="text-sm font-medium text-gray-500 mb-2">我的导图</h3>
+    <h3 className="text-sm font-medium text-surface-500 mb-2">我的导图</h3>
     {maps.length === 0 ? (
-      <p className="text-xs text-gray-400 py-4 text-center">暂无导图</p>
+      <p className="text-xs text-surface-400 py-4 text-center">暂无导图</p>
     ) : (
       maps.map((map) => (
         <div
@@ -191,24 +191,24 @@ const MapList: React.FC<{
           onClick={() => onLoad(map)}
           className={`p-3 rounded-lg cursor-pointer border transition-colors ${
             currentMapId === map.id
-              ? 'border-primary-300 bg-primary-50'
-              : 'border-gray-200 bg-white hover:border-gray-300'
+              ? 'border-brand-300 bg-brand-50'
+              : 'border-surface-200 bg-white hover:border-surface-300'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-gray-700 truncate flex-1">{map.title}</span>
+            <span className="text-sm font-medium text-surface-700 truncate flex-1">{map.title}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(map.id);
               }}
-              className="text-gray-400 hover:text-red-500 ml-1"
+              className="text-surface-400 hover:text-danger ml-1"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="flex items-center mt-1 text-xs text-gray-400">
-            <span className="px-1.5 py-0.5 bg-gray-100 rounded">{map.subject}</span>
+          <div className="flex items-center mt-1 text-xs text-surface-400">
+            <span className="px-1.5 py-0.5 bg-surface-100 text-surface-500 rounded">{map.subject}</span>
           </div>
         </div>
       ))
@@ -235,16 +235,16 @@ const Toolbar: React.FC<{
   onAddChild,
   onDeleteNode,
 }) => (
-  <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-100 bg-gray-50">
+  <div className="flex items-center gap-3 px-4 py-2 border-b border-surface-100 bg-surface-0">
     <input
       value={title}
       onChange={(e) => onTitleChange(e.target.value)}
-      className="text-sm font-medium text-gray-800 bg-transparent border-none focus:outline-none focus:border-b focus:border-primary-400 px-1"
+      className="text-sm font-medium text-surface-900 bg-transparent border-none focus:outline-none focus:border-b focus:border-brand-500 px-1"
     />
     <select
       value={subject}
       onChange={(e) => onSubjectChange(e.target.value)}
-      className="text-xs px-2 py-1 border border-gray-200 rounded bg-white"
+      className="text-xs px-2 py-1 border border-surface-200 rounded-lg bg-white"
     >
       <option value="行测">行测</option>
       <option value="申论">申论</option>
@@ -255,14 +255,14 @@ const Toolbar: React.FC<{
       <button
         onClick={onAddChild}
         disabled={!selectedNode}
-        className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="text-xs px-2 py-1 bg-brand-100 text-brand-600 rounded-lg hover:bg-brand-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         + 子节点
       </button>
       <button
         onClick={onDeleteNode}
         disabled={!selectedNode || isRootSelected}
-        className="text-xs px-2 py-1 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="text-xs px-2 py-1 bg-danger-light text-danger-dark rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         删除
       </button>
@@ -271,8 +271,8 @@ const Toolbar: React.FC<{
 );
 
 const EmptyCanvas: React.FC = () => (
-  <div className="flex flex-col items-center justify-center py-24 text-gray-400">
-    <FolderOpen className="w-16 h-16 mb-3 text-gray-300" />
+  <div className="flex flex-col items-center justify-center py-24 text-surface-400">
+    <FolderOpen className="w-16 h-16 mb-3 text-surface-300" />
     <p className="text-lg">选择或新建一个思维导图</p>
     <p className="text-sm mt-1">点击"新建"开始构建知识体系</p>
   </div>
@@ -334,7 +334,7 @@ const MindMapCanvas: React.FC<{
               width={NODE_WIDTH}
               height={NODE_HEIGHT}
               rx={8}
-              fill={selectedNode === node.id ? 'from-[#dbeafe]' : 'white'}
+              fill={selectedNode === node.id ? '#f9ebd8' : 'white'}
               stroke={LEVEL_COLORS[level % LEVEL_COLORS.length]}
               strokeWidth={selectedNode === node.id ? 2.5 : 1.5}
               className="mind-node"
@@ -367,7 +367,7 @@ const MindMapCanvas: React.FC<{
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fontSize="13"
-                fill="#1f2937"
+                fill="#1c1917"
                 className="pointer-events-none select-none"
               >
                 {node.topic.length > 10 ? node.topic.slice(0, 10) + '...' : node.topic}
@@ -387,12 +387,12 @@ const SaveButton: React.FC<{
 }> = ({ disabled, status, onSave }) => {
   const statusClass =
     status === 'saved'
-      ? 'bg-[#dc2626] text-white'
+      ? 'bg-success text-white'
       : status === 'error'
-      ? 'bg-[#dc2626] text-white'
+      ? 'bg-danger text-white'
       : status === 'saving'
-      ? 'bg-[#dc2626] text-white'
-      : 'bg-[#dc2626] text-white hover:bg-green-700';
+      ? 'bg-surface-400 text-white'
+      : 'bg-brand-500 text-white hover:bg-brand-600';
 
   const label =
     status === 'saving' ? '保存中...' : status === 'saved' ? '已保存 ✓' : status === 'error' ? '保存失败' : '保存';
@@ -541,13 +541,13 @@ const MindMap: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-800">思维导图</h1>
-          <p className="text-sm text-gray-500 mt-1">构建知识体系，梳理考点脉络</p>
+          <h1 className="text-xl font-bold text-surface-900 font-display">思维导图</h1>
+          <p className="text-sm text-surface-500 mt-1">构建知识体系，梳理考点脉络</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleNew}
-            className="flex items-center px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors"
+            className="flex items-center px-3 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm transition-colors"
           >
             <Plus className="w-4 h-4 mr-1" />
             新建
@@ -568,7 +568,7 @@ const MindMap: React.FC = () => {
           onDelete={handleDeleteMap}
         />
 
-        <div className="flex-1 bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="flex-1 bg-white rounded-xl border border-surface-200 overflow-hidden">
           {currentMap ? (
             <>
               <Toolbar

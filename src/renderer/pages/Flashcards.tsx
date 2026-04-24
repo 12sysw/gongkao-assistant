@@ -48,10 +48,10 @@ function getDifficultyLabel(d: Difficulty): string {
 
 function getDifficultyClass(d: Difficulty): string {
   return d === 'easy'
-    ? 'bg-[#166534]'
+    ? 'bg-success-light text-success-dark'
     : d === 'hard'
-    ? 'bg-red-100 text-red-700'
-    : 'bg-[#fef9c3] text-[#854d0e]';
+    ? 'bg-danger-light text-danger-dark'
+    : 'bg-warning-light text-warning-dark';
 }
 
 /* ─── Sub-components ─── */
@@ -63,14 +63,14 @@ const PageHeader: React.FC<{
 }> = ({ dueCount, totalCount, onAdd }) => (
   <div className="flex items-center justify-between">
     <div>
-      <h1 className="text-xl font-bold text-gray-800">记忆卡片</h1>
-      <p className="text-sm text-gray-500 mt-1">
-        今日待复习 <span className="text-blue-600 font-semibold">{dueCount}</span> 张 · 共 {totalCount} 张
+      <h1 className="text-xl font-bold text-surface-900 font-display">记忆卡片</h1>
+      <p className="text-sm text-surface-500 mt-1">
+        今日待复习 <span className="text-brand-500 font-semibold">{dueCount}</span> 张 · 共 {totalCount} 张
       </p>
     </div>
     <button
       onClick={onAdd}
-      className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm transition-colors"
+      className="flex items-center px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm transition-colors"
     >
       <Plus className="w-4 h-4 mr-1" /> 新建卡片
     </button>
@@ -83,17 +83,17 @@ const FilterBar: React.FC<{
   onModeChange: (mode: FilterMode) => void;
   onCatToggle: (cat: string) => void;
 }> = ({ filterMode, filterCat, onModeChange, onCatToggle }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-4">
+  <div className="bg-white rounded-xl border border-surface-200 p-4">
     <div className="flex flex-wrap items-center gap-2">
-      <div className="flex rounded-lg border border-gray-200 overflow-hidden mr-2">
+      <div className="flex rounded-lg border border-surface-200 overflow-hidden mr-2">
         {(['all', 'due', 'mastered'] as const).map((m) => (
           <button
             key={m}
             onClick={() => onModeChange(m)}
             className={`px-3 py-1.5 text-xs ${
               filterMode === m
-                ? 'bg-primary-50 text-primary-700'
-                : 'bg-white text-gray-600'
+                ? 'bg-brand-100 text-brand-600'
+                : 'bg-white text-surface-500'
             }`}
           >
             {m === 'all' ? '全部' : m === 'due' ? '待复习' : '已掌握'}
@@ -106,8 +106,8 @@ const FilterBar: React.FC<{
           onClick={() => onCatToggle(cat)}
           className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${
             filterCat === cat
-              ? 'bg-primary-100 text-primary-700'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-brand-100 text-brand-600'
+              : 'bg-surface-0 text-surface-500 hover:bg-surface-100'
           }`}
         >
           {cat.split('-')[1]}
@@ -132,7 +132,7 @@ const FlashCard: React.FC<{
     >
       {/* Front */}
       <div
-        className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg flex items-center justify-center p-8"
+        className="absolute inset-0 bg-gradient-to-br from-brand-200 via-brand-500 to-brand-600 rounded-2xl shadow-card flex items-center justify-center p-8"
         style={{ backfaceVisibility: 'hidden' }}
       >
         <div className="text-white text-center">
@@ -143,15 +143,15 @@ const FlashCard: React.FC<{
       </div>
       {/* Back */}
       <div
-        className="absolute inset-0 bg-gradient-to-br bg-gradient-to-br from-emerald-600 to-teal-700 rounded-2xl shadow-lg flex items-center justify-center p-8"
+        className="absolute inset-0 bg-gradient-to-br from-success-light via-[#bbf7d0] to-success rounded-2xl shadow-card flex items-center justify-center p-8"
         style={{
           backfaceVisibility: 'hidden',
           transform: 'rotateY(180deg)',
         }}
       >
-        <div className="text-white text-center">
-          <p className="text-xs opacity-70 mb-3">答案</p>
-          <p className="text-xl font-bold leading-relaxed whitespace-pre-wrap">
+        <div className="text-surface-900 text-center">
+          <p className="text-xs opacity-60 mb-3">答案</p>
+          <p className="text-xl font-bold leading-relaxed whitespace-pre-wrap text-success-dark">
             {card.back}
           </p>
         </div>
@@ -169,13 +169,13 @@ const CardActions: React.FC<{
     <div className="flex justify-center gap-3">
       <button
         onClick={() => onResult(false)}
-        className="flex items-center gap-2 px-6 py-2.5 bg-[#fee2e2] text-[#991b1b] rounded-lg hover:bg-red-100 text-sm transition-colors"
+        className="flex items-center gap-2 px-6 py-2.5 bg-danger-light text-danger-dark rounded-lg hover:bg-red-100 text-sm transition-colors"
       >
         <X className="w-4 h-4" /> 不会
       </button>
       <button
         onClick={() => onResult(true)}
-        className="flex items-center gap-2 px-6 py-2.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 text-sm transition-colors"
+        className="flex items-center gap-2 px-6 py-2.5 bg-success-light text-success-dark rounded-lg hover:bg-green-100 text-sm transition-colors"
       >
         <Check className="w-4 h-4" /> 会了
       </button>
@@ -194,20 +194,20 @@ const Navigation: React.FC<{
     <button
       onClick={onPrev}
       disabled={currentIndex === 0}
-      className="px-4 py-2 border rounded-lg text-sm disabled:opacity-30 hover:bg-gray-50 transition-colors"
+      className="px-4 py-2 border border-surface-200 rounded-lg text-sm disabled:opacity-30 hover:bg-surface-50 transition-colors"
     >
       上一张
     </button>
     <button
       onClick={onNext}
       disabled={currentIndex >= total - 1}
-      className="px-4 py-2 border rounded-lg text-sm disabled:opacity-30 hover:bg-gray-50 transition-colors"
+      className="px-4 py-2 border border-surface-200 rounded-lg text-sm disabled:opacity-30 hover:bg-surface-50 transition-colors"
     >
       下一张
     </button>
     <button
       onClick={onDelete}
-      className="px-4 py-2 border border-red-200 text-red-500 rounded-lg text-sm hover:bg-red-50 transition-colors"
+      className="px-4 py-2 border border-danger/30 text-danger-dark rounded-lg text-sm hover:bg-danger-light transition-colors"
     >
       <Trash2 className="w-4 h-4" />
     </button>
@@ -215,8 +215,8 @@ const Navigation: React.FC<{
 );
 
 const EmptyState: React.FC = () => (
-  <div className="text-center py-16 text-gray-400">
-    <Layers className="w-16 h-16 mx-auto mb-3 text-gray-300" />
+  <div className="text-center py-16 text-surface-400">
+    <Layers className="w-16 h-16 mx-auto mb-3 text-surface-200" />
     <p className="text-lg">暂无卡片</p>
     <p className="text-sm mt-1">点击右上角新建卡片开始学习</p>
   </div>
@@ -225,14 +225,14 @@ const EmptyState: React.FC = () => (
 const CardMeta: React.FC<{
   card: Flashcard;
 }> = ({ card }) => (
-  <div className="flex items-center justify-between text-sm text-gray-400">
-    <span>{/* currentIndex shown by parent */}</span>
+  <div className="flex items-center justify-between text-sm text-surface-400">
+    <span />
     <div className="flex gap-2">
       <span className={`px-2 py-0.5 rounded text-xs ${getDifficultyClass(card.difficulty)}`}>
         {getDifficultyLabel(card.difficulty)}
       </span>
       {card.mastered ? (
-        <span className="px-2 py-0.5 rounded text-xs bg-[#166534]">已掌握</span>
+        <span className="px-2 py-0.5 rounded text-xs bg-success-light text-success-dark">已掌握</span>
       ) : null}
     </div>
   </div>
@@ -255,35 +255,35 @@ const AddCardModal: React.FC<{
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl w-full max-w-lg p-6 m-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">新建记忆卡片</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">✕</button>
+          <h2 className="text-lg font-semibold text-surface-900 font-display">新建记忆卡片</h2>
+          <button onClick={onClose} className="text-surface-400 hover:text-surface-600">✕</button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">正面（问题）</label>
+            <label className="block text-sm font-medium text-surface-600 mb-1">正面（问题）</label>
             <textarea
               value={form.front}
               onChange={(e) => update('front', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-primary-400"
+              className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-brand-500"
               placeholder="例如：我国根本政治制度是什么？"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">背面（答案）</label>
+            <label className="block text-sm font-medium text-surface-600 mb-1">背面（答案）</label>
             <textarea
               value={form.back}
               onChange={(e) => update('back', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-primary-400"
+              className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-brand-500"
               placeholder="例如：人民代表大会制度"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">分类</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">分类</label>
               <select
                 value={form.category}
                 onChange={(e) => update('category', e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -291,11 +291,11 @@ const AddCardModal: React.FC<{
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">难度</label>
+              <label className="block text-sm font-medium text-surface-600 mb-1">难度</label>
               <select
                 value={form.difficulty}
                 onChange={(e) => update('difficulty', e.target.value as Difficulty)}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:border-primary-400"
+                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               >
                 <option value="easy">简单</option>
                 <option value="medium">中等</option>
@@ -304,11 +304,11 @@ const AddCardModal: React.FC<{
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600">取消</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm text-surface-500">取消</button>
             <button
               onClick={onSave}
               disabled={!form.front.trim() || !form.back.trim()}
-              className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50 transition-colors"
+              className="flex items-center px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 disabled:opacity-50 transition-colors"
             >
               <Save className="w-4 h-4 mr-1" /> 保存
             </button>
@@ -381,7 +381,6 @@ const Flashcards: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('确定删除此卡片？')) return;
     try {
       const api = getApi();
       await api.flashcard.delete(id);
@@ -441,7 +440,7 @@ const Flashcards: React.FC = () => {
 
       {currentCard ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between text-sm text-gray-400">
+          <div className="flex items-center justify-between text-sm text-surface-400">
             <span>{currentIndex + 1} / {filteredCards.length}</span>
             <CardMeta card={currentCard} />
           </div>
@@ -459,9 +458,7 @@ const Flashcards: React.FC = () => {
             total={filteredCards.length}
             onPrev={prevCard}
             onNext={nextCard}
-            onDelete={() => {
-              if (confirm('确定删除？')) handleDelete(currentCard.id);
-            }}
+            onDelete={() => handleDelete(currentCard.id)}
           />
         </div>
       ) : (

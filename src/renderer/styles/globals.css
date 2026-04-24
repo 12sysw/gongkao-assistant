@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -7,8 +9,8 @@
   --header-height: 56px;
   --font-display: 'Outfit', system-ui, sans-serif;
   --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
-  /* Warm neutral palette - sophisticated, not generic */
-  --bg-base: #f5f3f0;
+
+  --bg-base: #faf8f5;
   --bg-surface: #ffffff;
   --text-primary: #1c1917;
   --text-secondary: #57534e;
@@ -16,11 +18,11 @@
   --border-soft: rgba(28, 25, 23, 0.06);
   --accent: #c2410c;
   --accent-hover: #9a3412;
-  --accent-soft: #fed7aa;
+  --accent-soft: #f9ebd8;
+  --sidebar-bg: #1c1917;
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(194, 65, 12, 0.15);
 }
-
-/* Premium typography: Outfit for display, Plus Jakarta Sans for body */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
 
 html {
   scroll-behavior: smooth;
@@ -42,8 +44,8 @@ body {
 
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -51,12 +53,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(28, 25, 23, 0.12);
   border-radius: 100px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(28, 25, 23, 0.2);
 }
 
 /* ===== Utility Classes ===== */
@@ -69,21 +71,20 @@ body {
 
   .surface {
     background: var(--bg-surface);
-    border-radius: 16px;
+    border-radius: 14px;
     border: 1px solid var(--border-soft);
   }
 
   .surface-elevated {
     background: var(--bg-surface);
     box-shadow: 0 4px 24px rgba(28, 25, 23, 0.06), 0 1px 2px rgba(28, 25, 23, 0.04);
-    border-radius: 16px;
+    border-radius: 14px;
   }
 
   .text-balance {
     text-wrap: balance;
   }
 
-  /* Warm accent - burnt orange, sophisticated */
   .accent {
     color: var(--accent);
   }
@@ -92,7 +93,6 @@ body {
     background: var(--accent);
   }
 
-  /* Warm tinted shadows */
   .shadow-soft {
     box-shadow: 0 1px 3px rgba(28, 25, 23, 0.04);
   }
@@ -105,7 +105,6 @@ body {
     box-shadow: 0 8px 32px rgba(28, 25, 23, 0.08), 0 2px 8px rgba(28, 25, 23, 0.04);
   }
 
-  /* Premium text styles */
   .text-display {
     font-family: var(--font-display);
     letter-spacing: -0.03em;
@@ -138,6 +137,13 @@ body {
   }
 }
 
+@keyframes bounceIn {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 .animate-fade-in-up {
   animation: fadeInUp 0.5s ease-out;
 }
@@ -146,6 +152,10 @@ body {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
+}
+
+.animate-bounce-in {
+  animation: bounceIn 0.5s ease-out;
 }
 
 /* ===== Mind Map Node ===== */
@@ -159,31 +169,12 @@ body {
 
 /* ===== Focus Ring ===== */
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-[#c2410c]/30 focus:ring-offset-1 focus:ring-offset-transparent;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-1 focus:ring-offset-transparent;
 }
 
-/* ===== Gradient Primary (backwards compat) ===== */
+/* ===== Gradient Primary ===== */
 .gradient-primary {
   background: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
-}
-
-/* ===== Premium scrollbar ===== */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(28, 25, 23, 0.12);
-  border-radius: 100px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(28, 25, 23, 0.2);
 }
 
 /* ===== Page title style ===== */

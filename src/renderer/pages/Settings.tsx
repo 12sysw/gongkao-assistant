@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Key, Globe, Cpu, Save, CheckCircle, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Key, Globe, Save, CheckCircle, AlertCircle, Eye, EyeOff, Settings as SettingsIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 interface AIConfig {
@@ -41,12 +41,12 @@ interface FormInputProps {
 
 const FormInput: React.FC<FormInputProps> = ({ label, value, onChange, placeholder, type = 'text' }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <label className="block text-sm font-medium text-surface-600 mb-2">{label}</label>
     <input
       type={type}
       value={value}
       onChange={onChange}
-      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+      className="w-full px-3.5 py-2.5 border border-surface-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 placeholder:text-surface-400"
       placeholder={placeholder}
     />
   </div>
@@ -61,11 +61,11 @@ interface FormSelectProps {
 
 const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, options }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <label className="text-sm text-surface-600 mb-2">{label}</label>
     <select
       value={value}
       onChange={onChange}
-      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+      className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -75,7 +75,7 @@ const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, options
 );
 
 const TestResultBanner: React.FC<{ result: 'success' | 'error' }> = ({ result }) => (
-  <div className={`flex items-center gap-2 p-3 rounded-lg ${result === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+  <div className={`flex items-center gap-2 p-3 rounded-lg ${result === 'success' ? 'bg-success-light text-success-dark' : 'bg-danger-light text-danger-dark'}`}>
     {result === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
     <span className="text-sm">{result === 'success' ? '连接成功！API配置正确' : '连接失败，请检查配置'}</span>
   </div>
@@ -88,7 +88,7 @@ const ApiKeyInput: React.FC<{
   onToggle: () => void;
 }> = ({ value, showKey, onChange, onToggle }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">
+    <label className="text-sm text-surface-600 mb-2">
       <Key className="w-4 h-4 inline mr-1" />
       API密钥
     </label>
@@ -97,25 +97,25 @@ const ApiKeyInput: React.FC<{
         type={showKey ? 'text' : 'password'}
         value={value}
         onChange={onChange}
-        className="w-full px-3 py-2 pr-10 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-400"
+        className="w-full px-3.5 py-2.5 pr-10 border border-surface-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 placeholder:text-surface-400"
         placeholder="sk-xxxxxxxxxxxxxxxx"
       />
       <button
         type="button"
         onClick={onToggle}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-400 hover:text-surface-600"
       >
         {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
       </button>
     </div>
-    <p className="text-xs text-gray-400 mt-1">密钥仅保存在本地，不会上传服务器</p>
+    <p className="text-xs text-surface-400 mt-1">密钥仅保存在本地，不会上传服务器</p>
   </div>
 );
 
 const InstructionsCard: React.FC = () => (
-  <div className="bg-blue-50 rounded-xl p-4">
-    <h3 className="text-sm font-medium text-blue-800 mb-2">使用说明</h3>
-    <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+  <div className="bg-warning-light border border-warning/20 rounded-xl p-4">
+    <h3 className="text-sm font-medium text-warning-dark mb-2">使用说明</h3>
+    <ol className="text-xs text-surface-600 space-y-1 list-decimal list-inside">
       <li>选择服务商或自定义API地址</li>
       <li>填入你的API密钥（从各平台控制台获取）</li>
       <li>点击测试连接验证配置</li>
@@ -125,9 +125,9 @@ const InstructionsCard: React.FC = () => (
 );
 
 const RecommendationsCard: React.FC = () => (
-  <div className="bg-gray-50 rounded-xl p-4">
-    <h3 className="text-sm font-medium text-gray-700 mb-2">推荐服务商</h3>
-    <div className="text-xs text-gray-500 space-y-1">
+  <div className="bg-surface-0 rounded-xl p-4">
+    <h3 className="text-sm font-medium text-surface-600 mb-2">推荐服务商</h3>
+    <div className="text-xs text-surface-500 space-y-1">
       <p><strong>硅基流动</strong> - 国内访问快，价格便宜，支持多种模型</p>
       <p><strong>DeepSeek</strong> - 国产大模型，中文理解好，性价比高</p>
       <p><strong>智谱AI</strong> - 清华技术，GLM系列模型</p>
@@ -225,14 +225,14 @@ const SettingsPage: React.FC = () => {
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
       <div>
-        <h1 className="text-xl font-bold text-gray-800">设置</h1>
-        <p className="text-sm text-gray-500 mt-1">配置AI分析接口</p>
+        <h1 className="text-xl font-bold text-surface-900 font-display">设置</h1>
+        <p className="text-sm text-surface-400 mt-1">配置AI分析接口</p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+      <div className="bg-white rounded-xl border border-surface-200 p-6 space-y-5">
         <div className="flex items-center gap-2 mb-4">
-          <Cpu className="w-5 h-5 text-primary-500" />
-          <h2 className="text-base font-semibold text-gray-800">AI分析配置</h2>
+          <SettingsIcon className="w-5 h-5 text-brand-500" />
+          <h2 className="text-base font-semibold text-surface-900 font-display">AI分析配置</h2>
         </div>
 
         <FormSelect
@@ -269,14 +269,14 @@ const SettingsPage: React.FC = () => {
           <button
             onClick={handleTest}
             disabled={testing || !config.apiKey || !config.apiUrl}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 border border-surface-200 rounded-lg text-sm hover:bg-surface-50 disabled:opacity-50"
           >
             {testing ? '测试中...' : '测试连接'}
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 disabled:opacity-50 transition-colors"
           >
             <Save className="w-4 h-4" />
             {saved ? '已保存 ✓' : '保存配置'}
