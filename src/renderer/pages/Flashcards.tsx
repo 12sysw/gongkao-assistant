@@ -143,7 +143,7 @@ const FlashCard: React.FC<{
       </div>
       {/* Back */}
       <div
-        className="absolute inset-0 bg-gradient-to-br from-success-light via-[#bbf7d0] to-success rounded-2xl shadow-card flex items-center justify-center p-8"
+        className="absolute inset-0 bg-gradient-to-br from-success-light via-success-light to-success rounded-2xl shadow-card flex items-center justify-center p-8"
         style={{
           backfaceVisibility: 'hidden',
           transform: 'rotateY(180deg)',

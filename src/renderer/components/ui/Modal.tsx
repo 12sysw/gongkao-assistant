@@ -49,7 +49,7 @@ export const Modal: React.FC<ModalProps> = ({
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-[#1c1917]/60 backdrop-blur-sm transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-surface-950/60 backdrop-blur-sm transition-opacity duration-300" />
 
       {/* Modal */}
       <div
@@ -67,15 +67,15 @@ export const Modal: React.FC<ModalProps> = ({
             <div className="flex items-start justify-between">
               <div>
                 {title && (
-                  <h3 className="text-xl font-bold text-[#1c1917] font-display tracking-tight">{title}</h3>
+                  <h3 className="text-xl font-bold text-surface-900 font-display tracking-tight">{title}</h3>
                 )}
                 {description && (
-                  <p className="mt-1.5 text-sm text-[#57534e]">{description}</p>
+                  <p className="mt-1.5 text-sm text-surface-500">{description}</p>
                 )}
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl text-[#a8a29e] hover:text-[#1c1917] hover:bg-[#f5f3f0] transition-colors duration-200"
+                className="p-2 rounded-xl text-surface-400 hover:text-surface-900 hover:bg-surface-50 transition-colors duration-200"
               >
                 <X className="w-5 h-5" />
               </button>

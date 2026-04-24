@@ -7,11 +7,11 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantMap = {
-  success: 'bg-[#dcfce7] text-[#166534] border border-[#bbf7d0]',
-  warning: 'bg-[#fef9c3] text-[#854d0e] border border-[#fde047]',
-  error: 'bg-[#fee2e2] text-[#991b1b] border border-[#fecaca]',
-  info: 'bg-[#dbeafe] text-[#1e40af] border border-[#bfdbfe]',
-  default: 'bg-[#f5f3f0] text-[#57534e] border border-[#e7e5e4]',
+  success: 'bg-success-light text-success-dark border border-success-light',
+  warning: 'bg-warning-light text-warning-dark border border-warning-light',
+  error: 'bg-danger-light text-danger-dark border border-danger-light',
+  info: 'bg-info-light text-info-dark border border-info-border',
+  default: 'bg-surface-50 text-surface-500 border border-surface-200',
 };
 
 export const Badge: React.FC<BadgeProps> = ({

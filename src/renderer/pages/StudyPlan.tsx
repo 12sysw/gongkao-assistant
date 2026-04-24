@@ -64,7 +64,7 @@ const statusConfig: Record<string, { label: string; icon: React.ElementType; col
   completed: { label: '已完成', icon: CheckCircle2, color: 'text-success-dark' },
 };
 
-const HEATMAP_COLORS = ['bg-surface-50', 'bg-success-light', 'bg-[#bbf7d0]', 'bg-[#16a34a]', 'bg-success-dark'];
+const HEATMAP_COLORS = ['bg-surface-50', 'bg-success-light', 'bg-success-light', 'bg-success', 'bg-success-dark'];
 
 function getApi() {
   return (window as unknown as Window & { api: Record<string, unknown> }).api;

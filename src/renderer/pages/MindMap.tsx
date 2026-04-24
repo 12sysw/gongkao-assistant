@@ -50,7 +50,7 @@ const NODE_HEIGHT = 40;
 const H_GAP = 60;
 const V_GAP = 16;
 const LEVEL_COLORS = [
-  '#c2410c', '#9a3412', '#166534', '#ca8a04', '#dc2626', '#0891b2',
+  '#c2410c', '#862b08', '#166534', '#ca8a04', '#dc2626', '#0891b2',
 ];
 
 let idCounter = 0;
@@ -334,7 +334,7 @@ const MindMapCanvas: React.FC<{
               width={NODE_WIDTH}
               height={NODE_HEIGHT}
               rx={8}
-              fill={selectedNode === node.id ? '#f9ebd8' : 'white'}
+              fill={selectedNode === node.id ? '#f9ebd8' : '#ffffff'}
               stroke={LEVEL_COLORS[level % LEVEL_COLORS.length]}
               strokeWidth={selectedNode === node.id ? 2.5 : 1.5}
               className="mind-node"
@@ -367,8 +367,7 @@ const MindMapCanvas: React.FC<{
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fontSize="13"
-                fill="#1c1917"
-                className="pointer-events-none select-none"
+                fill="#1c1917"                className="pointer-events-none select-none"
               >
                 {node.topic.length > 10 ? node.topic.slice(0, 10) + '...' : node.topic}
               </text>

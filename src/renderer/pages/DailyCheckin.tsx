@@ -41,15 +41,17 @@ const CountdownBanner: React.FC<{ examName: string; examDate: string; daysLeft: 
   examDate,
   daysLeft,
 }) => (
-  <div className="bg-gradient-to-r from-[#c2410c] to-[#9a3412] rounded-3xl p-6 text-white">
-    <div className="flex items-center justify-between">
+  <div className="bg-brand-gradient rounded-2xl p-6 text-white relative overflow-hidden">
+    <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.08] rounded-full -translate-y-1/3 translate-x-1/4" />
+    <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/[0.04] rounded-full translate-y-1/3 -translate-x-1/4" />
+    <div className="flex items-center justify-between relative">
       <div>
         <p className="text-white/80 text-sm">目标考试</p>
-        <h2 className="text-xl font-bold mt-1">{examName}</h2>
+        <h2 className="text-xl font-bold mt-1 font-display">{examName}</h2>
         <p className="text-white/70 text-sm mt-1">{examDate}</p>
       </div>
       <div className="text-center">
-        <div className="text-5xl font-bold">{daysLeft}</div>
+        <div className="text-5xl font-bold font-display">{daysLeft}</div>
         <div className="text-white/70 text-sm">天后考试</div>
       </div>
     </div>
@@ -63,10 +65,10 @@ const StatCard: React.FC<{
   value: string;
 }> = ({ icon, iconBg, label, value }) => (
   <div className="surface hover:shadow-card-hover transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-3">
-    <div className={`w-11 h-11 rounded-2xl ${iconBg} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>{icon}</div>
+    <div className={`w-11 h-11 rounded-2xl ${iconBg} flex items-center justify-center`}>{icon}</div>
     <div>
-      <p className="text-[11px] font-semibold text-[#a8a29e] uppercase tracking-wider">{label}</p>
-      <p className="text-lg font-bold text-[#1c1917]">{value}</p>
+      <p className="text-[11px] font-semibold text-surface-400 uppercase tracking-wider">{label}</p>
+      <p className="text-lg font-bold text-surface-900 font-display">{value}</p>
     </div>
   </div>
 );
@@ -76,7 +78,7 @@ const TimeSelector: React.FC<{
   onChange: (minutes: number) => void;
 }> = ({ value, onChange }) => (
   <div>
-    <label className="block text-sm font-semibold text-[#1c1917] mb-2">学习时长</label>
+    <label className="block text-sm font-semibold text-surface-900 mb-2">学习时长</label>
     <div className="grid grid-cols-4 gap-2">
       {TIME_OPTIONS.map((m) => (
         <button
@@ -84,8 +86,8 @@ const TimeSelector: React.FC<{
           onClick={() => onChange(m)}
           className={`py-2 rounded-xl text-sm transition-all duration-200 font-medium ${
             value === m
-              ? 'bg-[#c2410c] text-white shadow-md active:scale-[0.96]'
-              : 'bg-[#f5f3f0] text-[#57534e] hover:bg-[#e7e5e4]'
+              ? 'bg-brand-500 text-white shadow-md active:scale-[0.96]'
+              : 'bg-surface-50 text-surface-500 hover:bg-surface-100'
           }`}
         >
           {m >= 60 ? `${m / 60}h` : `${m}m`}
@@ -119,17 +121,17 @@ const CheckinCalendar: React.FC<{
   return (
     <div className="surface p-5">
       <div className="flex items-center justify-between mb-4">
-        <button onClick={onPrev} className="p-2 rounded-xl text-[#a8a29e] hover:text-[#1c1917] hover:bg-[#f5f3f0] transition-colors">
+        <button onClick={onPrev} className="p-2 rounded-xl text-surface-400 hover:text-surface-900 hover:bg-surface-50 transition-colors">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <h2 className="text-base font-semibold text-[#1c1917]">{currentMonth.format('YYYY年MM月')}</h2>
-        <button onClick={onNext} className="p-2 rounded-xl text-[#a8a29e] hover:text-[#1c1917] hover:bg-[#f5f3f0] transition-colors">
+        <h2 className="text-base font-semibold text-surface-900 font-display">{currentMonth.format('YYYY年MM月')}</h2>
+        <button onClick={onNext} className="p-2 rounded-xl text-surface-400 hover:text-surface-900 hover:bg-surface-50 transition-colors">
           <ChevronRight className="w-5 h-5" />
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1">
         {WEEK_DAYS.map((d) => (
-          <div key={d} className="text-center text-[11px] text-[#a8a29e] py-2 font-medium">
+          <div key={d} className="text-center text-[11px] text-surface-400 py-2 font-medium">
             {d}
           </div>
         ))}
@@ -142,10 +144,10 @@ const CheckinCalendar: React.FC<{
               key={d.date}
               className={`aspect-square flex items-center justify-center text-sm rounded-xl transition-all duration-200 font-bold ${
                 isToday
-                  ? 'bg-[#fed7aa] text-[#c2410c] ring-2 ring-[#fca5a5]'
+                  ? 'bg-brand-100 text-brand-500 ring-2 ring-brand-300'
                   : isChecked
-                  ? 'bg-[#dcfce7] text-[#166534]'
-                  : 'text-[#57534e] hover:bg-[#f5f3f0]'
+                  ? 'bg-success-light text-success-dark'
+                  : 'text-surface-500 hover:bg-surface-50'
               }`}
             >
               {d.day}
@@ -153,12 +155,12 @@ const CheckinCalendar: React.FC<{
           );
         })}
       </div>
-      <div className="flex items-center gap-4 mt-4 text-[11px] text-[#a8a29e]">
+      <div className="flex items-center gap-4 mt-4 text-[11px] text-surface-400">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-[#dcfce7]" /> 已打卡
+          <span className="w-3 h-3 rounded bg-success-light" /> 已打卡
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-[#fed7aa] ring-1 ring-[#fca5a5]" /> 今天
+          <span className="w-3 h-3 rounded bg-brand-100 ring-1 ring-brand-300" /> 今天
         </span>
       </div>
     </div>
@@ -252,20 +254,20 @@ const DailyCheckin: React.FC = () => {
 
       <div className="grid grid-cols-3 gap-4">
         <StatCard
-          icon={<Flame className="w-5 h-5 text-orange-500" />}
-          iconBg="bg-orange-50"
+          icon={<Flame className="w-5 h-5 text-brand-500" />}
+          iconBg="bg-brand-100"
           label="连续打卡"
           value={`${streak} 天`}
         />
         <StatCard
-          icon={<Trophy className="w-5 h-5 text-green-500" />}
-          iconBg="bg-green-50"
+          icon={<Trophy className="w-5 h-5 text-success" />}
+          iconBg="bg-success-light"
           label="累计打卡"
           value={`${totalDays} 天`}
         />
         <StatCard
-          icon={<Clock className="w-5 h-5 text-blue-500" />}
-          iconBg="bg-blue-50"
+          icon={<Clock className="w-5 h-5 text-brand-500" />}
+          iconBg="bg-brand-100"
           label="今日学习"
           value={studyDisplay}
         />
@@ -274,39 +276,39 @@ const DailyCheckin: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 打卡面板 */}
         <div className="surface hover:shadow-card-hover transition-all duration-300 p-5">
-          <h2 className="text-base font-semibold text-[#1c1917] mb-4 flex items-center">
-            <Calendar className="w-[18px] h-[18px] mr-2 text-[#c2410c]" />
+          <h2 className="text-base font-semibold text-surface-900 mb-4 flex items-center font-display">
+            <Calendar className="w-[18px] h-[18px] mr-2 text-brand-500" />
             今日打卡
           </h2>
           <div className="space-y-4">
             <TimeSelector value={studyMinutes} onChange={setStudyMinutes} />
 
             <div>
-              <label className="block text-sm font-semibold text-[#1c1917] mb-1">今日总结</label>
+              <label className="block text-sm font-semibold text-surface-900 mb-1">今日总结</label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm resize-none h-20 focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 placeholder:text-[#a8a29e]"
+                className="w-full px-3.5 py-2.5 border-2 border-surface-200 rounded-xl text-sm resize-none h-20 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 placeholder:text-surface-400"
                 placeholder="今天学了什么？"
               />
             </div>
 
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-sm font-semibold text-[#1c1917] mb-1">考试名称</label>
+                <label className="block text-sm font-semibold text-surface-900 mb-1">考试名称</label>
                 <input
                   value={examName}
                   onChange={(e) => setExamName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 placeholder:text-[#a8a29e]"
+                  className="w-full px-3.5 py-2.5 border-2 border-surface-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 placeholder:text-surface-400"
                 />
               </div>
               <div className="w-36">
-                <label className="block text-sm font-semibold text-[#1c1917] mb-1">考试日期</label>
+                <label className="block text-sm font-semibold text-surface-900 mb-1">考试日期</label>
                 <input
                   type="date"
                   value={examDate}
                   onChange={(e) => setExamDate(e.target.value)}
-                  className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 placeholder:text-[#a8a29e]"
+                  className="w-full px-3.5 py-2.5 border-2 border-surface-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 placeholder:text-surface-400"
                 />
               </div>
             </div>
@@ -316,10 +318,10 @@ const DailyCheckin: React.FC = () => {
               disabled={isCheckedIn || !canCheckin}
               className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 isCheckedIn
-                  ? 'bg-[#dcfce7] text-[#166534] cursor-default'
+                  ? 'bg-success-light text-success-dark cursor-default'
                   : !canCheckin
-                  ? 'bg-[#f5f3f0] text-[#a8a29e] cursor-not-allowed'
-                  : 'bg-[#c2410c] hover:bg-[#9a3412] text-white shadow-[0_2px_8px_rgba(194,65,12,0.3)] active:scale-[0.98]'
+                  ? 'bg-surface-50 text-surface-400 cursor-not-allowed'
+                  : 'bg-brand-500 hover:bg-brand-600 text-white shadow-md active:scale-[0.98]'
               }`}
             >
               {isCheckedIn ? (

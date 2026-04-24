@@ -12,11 +12,11 @@ interface ProgressBarProps {
 }
 
 const variantMap = {
-  primary: 'bg-[#c2410c]',
-  success: 'bg-[#16a34a]',
-  warning: 'bg-[#ca8a04]',
-  error: 'bg-[#dc2626]',
-  muted: 'bg-[#d6d3d1]',
+  primary: 'bg-brand-500',
+  success: 'bg-success',
+  warning: 'bg-warning',
+  error: 'bg-danger',
+  muted: 'bg-surface-300',
 };
 
 const sizeMap = {
@@ -40,9 +40,9 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     <div className={cn('w-full', className)}>
       {(showLabel || label) && (
         <div className="flex items-center justify-between mb-1.5">
-          {label && <span className="text-sm text-[#57534e]">{label}</span>}
+          {label && <span className="text-sm text-surface-500">{label}</span>}
           {showLabel && (
-            <span className="text-sm font-semibold text-[#1c1917]">
+            <span className="text-sm font-semibold text-surface-900">
               {Math.round(percentage)}%
             </span>
           )}
@@ -50,7 +50,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       )}
       <div
         className={cn(
-          'w-full bg-[#e7e5e4] rounded-full overflow-hidden',
+          'w-full bg-surface-200 rounded-full overflow-hidden',
           sizeMap[size]
         )}
       >

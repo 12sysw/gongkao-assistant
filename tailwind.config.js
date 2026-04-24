@@ -52,6 +52,13 @@ export default {
           dark: '#991b1b',
           text: '#991b1b',
         },
+        info: {
+          light: '#dbeafe',
+          DEFAULT: '#2563eb',
+          dark: '#1e40af',
+          text: '#1e40af',
+          border: '#bfdbfe',
+        },
       },
       boxShadow: {
         soft: '0 1px 3px rgba(28, 25, 23, 0.04)',

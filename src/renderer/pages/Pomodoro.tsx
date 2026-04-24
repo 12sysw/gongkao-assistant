@@ -17,7 +17,7 @@ interface HistoryRecord {
 
 const MODES: Record<TimerMode, ModeConfig> = {
   work: { label: '专注', color: 'text-brand-500', bg: 'from-brand-500 via-brand-600 to-brand-700' },
-  shortBreak: { label: '短休息', color: 'text-success-dark', bg: 'from-success-light via-[#bbf7d0] to-[#86efac]' },
+  shortBreak: { label: '短休息', color: 'text-success-dark', bg: 'from-success-light via-success-light to-success' },
   longBreak: { label: '长休息', color: 'text-brand-400', bg: 'from-brand-100 via-brand-200 to-brand-300' },
 };
 

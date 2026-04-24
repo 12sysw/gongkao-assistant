@@ -350,7 +350,7 @@ export default function MockExam() {
 }
 
 // ==================== 选择页面 ====================
-function SelectPage({ startExam, startChallenge: _startChallenge, challengeCountdown, challengeResult, challengeMessage, resetChallenge, questions, answers, challengeTimer }: any) {
+function SelectPage({ startExam, startChallenge, challengeCountdown, challengeResult, challengeMessage, resetChallenge, questions, answers, challengeTimer }: any) {
   return (
     <div className="min-h-screen bg-surface-0 p-6 space-y-6">
       {/* 主标题 */}
@@ -360,8 +360,9 @@ function SelectPage({ startExam, startChallenge: _startChallenge, challengeCount
         <p className="text-sm text-white/70 mt-1">模拟真实考试，AI分析薄弱环节</p>
       </div>
 
-      {/* 正式考试入口 */}
-      <div className="max-w-2xl mx-auto">
+      {/* 考试模式选择 */}
+      <div className="max-w-2xl mx-auto space-y-4">
+        {/* 正式考试 */}
         <button onClick={startExam} className="w-full bg-white border border-surface-200 rounded-xl p-6 hover:border-brand-300 hover:shadow-card-hover transition-all text-left group">
           <div className="flex items-center justify-between">
             <div>
@@ -375,7 +376,25 @@ function SelectPage({ startExam, startChallenge: _startChallenge, challengeCount
           </div>
         </button>
 
-        <div className="bg-white border border-surface-200 rounded-xl p-6 mt-4 opacity-60">
+        {/* 挑战模式 */}
+        <button onClick={startChallenge} className="w-full bg-gradient-to-r from-brand-50 to-brand-100 border-2 border-brand-200 rounded-xl p-6 hover:border-brand-400 hover:shadow-card-hover transition-all text-left group">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-semibold text-brand-700 font-display">挑战模式</span>
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-brand-500 text-white rounded-full uppercase tracking-wider">限时</span>
+              </div>
+              <p className="text-sm text-brand-600/70 mt-1">25题 | 20分钟倒计时 | 60%正确率通关</p>
+            </div>
+            <div className="flex items-center gap-2 text-brand-500 group-hover:translate-x-1 transition-transform">
+              <Target className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5" />
+            </div>
+          </div>
+        </button>
+
+        {/* 申论（即将上线） */}
+        <div className="bg-white border border-surface-200 rounded-xl p-6 opacity-60">
           <h3 className="text-lg font-semibold text-surface-900 font-display">申论</h3>
           <p className="text-sm text-surface-500 mt-1">即将上线</p>
         </div>

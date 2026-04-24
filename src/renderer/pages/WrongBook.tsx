@@ -114,8 +114,8 @@ function parseOcrText(text: string): { content: string; options: string } {
 const PageHeader: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
   <div className="flex items-center justify-between">
     <div>
-      <h1 className="text-2xl font-bold text-[#1c1917] font-display tracking-tight">错题本</h1>
-      <p className="text-sm text-[#a8a29e] mt-1">记录错题，反复复习，查漏补缺</p>
+      <h1 className="text-2xl font-bold text-surface-900 font-display tracking-tight">错题本</h1>
+      <p className="text-sm text-surface-400 mt-1">记录错题，反复复习，查漏补缺</p>
     </div>
     <Button onClick={onAdd}>
       <Plus className="w-4 h-4" />
@@ -141,20 +141,20 @@ const TypeStats: React.FC<{
           onClick={() => onToggle(type)}
           className={`cursor-pointer rounded-2xl p-4 border-2 transition-all duration-300 ${
             isActive
-              ? 'border-[#c2410c] bg-[#fed7aa]/20'
-              : 'border-[#e7e5e4] bg-white hover:border-[#d6d3d1]'
+              ? 'border-brand-500 bg-brand-50'
+              : 'border-surface-200 bg-white hover:border-surface-300'
           }`}
         >
-          <p className="text-xs text-[#a8a29e] font-medium mb-1.5">{type.split('-')[1]}</p>
-          <p className="text-xl font-bold text-[#1c1917] font-display">{c.total}</p>
-          <div className="mt-2 h-1.5 w-full bg-[#e7e5e4] rounded-full overflow-hidden">
+          <p className="text-xs text-surface-400 font-medium mb-1.5">{type.split('-')[1]}</p>
+          <p className="text-xl font-bold text-surface-900 font-display">{c.total}</p>
+          <div className="mt-2 h-1.5 w-full bg-surface-100 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 masteryPct >= 80
-                  ? 'bg-[#16a34a]'
+                  ? 'bg-success'
                   : masteryPct >= 50
-                  ? 'bg-[#ca8a04]'
-                  : 'bg-[#dc2626]'
+                  ? 'bg-warning'
+                  : 'bg-danger'
               }`}
               style={{ width: `${masteryPct}%` }}
             />
@@ -170,13 +170,13 @@ const SearchBar: React.FC<{
   onChange: (v: string) => void;
 }> = ({ value, onChange }) => (
   <div className="relative flex-1">
-    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[#a8a29e]" />
+    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-surface-400" />
     <input
       type="text"
       placeholder="搜索题目内容或标签..."
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full pl-11 pr-4 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 placeholder:text-[#a8a29e]"
+      className="w-full pl-11 pr-4 py-2.5 border-2 border-surface-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all duration-200 placeholder:text-surface-400"
     />
   </div>
 );
@@ -185,33 +185,33 @@ const MasterFilter: React.FC<{
   filterMastered: number | undefined;
   onChange: (v: number | undefined) => void;
 }> = ({ filterMastered, onChange }) => (
-  <div className="flex rounded-xl overflow-hidden border-2 border-[#e7e5e4]">
+  <div className="flex rounded-xl overflow-hidden border-2 border-surface-200">
     <button
       onClick={() => onChange(0)}
       className={`px-3 py-2.5 text-xs font-medium transition-all duration-200 ${
         filterMastered === 0
-          ? 'bg-[#c2410c] text-white shadow-md'
-          : 'bg-white text-[#57534e] hover:bg-[#f5f3f0]'
+          ? 'bg-brand-500 text-white shadow-md'
+          : 'bg-white text-surface-500 hover:bg-surface-50'
       }`}
     >
       未掌握
     </button>
     <button
       onClick={() => onChange(1)}
-      className={`px-3 py-2.5 text-xs font-medium border-l border-[#e7e5e4] transition-all duration-200 ${
+      className={`px-3 py-2.5 text-xs font-medium border-l border-surface-200 transition-all duration-200 ${
         filterMastered === 1
-          ? 'bg-[#c2410c] text-white shadow-md'
-          : 'bg-white text-[#57534e] hover:bg-[#f5f3f0]'
+          ? 'bg-brand-500 text-white shadow-md'
+          : 'bg-white text-surface-500 hover:bg-surface-50'
       }`}
     >
       已掌握
     </button>
     <button
       onClick={() => onChange(undefined)}
-      className={`px-3 py-2.5 text-xs font-medium border-l border-[#e7e5e4] transition-all duration-200 ${
+      className={`px-3 py-2.5 text-xs font-medium border-l border-surface-200 transition-all duration-200 ${
         filterMastered === undefined
-          ? 'bg-[#c2410c] text-white shadow-md'
-          : 'bg-white text-[#57534e] hover:bg-[#f5f3f0]'
+          ? 'bg-brand-500 text-white shadow-md'
+          : 'bg-white text-surface-500 hover:bg-surface-50'
       }`}
     >
       全部
@@ -230,10 +230,10 @@ const OptionDisplay: React.FC<{
         key={i}
         className={`text-sm px-3.5 py-2 rounded-xl ${
           opt.startsWith(answer)
-            ? 'bg-[#dcfce7] text-[#166534] font-semibold'
+            ? 'bg-success-light text-success-dark font-semibold'
             : opt.startsWith(myAnswer)
-            ? 'bg-[#fee2e2] text-[#991b1b] line-through opacity-60'
-            : 'bg-[#f5f3f0] text-[#57534e]'
+            ? 'bg-danger-light text-danger-dark line-through opacity-60'
+            : 'bg-surface-50 text-surface-600'
         }`}
       >
         {opt}
@@ -248,12 +248,12 @@ const AnswerComparison: React.FC<{
 }> = ({ myAnswer, correctAnswer }) => (
   <div className="grid grid-cols-2 gap-4 text-sm">
     <div>
-      <span className="text-[#a8a29e]">我的答案：</span>
-      <span className="text-[#dc2626] font-bold ml-1">{myAnswer}</span>
+      <span className="text-surface-400">我的答案：</span>
+      <span className="text-danger font-bold ml-1">{myAnswer}</span>
     </div>
     <div>
-      <span className="text-[#a8a29e]">正确答案：</span>
-      <span className="text-[#16a34a] font-bold ml-1">{correctAnswer}</span>
+      <span className="text-surface-400">正确答案：</span>
+      <span className="text-success font-bold ml-1">{correctAnswer}</span>
     </div>
   </div>
 );
@@ -287,7 +287,7 @@ const RecordActions: React.FC<{
             e.stopPropagation();
             onMastered(record.id);
           }}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#16a34a] text-white rounded-xl text-xs font-semibold hover:bg-[#15803d] active:scale-[0.96] transition-all duration-200"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-success text-white rounded-xl text-xs font-semibold hover:bg-success-dark active:scale-[0.96] transition-all duration-200"
         >
           <CheckCircle2 className="w-3.5 h-3.5" />
           标记掌握
@@ -297,7 +297,7 @@ const RecordActions: React.FC<{
             e.stopPropagation();
             onReview(record.id);
           }}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#c2410c] text-white rounded-xl text-xs font-semibold hover:bg-[#9a3412] active:scale-[0.96] transition-all duration-200"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-brand-500 text-white rounded-xl text-xs font-semibold hover:bg-brand-600 active:scale-[0.96] transition-all duration-200"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           已复习
@@ -309,7 +309,7 @@ const RecordActions: React.FC<{
         e.stopPropagation();
         onDelete(record.id);
       }}
-      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#fee2e2] text-[#dc2626] rounded-xl text-xs font-semibold hover:bg-[#fecaca] active:scale-[0.96] transition-all duration-200 ml-auto"
+      className="flex items-center gap-1.5 px-3.5 py-2 bg-danger-light text-danger rounded-xl text-xs font-semibold hover:bg-danger-light/80 active:scale-[0.96] transition-all duration-200 ml-auto"
     >
       <Trash2 className="w-3.5 h-3.5" />
       删除
@@ -331,8 +331,8 @@ const RecordItem: React.FC<{
     <div
       className={`surface transition-all duration-300 ${
         record.mastered
-          ? 'border-[#dcfce7] bg-[#dcfce7]/10'
-          : 'border-[#e7e5e4]'
+          ? 'border-success-light bg-success-light/10'
+          : 'border-surface-200'
       }`}
     >
       <div
@@ -341,38 +341,38 @@ const RecordItem: React.FC<{
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-[#f5f3f0] text-[#57534e]">
+            <span className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-surface-50 text-surface-500">
               {record.type}
             </span>
             {record.mastered && (
-              <span className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-[#dcfce7] text-[#166534] flex items-center gap-1">
+              <span className="px-2.5 py-0.5 rounded-lg text-xs font-medium bg-success-light text-success-dark flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3" />
                 已掌握
               </span>
             )}
-            <span className="text-xs text-[#a8a29e] font-medium">
+            <span className="text-xs text-surface-400 font-medium">
               错 {record.wrong_count} 次
             </span>
           </div>
-          <p className="text-sm text-[#1c1917] line-clamp-2 font-medium">{record.content}</p>
+          <p className="text-sm text-surface-900 line-clamp-2 font-medium">{record.content}</p>
         </div>
         <div className="flex items-center gap-1 ml-3">
           {isExpanded ? (
-            <ChevronUp className="w-4 h-4 text-[#a8a29e] transition-transform duration-200" />
+            <ChevronUp className="w-4 h-4 text-surface-400 transition-transform duration-200" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-[#a8a29e] transition-transform duration-200" />
+            <ChevronDown className="w-4 h-4 text-surface-400 transition-transform duration-200" />
           )}
         </div>
       </div>
 
       {isExpanded && (
-        <div className="px-4 pb-4 border-t border-[#e7e5e4] pt-3 space-y-3">
+        <div className="px-4 pb-4 border-t border-surface-100 pt-3 space-y-3">
           {opts.length > 0 && (
             <OptionDisplay options={opts} answer={record.answer} myAnswer={record.my_answer} />
           )}
           <AnswerComparison myAnswer={record.my_answer} correctAnswer={record.answer} />
-          <InfoBox label="解析" content={record.explanation} bgClass="bg-[#dbeafe]" textClass="text-[#1e40af]" />
-          <InfoBox label="笔记" content={record.note} bgClass="bg-[#fef9c3]" textClass="text-[#854d0e]" />
+          <InfoBox label="解析" content={record.explanation} bgClass="bg-brand-50" textClass="text-brand-700" />
+          <InfoBox label="笔记" content={record.note} bgClass="bg-warning-light" textClass="text-warning-dark" />
           <RecordActions
             record={record}
             onMastered={onMastered}
@@ -387,11 +387,11 @@ const RecordItem: React.FC<{
 
 const EmptyState: React.FC = () => (
   <div className="text-center py-16">
-    <div className="w-20 h-20 bg-[#f5f3f0] rounded-3xl flex items-center justify-center mx-auto mb-4">
-      <BookXIcon className="w-10 h-10 text-[#a8a29e]" />
+    <div className="w-20 h-20 bg-surface-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
+      <BookXIcon className="w-10 h-10 text-surface-400" />
     </div>
-    <p className="text-base font-semibold text-[#1c1917] mb-1.5">暂无错题记录</p>
-    <p className="text-sm text-[#a8a29e]">点击右上角添加你的第一道错题吧！</p>
+    <p className="text-base font-semibold text-surface-900 mb-1.5">暂无错题记录</p>
+    <p className="text-sm text-surface-400">点击右上角添加你的第一道错题吧！</p>
   </div>
 );
 
@@ -417,7 +417,7 @@ const OcrUpload: React.FC<{
   ocrProgress: number;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }> = ({ fileInputRef, ocrLoading, ocrProgress, onFileSelect }) => (
-  <div className="mb-5 p-4 border-2 border-dashed border-[#e7e5e4] rounded-2xl bg-[#f5f3f0]">
+  <div className="mb-5 p-4 border-2 border-dashed border-surface-200 rounded-2xl bg-surface-50">
     <div className="flex items-center justify-center gap-3">
       <input
         ref={fileInputRef}
@@ -429,7 +429,7 @@ const OcrUpload: React.FC<{
       />
       <label
         htmlFor="image-upload"
-        className="flex items-center gap-2 px-5 py-2.5 bg-[#c2410c] text-white rounded-xl cursor-pointer hover:bg-[#9a3412] active:scale-[0.96] transition-all duration-200 text-sm font-medium"
+        className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-xl cursor-pointer hover:bg-brand-600 active:scale-[0.96] transition-all duration-200 text-sm font-medium"
       >
         {ocrLoading ? (
           <>
@@ -443,13 +443,13 @@ const OcrUpload: React.FC<{
           </>
         )}
       </label>
-      <span className="text-xs text-[#a8a29e]">或直接 Ctrl+V 粘贴截图</span>
+      <span className="text-xs text-surface-400">或直接 Ctrl+V 粘贴截图</span>
     </div>
     {ocrLoading && (
       <div className="mt-3">
-        <div className="w-full h-2 bg-[#e7e5e4] rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-surface-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#c2410c] transition-all duration-300 ease-out"
+            className="h-full bg-brand-500 transition-all duration-300 ease-out"
             style={{ width: `${ocrProgress}%` }}
           />
         </div>
@@ -485,12 +485,14 @@ const AddFormModal: React.FC<{
     onChange({ ...form, [key]: value });
   };
 
+  const inputClass = "w-full px-3.5 py-2.5 border-2 border-surface-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all duration-200 placeholder:text-surface-400";
+
   return (
-    <div className="fixed inset-0 bg-[#1c1917]/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-surface-950/60 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="surface shadow-card-hover w-full max-w-lg p-6 m-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-[#1c1917] font-display tracking-tight">添加错题</h2>
-          <button onClick={onClose} className="p-2 rounded-xl text-[#a8a29e] hover:text-[#1c1917] hover:bg-[#f5f3f0] transition-colors duration-200">
+          <h2 className="text-xl font-bold text-surface-900 font-display tracking-tight">添加错题</h2>
+          <button onClick={onClose} className="p-2 rounded-xl text-surface-400 hover:text-surface-900 hover:bg-surface-50 transition-colors duration-200">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -504,11 +506,11 @@ const AddFormModal: React.FC<{
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-[#1c1917] mb-2">题目类型</label>
+            <label className="block text-sm font-semibold text-surface-900 mb-2">题目类型</label>
             <select
               value={form.type}
               onChange={(e) => update('type', e.target.value)}
-              className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 bg-white"
+              className={inputClass + ' bg-white'}
             >
               {QUESTION_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -519,27 +521,27 @@ const AddFormModal: React.FC<{
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1c1917] mb-2">
+            <label className="block text-sm font-semibold text-surface-900 mb-2">
               题目内容
-              <span className="text-[#a8a29e] font-normal ml-2">（可粘贴图片自动识别）</span>
+              <span className="text-surface-400 font-normal ml-2">（可粘贴图片自动识别）</span>
             </label>
             <textarea
               value={form.content}
               onChange={(e) => update('content', e.target.value)}
-              className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 placeholder:text-[#a8a29e]"
+              className={inputClass}
               rows={3}
               placeholder="输入题目内容，或粘贴图片自动识别..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1c1917] mb-2">
-              选项 <span className="text-[#a8a29e] font-normal">（每行一个，如：A.选项内容）</span>
+            <label className="block text-sm font-semibold text-surface-900 mb-2">
+              选项 <span className="text-surface-400 font-normal">（每行一个，如：A.选项内容）</span>
             </label>
             <textarea
               value={form.options}
               onChange={(e) => update('options', e.target.value)}
-              className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 placeholder:text-[#a8a29e]"
+              className={inputClass}
               rows={4}
               placeholder={'A.选项一\nB.选项二\nC.选项三\nD.选项四'}
             />
@@ -547,54 +549,54 @@ const AddFormModal: React.FC<{
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-semibold text-[#1c1917] mb-2">我的答案</label>
+              <label className="block text-sm font-semibold text-surface-900 mb-2">我的答案</label>
               <input
                 value={form.my_answer}
                 onChange={(e) => update('my_answer', e.target.value)}
-                className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 placeholder:text-[#a8a29e]"
+                className={inputClass}
                 placeholder="如：A"
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-[#1c1917] mb-2">正确答案 *</label>
+              <label className="block text-sm font-semibold text-surface-900 mb-2">正确答案 *</label>
               <input
                 value={form.answer}
                 onChange={(e) => update('answer', e.target.value)}
-                className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 placeholder:text-[#a8a29e]"
+                className={inputClass}
                 placeholder="如：C"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1c1917] mb-2">解析</label>
+            <label className="block text-sm font-semibold text-surface-900 mb-2">解析</label>
             <textarea
               value={form.explanation}
               onChange={(e) => update('explanation', e.target.value)}
-              className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 placeholder:text-[#a8a29e]"
+              className={inputClass}
               rows={2}
               placeholder="输入答案解析..."
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1c1917] mb-2">
-              标签 <span className="text-[#a8a29e] font-normal">（逗号分隔）</span>
+            <label className="block text-sm font-semibold text-surface-900 mb-2">
+              标签 <span className="text-surface-400 font-normal">（逗号分隔）</span>
             </label>
             <input
               value={form.tags}
               onChange={(e) => update('tags', e.target.value)}
-              className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 placeholder:text-[#a8a29e]"
+              className={inputClass}
               placeholder="如：成语,逻辑填空"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1c1917] mb-2">个人笔记</label>
+            <label className="block text-sm font-semibold text-surface-900 mb-2">个人笔记</label>
             <textarea
               value={form.note}
               onChange={(e) => update('note', e.target.value)}
-              className="w-full px-3.5 py-2.5 border-2 border-[#e7e5e4] rounded-xl text-sm focus:outline-none focus:border-[#c2410c] focus:ring-2 focus:ring-[#c2410c]/10 transition-all duration-200 placeholder:text-[#a8a29e]"
+              className={inputClass}
               rows={2}
               placeholder="记录你的思考..."
             />
@@ -603,14 +605,14 @@ const AddFormModal: React.FC<{
           <div className="flex justify-end gap-3 pt-2">
             <button
               onClick={onClose}
-              className="px-5 py-2.5 text-sm font-medium text-[#57534e] hover:text-[#1c1917] rounded-xl hover:bg-[#f5f3f0] transition-all duration-200"
+              className="px-5 py-2.5 text-sm font-medium text-surface-500 hover:text-surface-900 rounded-xl hover:bg-surface-50 transition-all duration-200"
             >
               取消
             </button>
             <button
               onClick={onSubmit}
               disabled={!form.content || !form.answer}
-              className="px-5 py-2.5 bg-[#c2410c] text-white rounded-xl text-sm font-semibold hover:bg-[#9a3412] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.96] transition-all duration-200 shadow-[0_2px_8px_rgba(194,65,12,0.3)]"
+              className="px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.96] transition-all duration-200 shadow-md"
             >
               添加
             </button>
