@@ -3,7 +3,28 @@
     "allow": [
       "Bash(npm run *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(taskkill /F /IM \"公考小助手.exe\")",
+      "Bash(tasklist)",
+      "Bash(powershell -Command \"Stop-Process -Name '公考小助手' -Force -ErrorAction SilentlyContinue; Stop-Process -Name 'electron' -Force -ErrorAction SilentlyContinue\")",
+      "Bash(powershell -Command \"Stop-Process -Name '公考小助手' -Force -ErrorAction SilentlyContinue\")",
+      "Bash(ls -la release/*.exe)",
+      "Bash(cp -r dist/renderer release/renderer)",
+      "Bash(cp -r dist/main release/main)",
+      "Bash(electron .)",
+      "Bash(npx electron-packager *)",
+      "Bash(taskkill /F /IM \"公考小助手\")",
+      "Bash(cat release/dist-win/公考小助手-win32-x64/*.exe)",
+      "Bash(cp -r node_modules/sql.js/dist release/sql.js)",
+      "Bash(taskkill /F /IM \"electron\")",
+      "Bash(powershell *)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(ls *)",
+      "Bash(git commit *)",
+      "Bash(npx electron *)"
     ]
   }
 }

@@ -1,6 +1,6 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, globalShortcut } from 'electron';
 import path from 'path';
-import { registerIpcHandlers } from './ipc';
+import { registerIpcHandlers } from './ipc/index';
 import { initDatabase } from './db/migrations';
 import { closeDatabase } from './db';
 
@@ -43,12 +43,22 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(async () => {
-  // 初始化数据库（better-sqlite3 建表）
+app.whenReady().then(() => {
+  // 初始化数据库（better-sqlite3 建表 + 种子数据）
   initDatabase();
-  // 注册 IPC 处理器（sql.js 初始化是异步的，必须等待完成）
-  await registerIpcHandlers();
+  // 注册 IPC 处理器（better-sqlite3 同步，无需 await）
+  registerIpcHandlers();
   createWindow();
+
+  // 生产环境按 F12 打开开发者工具
+  if (app.isPackaged) {
+    globalShortcut.register('F12', () => {
+      const win = BrowserWindow.getFocusedWindow();
+      if (win) {
+        win.webContents.toggleDevTools();
+      }
+    });
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -66,4 +76,7 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   closeDatabase();
+  if (app.isPackaged) {
+    globalShortcut.unregisterAll();
+  }
 });
