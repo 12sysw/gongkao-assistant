@@ -12,6 +12,7 @@ import Pomodoro from './pages/Pomodoro';
 import KnowledgeBase from './pages/KnowledgeBase';
 import MockExam from './pages/MockExam';
 import Settings from './pages/Settings';
+import Achievements from './pages/Achievements';
 
 const App: React.FC = () => {
   return (
@@ -29,6 +30,7 @@ const App: React.FC = () => {
           <Route path="/checkin" element={<DailyCheckin />} />
           <Route path="/pomodoro" element={<Pomodoro />} />
           <Route path="/knowledge" element={<KnowledgeBase />} />
+          <Route path="/achievements" element={<Achievements />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

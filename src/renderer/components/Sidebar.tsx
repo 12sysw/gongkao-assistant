@@ -10,6 +10,7 @@ import {
   Timer,
   BookOpen,
   ClipboardList,
+  Trophy,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -25,6 +26,7 @@ const navItems = [
   { path: '/study-plan', label: '学习计划', icon: CalendarCheck },
   { path: '/checkin', label: '打卡倒计时', icon: Calendar },
   { path: '/pomodoro', label: '番茄钟', icon: Timer },
+  { path: '/achievements', label: '成就', icon: Trophy },
   { path: '/knowledge', label: '知识点速查', icon: BookOpen },
   { path: '/settings', label: '设置', icon: Settings },
 ];

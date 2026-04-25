@@ -43,11 +43,11 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
-  // 初始化数据库
+app.whenReady().then(async () => {
+  // 初始化数据库（better-sqlite3 建表）
   initDatabase();
-  // 注册 IPC 处理器
-  registerIpcHandlers();
+  // 注册 IPC 处理器（sql.js 初始化是异步的，必须等待完成）
+  await registerIpcHandlers();
   createWindow();
 });
 
