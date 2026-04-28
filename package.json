@@ -10,7 +10,8 @@
     "build:all": "npm run build && npm run build:main",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "npm run build:all && electron-builder",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit",
+    "test": "npm run build:main && node tests/run-ipc-contract-tests.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

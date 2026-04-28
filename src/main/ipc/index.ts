@@ -1,9 +1,36 @@
 import { ipcMain, dialog } from 'electron';
-import { eq, and, gte, lte, desc, asc, sql as drizzleSql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db, sqlite } from '../db';
 import { IPC } from '../../shared/ipc';
 import * as schema from '../db/schema';
 import fs from 'fs';
+import {
+  applyFlashcardFilters,
+  applyQuestionFilters,
+  applyWrongBookFilters,
+  buildAchievementProgress,
+  formatLocalDate,
+  formatLocalDateTime,
+  getUnlockableAchievementIds,
+  isDueReview,
+  normalizeLegacyDateTime,
+  sortStudyPlans,
+  toLegacyAchievement,
+  toLegacyDailyRecord,
+  toLegacyExamConfig,
+  toLegacyFlashcard,
+  toLegacyMindMap,
+  toLegacyPomodoroRecord,
+  toLegacyQuestion,
+  toLegacyQuote,
+  toLegacyStudyPlan,
+  toLegacyWrongRecord,
+} from './contract-utils';
+
+function getQuestionMap() {
+  const questions = db.select().from(schema.questions).all();
+  return new Map(questions.map((question) => [question.id, question]));
+}
 
 export function registerIpcHandlers() {
   // ==================== 题目 ====================
@@ -16,18 +43,18 @@ export function registerIpcHandlers() {
       explanation: q.explanation || '',
       tags: q.tags || '',
     }).returning().get();
-    return result;
+
+    return toLegacyQuestion(result);
   });
 
   ipcMain.handle(IPC.QUESTION_GET_ALL, (_, filters?: any) => {
-    let query = db.select().from(schema.questions).orderBy(desc(schema.questions.createdAt));
-    if (filters?.type) query = db.select().from(schema.questions).where(eq(schema.questions.type, filters.type)).orderBy(desc(schema.questions.createdAt)) as any;
-    if (filters?.limit) query = db.select().from(schema.questions).limit(filters.limit).orderBy(desc(schema.questions.createdAt)) as any;
-    return query.all();
+    const rows = db.select().from(schema.questions).all();
+    return applyQuestionFilters(rows, filters).map((row) => toLegacyQuestion(row));
   });
 
   ipcMain.handle(IPC.QUESTION_GET_BY_ID, (_, id: number) => {
-    return db.select().from(schema.questions).where(eq(schema.questions.id, id)).get();
+    const row = db.select().from(schema.questions).where(eq(schema.questions.id, id)).get();
+    return toLegacyQuestion(row);
   });
 
   ipcMain.handle(IPC.QUESTION_UPDATE, (_, q: any) => {
@@ -39,7 +66,9 @@ export function registerIpcHandlers() {
       explanation: q.explanation,
       tags: q.tags,
     }).where(eq(schema.questions.id, q.id)).run();
-    return q;
+
+    const updated = db.select().from(schema.questions).where(eq(schema.questions.id, q.id)).get();
+    return toLegacyQuestion(updated);
   });
 
   ipcMain.handle(IPC.QUESTION_DELETE, (_, id: number) => {
@@ -54,34 +83,39 @@ export function registerIpcHandlers() {
       myAnswer: record.my_answer,
       note: record.note || '',
     }).returning().get();
-    return result;
+
+    const question = db.select().from(schema.questions).where(eq(schema.questions.id, result.questionId)).get();
+    return toLegacyWrongRecord(result, question);
   });
 
   ipcMain.handle(IPC.WRONG_BOOK_GET_ALL, (_, filters?: any) => {
-    const rows = db.select().from(schema.wrongRecords).orderBy(desc(schema.wrongRecords.lastWrongAt)).all();
-    // 关联题目数据
-    return rows.map((r: any) => ({
-      ...r,
-      question: db.select().from(schema.questions).where(eq(schema.questions.id, r.questionId)).get(),
-    }));
+    const questionMap = getQuestionMap();
+    const rows = db.select().from(schema.wrongRecords).all();
+    const records = rows.map((row) => toLegacyWrongRecord(row, questionMap.get(row.questionId)));
+    return applyWrongBookFilters(records, filters);
   });
 
   ipcMain.handle(IPC.WRONG_BOOK_GET_BY_ID, (_, id: number) => {
-    const record = db.select().from(schema.wrongRecords).where(eq(schema.wrongRecords.id, id)).get();
-    if (!record) return null;
-    return {
-      ...record,
-      question: db.select().from(schema.questions).where(eq(schema.questions.id, record.questionId)).get(),
-    };
+    const row = db.select().from(schema.wrongRecords).where(eq(schema.wrongRecords.id, id)).get();
+    if (!row) return null;
+
+    const question = db.select().from(schema.questions).where(eq(schema.questions.id, row.questionId)).get();
+    return toLegacyWrongRecord(row, question);
   });
 
   ipcMain.handle(IPC.WRONG_BOOK_UPDATE, (_, record: any) => {
-    db.update(schema.wrongRecords).set({
-      myAnswer: record.my_answer,
-      note: record.note,
-      nextReviewAt: record.next_review_at,
-    }).where(eq(schema.wrongRecords.id, record.id)).run();
-    return record;
+    const updates: Record<string, unknown> = {};
+    if (record.my_answer !== undefined) updates.myAnswer = record.my_answer;
+    if (record.note !== undefined) updates.note = record.note;
+    if (record.next_review_at !== undefined) updates.nextReviewAt = normalizeLegacyDateTime(record.next_review_at);
+
+    db.update(schema.wrongRecords).set(updates).where(eq(schema.wrongRecords.id, record.id)).run();
+
+    const updated = db.select().from(schema.wrongRecords).where(eq(schema.wrongRecords.id, record.id)).get();
+    if (!updated) return null;
+
+    const question = db.select().from(schema.questions).where(eq(schema.questions.id, updated.questionId)).get();
+    return toLegacyWrongRecord(updated, question);
   });
 
   ipcMain.handle(IPC.WRONG_BOOK_DELETE, (_, id: number) => {
@@ -95,17 +129,13 @@ export function registerIpcHandlers() {
   });
 
   ipcMain.handle(IPC.WRONG_BOOK_GET_DUE_REVIEW, () => {
-    const rows = db.select().from(schema.wrongRecords)
-      .where(and(
-        eq(schema.wrongRecords.mastered, false),
-        gte(schema.wrongRecords.nextReviewAt, drizzleSql`datetime('now', 'localtime')`)
-      ))
-      .orderBy(asc(schema.wrongRecords.nextReviewAt))
-      .all();
-    return rows.map((r: any) => ({
-      ...r,
-      question: db.select().from(schema.questions).where(eq(schema.questions.id, r.questionId)).get(),
-    }));
+    const questionMap = getQuestionMap();
+    const rows = db.select().from(schema.wrongRecords).all();
+
+    return rows
+      .filter((row) => !row.mastered && isDueReview(row.nextReviewAt))
+      .sort((a, b) => String(a.nextReviewAt ?? '').localeCompare(String(b.nextReviewAt ?? '')))
+      .map((row) => toLegacyWrongRecord(row, questionMap.get(row.questionId)));
   });
 
   // ==================== 思维导图 ====================
@@ -115,31 +145,31 @@ export function registerIpcHandlers() {
         title: data.title,
         subject: data.subject,
         data: data.data,
-        updatedAt: drizzleSql`(datetime('now','localtime'))`,
+        updatedAt: formatLocalDateTime(),
       }).where(eq(schema.mindMaps.id, data.id)).run();
-      return { id: data.id, title: data.title, subject: data.subject };
-    } else {
-      const result = db.insert(schema.mindMaps).values({
-        title: data.title,
-        subject: data.subject,
-        data: data.data,
-      }).returning().get();
-      return result;
+
+      const updated = db.select().from(schema.mindMaps).where(eq(schema.mindMaps.id, data.id)).get();
+      return toLegacyMindMap(updated);
     }
+
+    const result = db.insert(schema.mindMaps).values({
+      title: data.title,
+      subject: data.subject,
+      data: data.data,
+    }).returning().get();
+
+    return toLegacyMindMap(result);
   });
 
   ipcMain.handle(IPC.MIND_MAP_GET_ALL, () => {
-    return db.select({
-      id: schema.mindMaps.id,
-      title: schema.mindMaps.title,
-      subject: schema.mindMaps.subject,
-      createdAt: schema.mindMaps.createdAt,
-      updatedAt: schema.mindMaps.updatedAt,
-    }).from(schema.mindMaps).orderBy(desc(schema.mindMaps.updatedAt)).all();
+    return db.select().from(schema.mindMaps).all()
+      .sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')))
+      .map((row) => toLegacyMindMap(row));
   });
 
   ipcMain.handle(IPC.MIND_MAP_GET_BY_ID, (_, id: number) => {
-    return db.select().from(schema.mindMaps).where(eq(schema.mindMaps.id, id)).get();
+    const row = db.select().from(schema.mindMaps).where(eq(schema.mindMaps.id, id)).get();
+    return toLegacyMindMap(row);
   });
 
   ipcMain.handle(IPC.MIND_MAP_DELETE, (_, id: number) => {
@@ -157,13 +187,13 @@ export function registerIpcHandlers() {
       description: plan.description || '',
       dailyMinutes: plan.daily_minutes || 60,
     }).returning().get();
-    return result;
+
+    return toLegacyStudyPlan(result);
   });
 
   ipcMain.handle(IPC.STUDY_PLAN_GET_ALL, () => {
-    return db.select().from(schema.studyPlans)
-      .orderBy(asc(schema.studyPlans.status), desc(schema.studyPlans.priority), asc(schema.studyPlans.targetDate))
-      .all();
+    const rows = db.select().from(schema.studyPlans).all();
+    return sortStudyPlans(rows).map((row) => toLegacyStudyPlan(row));
   });
 
   ipcMain.handle(IPC.STUDY_PLAN_UPDATE, (_, plan: any) => {
@@ -175,9 +205,11 @@ export function registerIpcHandlers() {
       status: plan.status,
       description: plan.description,
       dailyMinutes: plan.daily_minutes,
-      updatedAt: drizzleSql`(datetime('now','localtime'))`,
+      updatedAt: formatLocalDateTime(),
     }).where(eq(schema.studyPlans.id, plan.id)).run();
-    return plan;
+
+    const updated = db.select().from(schema.studyPlans).where(eq(schema.studyPlans.id, plan.id)).get();
+    return toLegacyStudyPlan(updated);
   });
 
   ipcMain.handle(IPC.STUDY_PLAN_DELETE, (_, id: number) => {
@@ -189,11 +221,12 @@ export function registerIpcHandlers() {
   ipcMain.handle(IPC.DAILY_RECORD_ADD, (_, record: any) => {
     const existing = db.select().from(schema.dailyRecords).where(eq(schema.dailyRecords.date, record.date)).get();
     if (existing) {
+      const nextNote = record.note !== undefined && record.note !== '' ? record.note : existing.note;
       db.update(schema.dailyRecords).set({
         studyMinutes: existing.studyMinutes + (record.study_minutes || 0),
         questionsDone: existing.questionsDone + (record.questions_done || 0),
         wrongCount: existing.wrongCount + (record.wrong_count || 0),
-        note: record.note || existing.note,
+        note: nextNote,
       }).where(eq(schema.dailyRecords.id, existing.id)).run();
     } else {
       db.insert(schema.dailyRecords).values({
@@ -205,138 +238,74 @@ export function registerIpcHandlers() {
         note: record.note || '',
       }).run();
     }
+
     return { success: true };
   });
 
   ipcMain.handle(IPC.DAILY_RECORD_GET_BY_DATE, (_, date: string) => {
-    return db.select().from(schema.dailyRecords).where(eq(schema.dailyRecords.date, date)).get();
+    const row = db.select().from(schema.dailyRecords).where(eq(schema.dailyRecords.date, date)).get();
+    return toLegacyDailyRecord(row);
   });
 
   ipcMain.handle(IPC.DAILY_RECORD_GET_RANGE, (_, start: string, end: string) => {
-    return db.select().from(schema.dailyRecords)
-      .where(and(gte(schema.dailyRecords.date, start), lte(schema.dailyRecords.date, end)))
-      .orderBy(asc(schema.dailyRecords.date))
-      .all();
+    return db.select().from(schema.dailyRecords).all()
+      .filter((row) => row.date >= start && row.date <= end)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)))
+      .map((row) => toLegacyDailyRecord(row));
   });
 
   ipcMain.handle(IPC.DAILY_RECORD_GET_STATS, (_, days: number) => {
-    const totalStudy = db.select({
-      totalMinutes: drizzleSql`COALESCE(SUM(study_minutes), 0)`,
-      totalQuestions: drizzleSql`COALESCE(SUM(questions_done), 0)`,
-      totalWrong: drizzleSql`COALESCE(SUM(wrong_count), 0)`,
-      activeDays: drizzleSql`COUNT(*)`,
-    }).from(schema.dailyRecords)
-      .where(gte(schema.dailyRecords.date, drizzleSql`date('now', 'localtime', ${`-${days} days`})`))
-      .get() as any;
+    const cutoff = formatLocalDate(new Date(Date.now() - Math.max(days - 1, 0) * 86400000));
+    const rows = db.select().from(schema.dailyRecords).all().filter((row) => row.date >= cutoff);
+    const allWrongRecords = db.select().from(schema.wrongRecords).all();
 
-    const masteredCount = db.select({ count: drizzleSql`COUNT(*)` })
-      .from(schema.wrongRecords)
-      .where(eq(schema.wrongRecords.mastered, true))
-      .get() as any;
-
-    // 连续天数计算
-    const recentDays = db.select({ date: schema.dailyRecords.date })
-      .from(schema.dailyRecords)
-      .where(gte(schema.dailyRecords.date, drizzleSql`date('now', 'localtime', '-365 days')`))
-      .orderBy(desc(schema.dailyRecords.date))
-      .all();
-
-    let streak = 0;
-    const today = new Date().toISOString().slice(0, 10);
-    let checkDate = new Date();
-    for (let i = 0; i < 365; i++) {
-      const dateStr = checkDate.toISOString().slice(0, 10);
-      const found = recentDays.some((r: any) => r.date === dateStr);
-      if (found) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else if (dateStr === today) {
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
-    }
-
-    return {
-      ...totalStudy,
-      streak,
-      mastered_count: masteredCount?.count || 0,
+    const stats = {
+      total_minutes: rows.reduce((sum, row) => sum + Number(row.studyMinutes ?? 0), 0),
+      total_questions: rows.reduce((sum, row) => sum + Number(row.questionsDone ?? 0), 0),
+      total_wrong: rows.reduce((sum, row) => sum + Number(row.wrongCount ?? 0), 0),
+      active_days: rows.length,
+      streak: buildAchievementProgress({
+        dailyRecords: rows,
+        wrongRecords: allWrongRecords,
+        flashcards: [],
+        pomodoroRecords: [],
+      }).streak,
+      mastered_count: allWrongRecords.filter((row) => row.mastered).length,
     };
+
+    return stats;
   });
 
   // ==================== 成就 ====================
   ipcMain.handle(IPC.ACHIEVEMENT_GET_ALL, () => {
-    return db.select().from(schema.achievements).orderBy(asc(schema.achievements.type), asc(schema.achievements.threshold)).all();
+    return db.select().from(schema.achievements).all()
+      .sort((a, b) => a.type.localeCompare(b.type) || a.threshold - b.threshold)
+      .map((row) => toLegacyAchievement(row));
   });
 
   ipcMain.handle(IPC.ACHIEVEMENT_CHECK, () => {
-    const stats = db.select({
-      totalMinutes: drizzleSql`COALESCE(SUM(study_minutes), 0)`,
-      totalQuestions: drizzleSql`COALESCE(SUM(questions_done), 0)`,
-    }).from(schema.dailyRecords).get() as any;
+    const dailyRecords = db.select().from(schema.dailyRecords).all();
+    const wrongRecords = db.select().from(schema.wrongRecords).all();
+    const flashcards = db.select().from(schema.flashcards).all();
+    const pomodoroRecords = db.select().from(schema.pomodoroRecords).all();
+    const achievements = db.select().from(schema.achievements).all();
 
-    const masteredCount = db.select({ count: drizzleSql`COUNT(*)` })
-      .from(schema.wrongRecords).where(eq(schema.wrongRecords.mastered, true)).get() as any;
+    const progressMap = buildAchievementProgress({
+      dailyRecords,
+      wrongRecords,
+      flashcards,
+      pomodoroRecords,
+    });
 
-    const flashcardReviewCount = db.select({ count: drizzleSql`COALESCE(SUM(review_count), 0)` })
-      .from(schema.flashcards).get() as any;
-
-    const flashcardMasteredCount = db.select({ count: drizzleSql`COUNT(*)` })
-      .from(schema.flashcards).where(eq(schema.flashcards.mastered, true)).get() as any;
-
-    const pomodoroCount = db.select({ count: drizzleSql`COUNT(*)` })
-      .from(schema.pomodoroRecords).get() as any;
-
-    const checkinCount = db.select({ count: drizzleSql`COUNT(DISTINCT date)` })
-      .from(schema.dailyRecords).get() as any;
-
-    const recentDays = db.select({ date: schema.dailyRecords.date })
-      .from(schema.dailyRecords)
-      .where(gte(schema.dailyRecords.date, drizzleSql`date('now', 'localtime', '-365 days')`))
-      .orderBy(desc(schema.dailyRecords.date))
-      .all();
-
-    let streak = 0;
-    const today = new Date().toISOString().slice(0, 10);
-    let checkDate = new Date();
-    for (let i = 0; i < 365; i++) {
-      const dateStr = checkDate.toISOString().slice(0, 10);
-      const found = recentDays.some((r: any) => r.date === dateStr);
-      if (found) {
-        streak++;
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else if (dateStr === today) {
-        checkDate.setDate(checkDate.getDate() - 1);
-      } else {
-        break;
-      }
+    const now = formatLocalDateTime();
+    const unlockableIds = getUnlockableAchievementIds(achievements, progressMap);
+    for (const id of unlockableIds) {
+      sqlite.prepare('UPDATE achievements SET unlocked_at = ? WHERE id = ? AND unlocked_at IS NULL').run(now, id);
     }
 
-    const progressMap: Record<string, number> = {
-      streak,
-      questions: stats?.totalQuestions || 0,
-      study_time: stats?.totalMinutes || 0,
-      mastered: masteredCount?.count || 0,
-      flashcard: flashcardReviewCount?.count || 0,
-      flashcard_master: flashcardMasteredCount?.count || 0,
-      pomodoro: pomodoroCount?.count || 0,
-      checkin: checkinCount?.count || 0,
-    };
-
-    // 解锁成就
-    for (const [type, progress] of Object.entries(progressMap)) {
-      db.update(schema.achievements)
-        .set({ unlockedAt: drizzleSql`(datetime('now','localtime'))` })
-        .where(and(
-          eq(schema.achievements.type, type),
-          gte(drizzleSql`CAST(${schema.achievements.threshold} AS INTEGER)`, progress),
-          drizzleSql`${schema.achievements.unlockedAt} IS NULL`
-        ))
-        .run();
-    }
-
-    const achievements = db.select().from(schema.achievements).orderBy(asc(schema.achievements.type), asc(schema.achievements.threshold)).all();
-    return achievements.map((a: any) => ({ ...a, progress: progressMap[a.type] || 0 }));
+    return db.select().from(schema.achievements).all()
+      .sort((a, b) => a.type.localeCompare(b.type) || a.threshold - b.threshold)
+      .map((row) => toLegacyAchievement(row, progressMap[row.type] || 0));
   });
 
   // ==================== 记忆卡片 ====================
@@ -347,31 +316,29 @@ export function registerIpcHandlers() {
       category: card.category || '常识-政治',
       difficulty: card.difficulty || 'medium',
     }).returning().get();
-    return result;
+
+    return toLegacyFlashcard(result);
   });
 
   ipcMain.handle(IPC.FLASHCARD_GET_ALL, (_, filters?: any) => {
-    let query = db.select().from(schema.flashcards).orderBy(asc(schema.flashcards.nextReview), desc(schema.flashcards.createdAt));
-    if (filters?.category) {
-      query = db.select().from(schema.flashcards).where(eq(schema.flashcards.category, filters.category)).orderBy(asc(schema.flashcards.nextReview)) as any;
-    }
-    if (filters?.mastered !== undefined) {
-      query = db.select().from(schema.flashcards).where(eq(schema.flashcards.mastered, filters.mastered)).orderBy(asc(schema.flashcards.nextReview)) as any;
-    }
-    return query.all();
+    const rows = db.select().from(schema.flashcards).all();
+    return applyFlashcardFilters(rows, filters).map((row) => toLegacyFlashcard(row));
   });
 
   ipcMain.handle(IPC.FLASHCARD_UPDATE, (_, card: any) => {
-    const updates: any = {};
+    const updates: Record<string, unknown> = {};
     if (card.front !== undefined) updates.front = card.front;
     if (card.back !== undefined) updates.back = card.back;
     if (card.category !== undefined) updates.category = card.category;
     if (card.difficulty !== undefined) updates.difficulty = card.difficulty;
     if (card.review_count !== undefined) updates.reviewCount = card.review_count;
-    if (card.mastered !== undefined) updates.mastered = card.mastered;
+    if (card.mastered !== undefined) updates.mastered = Boolean(card.mastered);
     if (card.next_review !== undefined) updates.nextReview = card.next_review;
+
     db.update(schema.flashcards).set(updates).where(eq(schema.flashcards.id, card.id)).run();
-    return card;
+
+    const updated = db.select().from(schema.flashcards).where(eq(schema.flashcards.id, card.id)).get();
+    return toLegacyFlashcard(updated);
   });
 
   ipcMain.handle(IPC.FLASHCARD_DELETE, (_, id: number) => {
@@ -381,17 +348,20 @@ export function registerIpcHandlers() {
 
   // ==================== 考试配置 ====================
   ipcMain.handle(IPC.EXAM_CONFIG_GET, () => {
-    return db.select().from(schema.examConfig).orderBy(desc(schema.examConfig.id)).limit(1).get();
+    const row = db.select().from(schema.examConfig).all()
+      .sort((a, b) => b.id - a.id)[0];
+    return toLegacyExamConfig(row);
   });
 
   ipcMain.handle(IPC.EXAM_CONFIG_SET, (_, config: any) => {
-    const existing = db.select().from(schema.examConfig).orderBy(desc(schema.examConfig.id)).limit(1).get();
+    const existing = db.select().from(schema.examConfig).all().sort((a, b) => b.id - a.id)[0];
     if (existing) {
       db.update(schema.examConfig).set({ name: config.name, date: config.date }).where(eq(schema.examConfig.id, existing.id)).run();
     } else {
       db.insert(schema.examConfig).values({ name: config.name, date: config.date }).run();
     }
-    return config;
+
+    return { name: config.name, date: config.date };
   });
 
   // ==================== 番茄钟 ====================
@@ -401,30 +371,31 @@ export function registerIpcHandlers() {
       duration: record.duration || 25,
       mode: record.mode || 'work',
     }).returning().get();
-    return result;
+
+    return toLegacyPomodoroRecord(result);
   });
 
   ipcMain.handle(IPC.POMODORO_RECORD_GET_BY_DATE, (_, date: string) => {
-    return db.select().from(schema.pomodoroRecords).where(eq(schema.pomodoroRecords.date, date)).orderBy(asc(schema.pomodoroRecords.createdAt)).all();
+    return db.select().from(schema.pomodoroRecords).all()
+      .filter((row) => row.date === date)
+      .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))
+      .map((row) => toLegacyPomodoroRecord(row));
   });
 
   ipcMain.handle(IPC.POMODORO_RECORD_GET_RANGE, (_, start: string, end: string) => {
-    return db.select().from(schema.pomodoroRecords)
-      .where(and(gte(schema.pomodoroRecords.date, start), lte(schema.pomodoroRecords.date, end)))
-      .orderBy(asc(schema.pomodoroRecords.date), asc(schema.pomodoroRecords.createdAt))
-      .all();
+    return db.select().from(schema.pomodoroRecords).all()
+      .filter((row) => row.date >= start && row.date <= end)
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))
+      .map((row) => toLegacyPomodoroRecord(row));
   });
 
   // ==================== 鼓励语录 ====================
   ipcMain.handle(IPC.ENCOURAGE_GET_RANDOM, (_, category?: string) => {
-    if (category) {
-      const rows = db.select().from(schema.encourageQuotes)
-        .where(eq(schema.encourageQuotes.category, category as any))
-        .all();
-      return rows.length > 0 ? rows[Math.floor(Math.random() * rows.length)] : null;
-    }
-    const rows = db.select().from(schema.encourageQuotes).all();
-    return rows.length > 0 ? rows[Math.floor(Math.random() * rows.length)] : null;
+    const rows = db.select().from(schema.encourageQuotes).all()
+      .filter((row) => !category || row.category === category);
+
+    if (rows.length === 0) return null;
+    return toLegacyQuote(rows[Math.floor(Math.random() * rows.length)]);
   });
 
   // ==================== 数据导入导出 ====================
@@ -439,7 +410,7 @@ export function registerIpcHandlers() {
     const tables = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes'];
     const data: any = {};
     for (const table of tables) {
-      data[table] = db.all(drizzleSql`SELECT * FROM ${drizzleSql.raw(table)}`);
+      data[table] = sqlite.prepare(`SELECT * FROM ${table}`).all();
     }
 
     fs.writeFileSync(result.filePath!, JSON.stringify(data, null, 2), 'utf-8');
@@ -458,19 +429,23 @@ export function registerIpcHandlers() {
     }
 
     const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-
     const tables = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes'];
-    for (const table of tables) {
-      if (data[table] && Array.isArray(data[table])) {
+
+    sqlite.transaction(() => {
+      for (const table of [...tables].reverse()) {
         sqlite.prepare(`DELETE FROM ${table}`).run();
-        for (const row of data[table]) {
-          const cols = Object.keys(row).join(', ');
-          const placeholders = Object.keys(row).map(() => '?').join(', ');
-          const vals = Object.values(row);
-          sqlite.prepare(`INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${placeholders})`).run(vals);
+      }
+
+      for (const table of tables) {
+        if (data[table] && Array.isArray(data[table])) {
+          for (const row of data[table]) {
+            const cols = Object.keys(row).join(', ');
+            const placeholders = Object.keys(row).map(() => '?').join(', ');
+            sqlite.prepare(`INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${placeholders})`).run(Object.values(row));
+          }
         }
       }
-    }
+    })();
 
     return { success: true };
   });

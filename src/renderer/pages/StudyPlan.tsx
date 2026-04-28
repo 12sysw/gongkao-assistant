@@ -457,7 +457,7 @@ const StudyPlan: React.FC = () => {
         api.studyPlan.getAll() as Promise<StudyPlanItem[]>,
         api.dailyRecord.getByDate(dayjs().format('YYYY-MM-DD')) as Promise<DailyRecordItem | null>,
         api.dailyRecord.getRange(
-          dayjs().subtract(6, 'day').format('YYYY-MM-DD'),
+          dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
           dayjs().format('YYYY-MM-DD')
         ) as Promise<DailyRecordItem[]>,
       ]);
@@ -534,7 +534,10 @@ const StudyPlan: React.FC = () => {
 
   const todayMinutes = todayRecord?.study_minutes || 0;
   const todayQuestions = todayRecord?.questions_done || 0;
-  const totalWeeklyMinutes = weeklyData.reduce((sum, r) => sum + r.study_minutes, 0);
+  const weeklyCutoff = dayjs().subtract(6, 'day').format('YYYY-MM-DD');
+  const totalWeeklyMinutes = weeklyData
+    .filter((record) => record.date >= weeklyCutoff)
+    .reduce((sum, record) => sum + record.study_minutes, 0);
 
   const heatmapDays = useMemo(() => {
     return Array.from({ length: 30 }, (_, i) => {
