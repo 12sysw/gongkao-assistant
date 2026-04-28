@@ -63,7 +63,55 @@ function createNode(topic: string = '新节点'): MindMapNode {
 }
 
 function getApi() {
-  return (window as unknown as Window & { api: Record<string, unknown> }).api;
+  return (window as unknown as Window & { api?: Record<string, any> }).api;
+}
+
+const MIND_MAP_STORAGE_KEY = 'gongkao_assistant_mind_maps_local';
+
+function readLocalMindMaps(): MindMapItem[] {
+  try {
+    const raw = localStorage.getItem(MIND_MAP_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('读取本地思维导图失败', error);
+    return [];
+  }
+}
+
+function writeLocalMindMaps(maps: MindMapItem[]) {
+  localStorage.setItem(MIND_MAP_STORAGE_KEY, JSON.stringify(maps));
+}
+
+function saveLocalMindMap(item: Omit<MindMapItem, 'id' | 'created_at' | 'updated_at'> & { id?: number | null }): MindMapItem {
+  const now = new Date().toISOString();
+  const maps = readLocalMindMaps();
+  const existing = typeof item.id === 'number' ? maps.find((map) => map.id === item.id) : null;
+  const id = existing?.id ?? (item.id && item.id < 0 ? item.id : -Date.now());
+  const nextItem: MindMapItem = {
+    id,
+    title: item.title,
+    subject: item.subject,
+    data: item.data,
+    created_at: existing?.created_at ?? now,
+    updated_at: now,
+  };
+  const nextMaps = maps.filter((map) => map.id !== id);
+  nextMaps.unshift(nextItem);
+  writeLocalMindMaps(nextMaps);
+  return nextItem;
+}
+
+function removeLocalMindMap(id: number) {
+  writeLocalMindMaps(readLocalMindMaps().filter((map) => map.id !== id));
+}
+
+function mergeMindMapItems(remoteMaps: MindMapItem[], localMaps: MindMapItem[]) {
+  const merged = new Map<number, MindMapItem>();
+  for (const item of remoteMaps) merged.set(item.id, item);
+  for (const item of localMaps) merged.set(item.id, item);
+  return [...merged.values()].sort((a, b) => String(b.updated_at ?? '').localeCompare(String(a.updated_at ?? '')));
 }
 
 /* ─── Tree layout algorithms ─── */
@@ -422,13 +470,18 @@ const MindMap: React.FC = () => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
 
   const loadMaps = useCallback(async () => {
+    const localMaps = readLocalMindMaps();
     try {
       const api = getApi();
-      if (!api) return;
+      if (!api?.mindMap?.getAll) {
+        setMaps(localMaps);
+        return;
+      }
       const data = (await api.mindMap.getAll()) as MindMapItem[];
-      setMaps(data || []);
+      setMaps(mergeMindMapItems(data || [], localMaps));
     } catch (e) {
       console.error('加载导图列表失败', e);
+      setMaps(localMaps);
     }
   }, []);
 
@@ -446,9 +499,25 @@ const MindMap: React.FC = () => {
   }, []);
 
   const handleLoad = useCallback(async (map: MindMapItem) => {
+    if (map.id < 0) {
+      setCurrentMap(JSON.parse(map.data) as MindMapNode);
+      setCurrentMapId(map.id);
+      setMapTitle(map.title);
+      setMapSubject(map.subject);
+      setSelectedNode(null);
+      return;
+    }
+
     try {
       const api = getApi();
-      if (!api) return;
+      if (!api?.mindMap?.getById) {
+        setCurrentMap(JSON.parse(map.data) as MindMapNode);
+        setCurrentMapId(map.id);
+        setMapTitle(map.title);
+        setMapSubject(map.subject);
+        setSelectedNode(null);
+        return;
+      }
       const full = (await api.mindMap.getById(map.id)) as MindMapItem | null;
       if (full) {
         setCurrentMap(JSON.parse(full.data) as MindMapNode);
@@ -459,24 +528,34 @@ const MindMap: React.FC = () => {
       }
     } catch (e) {
       console.error('加载导图失败', e);
+      setCurrentMap(JSON.parse(map.data) as MindMapNode);
+      setCurrentMapId(map.id);
+      setMapTitle(map.title);
+      setMapSubject(map.subject);
+      setSelectedNode(null);
     }
   }, []);
 
   const handleSave = useCallback(async () => {
     if (!currentMap) return;
     setSaveStatus('saving');
+    const payload = {
+      id: currentMapId || undefined,
+      title: mapTitle,
+      subject: mapSubject,
+      data: JSON.stringify(currentMap),
+    };
     try {
       const api = getApi();
-      if (!api) {
-        setSaveStatus('error');
+      if (!api?.mindMap?.save) {
+        const saved = saveLocalMindMap(payload);
+        setCurrentMapId(saved.id);
+        setSaveStatus('saved');
+        loadMaps();
+        setTimeout(() => setSaveStatus('idle'), 2000);
         return;
       }
-      const result = (await api.mindMap.save({
-        id: currentMapId || undefined,
-        title: mapTitle,
-        subject: mapSubject,
-        data: JSON.stringify(currentMap),
-      })) as { id?: number } | null;
+      const result = (await api.mindMap.save(payload)) as { id?: number } | null;
       if (result?.id && !currentMapId) {
         setCurrentMapId(result.id);
       }
@@ -484,9 +563,18 @@ const MindMap: React.FC = () => {
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (e) {
-      console.error('保存导图失败', e);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), 2000);
+      console.error('保存导图失败，改用本地存储', e);
+      try {
+        const saved = saveLocalMindMap(payload);
+        setCurrentMapId(saved.id);
+        loadMaps();
+        setSaveStatus('saved');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } catch (fallbackError) {
+        console.error('本地保存导图也失败', fallbackError);
+        setSaveStatus('error');
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      }
     }
   }, [currentMap, currentMapId, mapTitle, mapSubject, loadMaps]);
 
@@ -495,8 +583,10 @@ const MindMap: React.FC = () => {
       if (!confirm('确定要删除这个思维导图吗？')) return;
       try {
         const api = getApi();
-        if (!api) return;
-        await api.mindMap.delete(id);
+        if (api?.mindMap?.delete && id >= 0) {
+          await api.mindMap.delete(id);
+        }
+        removeLocalMindMap(id);
         if (currentMapId === id) {
           setCurrentMap(null);
           setCurrentMapId(null);
@@ -504,6 +594,12 @@ const MindMap: React.FC = () => {
         loadMaps();
       } catch (e) {
         console.error('删除导图失败', e);
+        removeLocalMindMap(id);
+        if (currentMapId === id) {
+          setCurrentMap(null);
+          setCurrentMapId(null);
+        }
+        loadMaps();
       }
     },
     [currentMapId, loadMaps]
