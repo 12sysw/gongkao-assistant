@@ -1,9 +1,10 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, app } from 'electron';
 import { eq } from 'drizzle-orm';
 import { db, sqlite } from '../db';
 import { IPC } from '../../shared/ipc';
 import * as schema from '../db/schema';
 import fs from 'fs';
+import path from 'path';
 import {
   applyFlashcardFilters,
   applyQuestionFilters,
@@ -30,6 +31,70 @@ import {
 function getQuestionMap() {
   const questions = db.select().from(schema.questions).all();
   return new Map(questions.map((question) => [question.id, question]));
+}
+
+type FallbackMindMap = {
+  id: number;
+  title: string;
+  subject: string;
+  data: string;
+  created_at: string;
+  updated_at: string;
+};
+
+function getFallbackMindMapPath() {
+  return path.join(app.getPath('userData'), 'mind_maps_fallback.json');
+}
+
+function readFallbackMindMaps(): FallbackMindMap[] {
+  try {
+    const filePath = getFallbackMindMapPath();
+    if (!fs.existsSync(filePath)) {
+      return [];
+    }
+
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error('[IPC] Failed to read fallback mind maps', error);
+    return [];
+  }
+}
+
+function writeFallbackMindMaps(maps: FallbackMindMap[]) {
+  fs.writeFileSync(getFallbackMindMapPath(), JSON.stringify(maps, null, 2), 'utf-8');
+}
+
+function upsertFallbackMindMap(record: FallbackMindMap) {
+  const maps = readFallbackMindMaps();
+  const existingIndex = maps.findIndex((item) => item.id === record.id);
+
+  if (existingIndex >= 0) {
+    maps[existingIndex] = record;
+  } else {
+    maps.push(record);
+  }
+
+  writeFallbackMindMaps(maps);
+  return record;
+}
+
+function removeFallbackMindMap(id: number) {
+  writeFallbackMindMaps(readFallbackMindMaps().filter((item) => item.id !== id));
+}
+
+function mergeMindMaps(dbMaps: ReturnType<typeof toLegacyMindMap>[], fallbackMaps: FallbackMindMap[]) {
+  const merged = new Map<number, any>();
+
+  for (const item of dbMaps.filter(Boolean)) {
+    merged.set(item.id, item);
+  }
+
+  for (const item of fallbackMaps) {
+    merged.set(item.id, item);
+  }
+
+  return [...merged.values()].sort((a, b) => String(b.updated_at ?? '').localeCompare(String(a.updated_at ?? '')));
 }
 
 export function registerIpcHandlers() {
@@ -140,40 +205,91 @@ export function registerIpcHandlers() {
 
   // ==================== 思维导图 ====================
   ipcMain.handle(IPC.MIND_MAP_SAVE, (_, data: any) => {
-    if (data.id) {
-      db.update(schema.mindMaps).set({
+    const now = formatLocalDateTime();
+
+    try {
+      const isLocalFallbackId = typeof data.id === 'number' && data.id < 0;
+
+      if (data.id && !isLocalFallbackId) {
+        db.update(schema.mindMaps).set({
+          title: data.title,
+          subject: data.subject,
+          data: data.data,
+          updatedAt: now,
+        }).where(eq(schema.mindMaps.id, data.id)).run();
+
+        removeFallbackMindMap(data.id);
+        const updated = db.select().from(schema.mindMaps).where(eq(schema.mindMaps.id, data.id)).get();
+        return toLegacyMindMap(updated);
+      }
+
+      const result = db.insert(schema.mindMaps).values({
         title: data.title,
         subject: data.subject,
         data: data.data,
-        updatedAt: formatLocalDateTime(),
-      }).where(eq(schema.mindMaps.id, data.id)).run();
+      }).returning().get();
 
-      const updated = db.select().from(schema.mindMaps).where(eq(schema.mindMaps.id, data.id)).get();
-      return toLegacyMindMap(updated);
+      if (isLocalFallbackId) {
+        removeFallbackMindMap(data.id);
+      }
+
+      return toLegacyMindMap(result);
+    } catch (error) {
+      console.error('[IPC] Mind map save fell back to JSON storage', error);
+
+      const fallbackId = typeof data.id === 'number' ? data.id : -Date.now();
+      const existing = readFallbackMindMaps().find((item) => item.id === fallbackId);
+      return upsertFallbackMindMap({
+        id: fallbackId,
+        title: data.title,
+        subject: data.subject,
+        data: data.data,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      });
     }
-
-    const result = db.insert(schema.mindMaps).values({
-      title: data.title,
-      subject: data.subject,
-      data: data.data,
-    }).returning().get();
-
-    return toLegacyMindMap(result);
   });
 
   ipcMain.handle(IPC.MIND_MAP_GET_ALL, () => {
-    return db.select().from(schema.mindMaps).all()
-      .sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')))
-      .map((row) => toLegacyMindMap(row));
+    const fallbackMaps = readFallbackMindMaps();
+
+    try {
+      const dbMaps = db.select().from(schema.mindMaps).all()
+        .sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')))
+        .map((row) => toLegacyMindMap(row));
+
+      return mergeMindMaps(dbMaps, fallbackMaps);
+    } catch (error) {
+      console.error('[IPC] Mind map list read failed, using fallback only', error);
+      return mergeMindMaps([], fallbackMaps);
+    }
   });
 
   ipcMain.handle(IPC.MIND_MAP_GET_BY_ID, (_, id: number) => {
-    const row = db.select().from(schema.mindMaps).where(eq(schema.mindMaps.id, id)).get();
-    return toLegacyMindMap(row);
+    const fallback = readFallbackMindMaps().find((item) => item.id === id);
+    if (fallback) {
+      return fallback;
+    }
+
+    try {
+      const row = db.select().from(schema.mindMaps).where(eq(schema.mindMaps.id, id)).get();
+      return toLegacyMindMap(row);
+    } catch (error) {
+      console.error('[IPC] Mind map detail read failed', error);
+      return null;
+    }
   });
 
   ipcMain.handle(IPC.MIND_MAP_DELETE, (_, id: number) => {
-    db.delete(schema.mindMaps).where(eq(schema.mindMaps.id, id)).run();
+    try {
+      if (id >= 0) {
+        db.delete(schema.mindMaps).where(eq(schema.mindMaps.id, id)).run();
+      }
+    } catch (error) {
+      console.error('[IPC] Mind map delete from database failed', error);
+    }
+
+    removeFallbackMindMap(id);
     return { success: true };
   });
 
