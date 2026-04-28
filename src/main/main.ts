@@ -7,12 +7,10 @@ import { closeDatabase } from './db';
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow() {
-  let preloadPath: string;
-  if (app.isPackaged) {
-    preloadPath = path.join(app.getAppPath(), 'dist', 'main', 'main', 'preload.js');
-  } else {
-    preloadPath = path.join(__dirname, 'preload.js');
-  }
+  // Use the compiled file location itself as the anchor. This is more reliable
+  // than rebuilding an absolute path from app.getAppPath() inside packaged apps.
+  const preloadPath = path.join(__dirname, 'preload.js');
+  const rendererIndexPath = path.join(__dirname, '..', '..', 'renderer', 'index.html');
 
   mainWindow = new BrowserWindow({
     width: 1280,
@@ -24,6 +22,7 @@ function createWindow() {
       preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
     },
   });
 
@@ -31,7 +30,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(app.getAppPath(), 'dist', 'renderer', 'index.html'));
+    mainWindow.loadFile(rendererIndexPath);
   }
 
   mainWindow.webContents.on('console-message', (_, __, message) => {
