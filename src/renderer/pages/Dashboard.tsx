@@ -1,3 +1,4 @@
+import { useEffect, useState, useCallback } from 'react';
 import {
   Clock,
   Flame,
@@ -11,7 +12,46 @@ import { StatCard } from '../components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { cn } from '../lib/utils';
 
+function getApi() {
+  return (window as unknown as Window & { api: Record<string, unknown> }).api;
+}
+
+interface DashboardStats {
+  streak: number;
+  total_questions: number;
+  total_minutes: number;
+  mastered_count: number;
+  active_days: number;
+}
+
+const EMPTY_STATS: DashboardStats = {
+  streak: 0,
+  total_questions: 0,
+  total_minutes: 0,
+  mastered_count: 0,
+  active_days: 0,
+};
+
 export default function Dashboard() {
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const api = getApi();
+      if (!api) return;
+      const data = (await api.dailyRecord.getStats(365)) as DashboardStats | null;
+      if (data) setStats(data);
+    } catch (e) {
+      console.error('加载仪表盘数据失败', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
+  const formattedHours = (stats.total_minutes / 60).toFixed(1);
+
   return (
     <div className="p-6 space-y-6">
       {/* Hero banner */}
@@ -25,15 +65,15 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-8">
             <div className="text-center">
-              <p className="text-3xl font-bold font-display">15</p>
+              <p className="text-3xl font-bold font-display">{stats.streak}</p>
               <p className="text-xs text-white/60 mt-0.5">连续学习(天)</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold font-display">1,248</p>
+              <p className="text-3xl font-bold font-display">{stats.total_questions.toLocaleString()}</p>
               <p className="text-xs text-white/60 mt-0.5">累计刷题(道)</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold font-display">42.5h</p>
+              <p className="text-3xl font-bold font-display">{formattedHours}h</p>
               <p className="text-xs text-white/60 mt-0.5">学习时长</p>
             </div>
           </div>
@@ -47,35 +87,35 @@ export default function Dashboard() {
           iconColor="text-brand-500"
           iconBgColor="bg-brand-100"
           label="连续学习"
-          value="15天"
+          value={`${stats.streak}天`}
         />
         <StatCard
           icon={BookOpen}
           iconColor="text-brand-500"
           iconBgColor="bg-brand-100"
           label="累计刷题"
-          value="1,248道"
+          value={`${stats.total_questions.toLocaleString()}道`}
         />
         <StatCard
           icon={Clock}
           iconColor="text-brand-500"
           iconBgColor="bg-brand-100"
           label="学习时长"
-          value="42.5小时"
+          value={`${formattedHours}小时`}
         />
         <StatCard
           icon={CheckCircle2}
           iconColor="text-brand-500"
           iconBgColor="bg-brand-100"
           label="已掌握错题"
-          value="312道"
+          value={`${stats.mastered_count}道`}
         />
       </div>
 
       {/* Bottom section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <QuickLinks />
-        <StudyStats />
+        <StudyStats stats={stats} />
       </div>
     </div>
   );
@@ -131,7 +171,11 @@ function QuickLinks() {
   );
 }
 
-function StudyStats() {
+function StudyStats({ stats }: { stats: DashboardStats }) {
+  const activeDays = stats.active_days || 0;
+  const avgDailyMinutes = activeDays > 0 ? Math.round(stats.total_minutes / activeDays) : 0;
+  const avgDailyHours = (avgDailyMinutes / 60).toFixed(1);
+
   return (
     <Card>
       <CardHeader>
@@ -140,42 +184,20 @@ function StudyStats() {
       <CardContent>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-surface-500">本周学习天数</span>
-            <span className="text-lg font-semibold text-surface-900 font-display">6天</span>
+            <span className="text-sm text-surface-500">累计学习天数</span>
+            <span className="text-lg font-semibold text-surface-900 font-display">{activeDays}天</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-surface-500">平均每日时长</span>
-            <span className="text-lg font-semibold text-surface-900 font-display">7.1小时</span>
+            <span className="text-lg font-semibold text-surface-900 font-display">{avgDailyHours}小时</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-surface-500">今日学习进度</span>
-            <span className="text-lg font-semibold text-surface-900 font-display">85%</span>
+            <span className="text-sm text-surface-500">累计刷题数</span>
+            <span className="text-lg font-semibold text-surface-900 font-display">{stats.total_questions.toLocaleString()}道</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-surface-500">今日学习时长</span>
-            <span className="text-lg font-semibold text-surface-900 font-display">5小时32分</span>
-          </div>
-        </div>
-        <div className="mt-6 pt-4 border-t border-surface-100">
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar className="w-4 h-4 text-brand-400" />
-            <span className="text-sm font-medium text-surface-600">学习计划</span>
-          </div>
-          <div className="space-y-2">
-            {[
-              { label: '言语', pct: 78 },
-              { label: '数量', pct: 45 },
-              { label: '判断', pct: 82 },
-              { label: '资料', pct: 69 },
-            ].map((item) => (
-              <div key={item.label} className="flex items-center gap-3 p-3 bg-surface-0 rounded-lg">
-                <span className="text-xs text-surface-500 w-12">{item.label}</span>
-                <div className="flex-1 h-2 bg-surface-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${item.pct}%` }} />
-                </div>
-                <span className="text-xs text-surface-500 w-12 text-right">{item.pct}%</span>
-              </div>
-            ))}
+            <span className="text-sm text-surface-500">已掌握错题</span>
+            <span className="text-lg font-semibold text-surface-900 font-display">{stats.mastered_count}道</span>
           </div>
         </div>
       </CardContent>
