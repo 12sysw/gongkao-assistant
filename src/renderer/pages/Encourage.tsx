@@ -458,6 +458,9 @@ const Encourage: React.FC = () => {
         const newlyUnlocked = data.filter((a) => a.unlocked_at && a.id !== lastUnlockedId);
         if (newlyUnlocked.length > 0 && !showUnlockModal) {
           setLastUnlockedId(newlyUnlocked[0].id);
+          try {
+            localStorage.setItem('encourage_last_unlocked_ids', JSON.stringify(newlyUnlocked[0].id));
+          } catch {}
           setUnlockAchievement(newlyUnlocked[0]);
           setShowUnlockModal(true);
           setTimeout(() => {

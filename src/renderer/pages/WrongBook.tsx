@@ -820,13 +820,17 @@ const WrongBook: React.FC = () => {
       if (!api) return;
       const record = records.find((r) => r.id === id);
       if (!record) return;
+      const newWrongCount = record.wrong_count + 1;
+      const newReviewCount = record.review_count + 1;
       const intervals = [1, 3, 7, 14, 30];
-      const nextDays = intervals[Math.min(record.wrong_count, intervals.length - 1)];
+      const nextDays = intervals[Math.min(newReviewCount, intervals.length - 1)];
       const nextReview = new Date(Date.now() + nextDays * 86400000).toISOString();
       await api.wrongBook.update({
         id,
         my_answer: record.my_answer,
         note: record.note,
+        wrong_count: newWrongCount,
+        review_count: newReviewCount,
         next_review_at: nextReview,
       });
       loadRecords();

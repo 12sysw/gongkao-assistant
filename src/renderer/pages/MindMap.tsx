@@ -110,7 +110,12 @@ function removeLocalMindMap(id: number) {
 function mergeMindMapItems(remoteMaps: MindMapItem[], localMaps: MindMapItem[]) {
   const merged = new Map<number, MindMapItem>();
   for (const item of remoteMaps) merged.set(item.id, item);
-  for (const item of localMaps) merged.set(item.id, item);
+  for (const item of localMaps) {
+    const existing = merged.get(item.id);
+    if (!existing || String(item.updated_at ?? '') > String(existing.updated_at ?? '')) {
+      merged.set(item.id, item);
+    }
+  }
   return [...merged.values()].sort((a, b) => String(b.updated_at ?? '').localeCompare(String(a.updated_at ?? '')));
 }
 

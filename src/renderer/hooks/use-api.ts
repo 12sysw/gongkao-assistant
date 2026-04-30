@@ -91,6 +91,7 @@ export function useAddWrongRecord() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['wrongBookRecords'] });
       qc.invalidateQueries({ queryKey: ['dueReviews'] });
+      qc.invalidateQueries({ queryKey: ['dailyStats'] });
     },
   });
 }

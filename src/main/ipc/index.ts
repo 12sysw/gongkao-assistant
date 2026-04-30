@@ -143,13 +143,36 @@ export function registerIpcHandlers() {
 
   // ==================== 错题本 ====================
   ipcMain.handle(IPC.WRONG_BOOK_ADD, (_, record: any) => {
+    // Validate question exists
+    const question = db.select().from(schema.questions).where(eq(schema.questions.id, record.question_id)).get();
+    if (!question) {
+      throw new Error(`题目ID ${record.question_id} 不存在，请先创建题目`);
+    }
+
+    // Check for existing wrong record for this question (merge duplicates)
+    const existing = db.select().from(schema.wrongRecords)
+      .where(eq(schema.wrongRecords.questionId, record.question_id))
+      .get();
+
+    if (existing) {
+      const now = formatLocalDateTime();
+      db.update(schema.wrongRecords).set({
+        myAnswer: record.my_answer ?? existing.myAnswer,
+        wrongCount: (existing.wrongCount ?? 0) + 1,
+        lastWrongAt: now,
+        note: record.note !== undefined && record.note !== '' ? record.note : existing.note,
+      }).where(eq(schema.wrongRecords.id, existing.id)).run();
+
+      const updated = db.select().from(schema.wrongRecords).where(eq(schema.wrongRecords.id, existing.id)).get();
+      return toLegacyWrongRecord(updated, question);
+    }
+
     const result = db.insert(schema.wrongRecords).values({
       questionId: record.question_id,
       myAnswer: record.my_answer,
       note: record.note || '',
     }).returning().get();
 
-    const question = db.select().from(schema.questions).where(eq(schema.questions.id, result.questionId)).get();
     return toLegacyWrongRecord(result, question);
   });
 
@@ -173,6 +196,8 @@ export function registerIpcHandlers() {
     if (record.my_answer !== undefined) updates.myAnswer = record.my_answer;
     if (record.note !== undefined) updates.note = record.note;
     if (record.next_review_at !== undefined) updates.nextReviewAt = normalizeLegacyDateTime(record.next_review_at);
+    if (record.wrong_count !== undefined) updates.wrongCount = record.wrong_count;
+    if (record.review_count !== undefined) updates.reviewCount = record.review_count;
 
     db.update(schema.wrongRecords).set(updates).where(eq(schema.wrongRecords.id, record.id)).run();
 
@@ -529,6 +554,14 @@ export function registerIpcHandlers() {
       data[table] = sqlite.prepare(`SELECT * FROM ${table}`).all();
     }
 
+    // Include AI config if available
+    const aiConfigPath = path.join(app.getPath('userData'), 'ai_config.json');
+    if (fs.existsSync(aiConfigPath)) {
+      try {
+        data._ai_config = JSON.parse(fs.readFileSync(aiConfigPath, 'utf-8'));
+      } catch (_) { /* ignore */ }
+    }
+
     fs.writeFileSync(result.filePath!, JSON.stringify(data, null, 2), 'utf-8');
     return { success: true, path: result.filePath };
   });
@@ -555,13 +588,27 @@ export function registerIpcHandlers() {
       for (const table of tables) {
         if (data[table] && Array.isArray(data[table])) {
           for (const row of data[table]) {
-            const cols = Object.keys(row).join(', ');
-            const placeholders = Object.keys(row).map(() => '?').join(', ');
-            sqlite.prepare(`INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${placeholders})`).run(Object.values(row));
+            // Validate column names against actual DB columns
+            const tableInfo = sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+            const validCols = new Set(tableInfo.map((c) => c.name));
+            const safeCols = Object.keys(row).filter((col) => validCols.has(col));
+            if (safeCols.length === 0) continue;
+            const cols = safeCols.join(', ');
+            const placeholders = safeCols.map(() => '?').join(', ');
+            const values = safeCols.map((col) => row[col]);
+            sqlite.prepare(`INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${placeholders})`).run(...values);
           }
         }
       }
     })();
+
+    // Restore AI config if present in backup
+    if (data._ai_config) {
+      const aiConfigPath = path.join(app.getPath('userData'), 'ai_config.json');
+      try {
+        fs.writeFileSync(aiConfigPath, JSON.stringify(data._ai_config, null, 2), 'utf-8');
+      } catch (_) { /* ignore */ }
+    }
 
     return { success: true };
   });

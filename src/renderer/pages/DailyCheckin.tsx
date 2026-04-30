@@ -315,18 +315,16 @@ const DailyCheckin: React.FC = () => {
 
             <button
               onClick={handleCheckin}
-              disabled={isCheckedIn || !canCheckin}
+              disabled={!canCheckin}
               className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
-                isCheckedIn
-                  ? 'bg-success-light text-success-dark cursor-default'
-                  : !canCheckin
+                !canCheckin
                   ? 'bg-surface-50 text-surface-400 cursor-not-allowed'
                   : 'bg-brand-500 hover:bg-brand-600 text-white shadow-md active:scale-[0.98]'
               }`}
             >
               {isCheckedIn ? (
                 <span className="flex items-center justify-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" /> 已打卡
+                  <CheckCircle2 className="w-4 h-4" /> 追加学习时长
                 </span>
               ) : (
                 '立即打卡'
