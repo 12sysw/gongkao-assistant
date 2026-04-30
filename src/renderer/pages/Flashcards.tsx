@@ -338,12 +338,17 @@ const Flashcards: React.FC = () => {
     try {
       const api = getApi();
       if (!api) return;
-      const data = (await api.flashcard.getAll()) as Flashcard[];
+      const filters: Record<string, unknown> = {};
+      if (filterCat !== 'all') filters.category = filterCat;
+      if (filterMode === 'mastered') filters.mastered = 1;
+      const data = (await api.flashcard.getAll(
+        Object.keys(filters).length > 0 ? filters : undefined
+      )) as Flashcard[];
       setCards(data || []);
     } catch (e) {
       console.error(e);
     }
-  }, []);
+  }, [filterCat, filterMode]);
 
   useEffect(() => {
     loadCards();
@@ -397,16 +402,23 @@ const Flashcards: React.FC = () => {
   const filteredCards = useMemo(() => {
     const today = getTodayStr();
     return cards.filter((c) => {
-      if (filterCat !== 'all' && c.category !== filterCat) return false;
-      if (filterMode === 'due') return c.next_review <= today && !c.mastered;
-      if (filterMode === 'mastered') return c.mastered === 1;
+      // filterCat and filterMode are now applied server-side via loadCards,
+      // so client-side only needs to handle 'due' mode (server doesn't do due comparison)
+      if (filterMode === 'due') {
+        // Compare date portion only to handle both 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM:SS' formats
+        const reviewDate = (c.next_review || '').slice(0, 10);
+        return reviewDate <= today && !c.mastered;
+      }
       return true;
     });
-  }, [cards, filterCat, filterMode]);
+  }, [cards, filterMode]);
 
   const dueCount = useMemo(() => {
     const today = getTodayStr();
-    return cards.filter((c) => c.next_review <= today && !c.mastered).length;
+    return cards.filter((c) => {
+      const reviewDate = (c.next_review || '').slice(0, 10);
+      return reviewDate <= today && !c.mastered;
+    }).length;
   }, [cards]);
 
   const currentCard = filteredCards[currentIndex] || null;
