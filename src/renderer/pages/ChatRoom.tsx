@@ -335,6 +335,7 @@ export default function ChatRoom() {
   const unsubRevokeRef = useRef<(() => void) | null>(null);
   const loginDoneRef = useRef(false);
   const sdkMessagesRef = useRef<Map<string, any>>(new Map());
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const currentRoomId = store.currentRoomId;
   const messages = currentRoomId ? (store.messages[currentRoomId] || []) : [];
@@ -383,6 +384,23 @@ export default function ChatRoom() {
 
       store.setConnStatus('connected');
       toast.success('连接成功');
+
+      // UserSig 自动续期（每 6 小时刷新一次，24 小时过期）
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = setInterval(async () => {
+        try {
+          console.log('[Chat] refreshing UserSig...');
+          const newSig = await generateUserSig(userID);
+          if (newSig) {
+            try { await loginIM(userID, newSig); } catch (e: any) {
+              if (!String(e?.message || e).includes('重复登录')) throw e;
+            }
+            console.log('[Chat] UserSig refreshed successfully');
+          }
+        } catch (err) {
+          console.error('[Chat] UserSig refresh failed:', err);
+        }
+      }, 6 * 60 * 60 * 1000);
 
       // 设置昵称（让其他人看到你的名字而不是 userID）
       setMyProfile(nick);
@@ -448,6 +466,7 @@ export default function ChatRoom() {
       unsubReadyRef.current?.();
       unsubKickRef.current?.();
       unsubRevokeRef.current?.();
+      if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
