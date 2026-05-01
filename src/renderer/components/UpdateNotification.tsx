@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Download, RefreshCw, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { Download, RefreshCw, CheckCircle, X } from 'lucide-react';
 
 const api = (window as any).api;
 
@@ -19,7 +19,6 @@ const UpdateNotification: React.FC = () => {
   const [status, setStatus] = useState<UpdateStatus>('idle');
   const [info, setInfo] = useState<UpdateInfo>({});
   const [progress, setProgress] = useState<DownloadProgress>({});
-  const [errorMsg, setErrorMsg] = useState('');
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -50,17 +49,9 @@ const UpdateNotification: React.FC = () => {
       setInfo(updateInfo || {});
     });
 
-    api.update.onError((msg: string) => {
-      setStatus('error');
-      setErrorMsg(msg || '更新检查失败');
+    api.update.onError(() => {
+      setStatus('idle');
     });
-
-    // Check for updates on mount (delayed to not slow startup)
-    const timer = setTimeout(() => {
-      api.update.check();
-    }, 5000);
-
-    return () => clearTimeout(timer);
   }, []);
 
   if (dismissed || status === 'idle' || status === 'checking') return null;
@@ -133,16 +124,6 @@ const UpdateNotification: React.FC = () => {
                     稍后
                   </button>
                 </div>
-              </div>
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-text-primary">更新检查失败</p>
-                <p className="text-xs text-text-secondary mt-1">{errorMsg}</p>
               </div>
             </>
           )}

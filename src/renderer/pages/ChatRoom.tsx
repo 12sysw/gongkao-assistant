@@ -109,13 +109,13 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const uname = username.trim().toLowerCase();
-    console.log('[Auth] handleSubmit, mode:', mode, 'uname:', uname);
+    // handleSubmit
     if (!uname || uname.length < 2 || uname.length > 16) { toast.error('用户名 2–16 个字符'); return; }
     if (!password || password.length < 4) { toast.error('密码至少 4 位'); return; }
     setLoading(true);
 
     const hash = await hashPassword(password);
-    console.log('[Auth] hash generated, length:', hash.length);
+    // hash generated
 
     if (mode === 'register') {
       const displayName = nick.trim() || uname;
@@ -389,17 +389,13 @@ export default function ChatRoom() {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
       refreshTimerRef.current = setInterval(async () => {
         try {
-          console.log('[Chat] refreshing UserSig...');
           const newSig = await generateUserSig(userID);
           if (newSig) {
             try { await loginIM(userID, newSig); } catch (e: any) {
               if (!String(e?.message || e).includes('重复登录')) throw e;
             }
-            console.log('[Chat] UserSig refreshed successfully');
           }
-        } catch (err) {
-          console.error('[Chat] UserSig refresh failed:', err);
-        }
+        } catch {}
       }, 6 * 60 * 60 * 1000);
 
       // 设置昵称（让其他人看到你的名字而不是 userID）
@@ -484,7 +480,7 @@ export default function ChatRoom() {
       try {
         try {
           await joinGroup(currentRoomId);
-          console.log('[Chat] joined group:', currentRoomId);
+          // joined group
         } catch (joinErr: any) {
           console.warn('[Chat] joinGroup:', joinErr?.message || joinErr);
         }
@@ -609,10 +605,10 @@ export default function ChatRoom() {
 
   /* recall message */
   const handleRecall = useCallback(async (msg: ChatMessage) => {
-    console.log('[Chat] handleRecall called, msg.id:', msg.id, 'isSelf:', msg.isSelf);
+    // handleRecall
     if (!currentRoomId || !msg.isSelf) return;
     const sdkMsg = sdkMessagesRef.current.get(msg.id);
-    console.log('[Chat] sdkMsg found:', !!sdkMsg, 'ID:', sdkMsg?.ID);
+    // sdkMsg found
     if (!sdkMsg) { toast.error('无法撤回此消息'); return; }
     try {
       await revokeMessage(sdkMsg);
