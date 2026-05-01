@@ -1,0 +1,4 @@
+#!/bin/bash
+export PATH=$PATH:$NODE_PATH
+cd $(dirname $0)
+exec node index.js
