@@ -2,6 +2,10 @@
   "name": "gongkao-assistant",
   "version": "1.1.0",
   "description": "公考小助手 - 桌面端公考学习工具",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/12sysw/gongkao-assistant"
+  },
   "main": "dist/main/main/main.js",
   "scripts": {
     "dev": "vite",
@@ -17,20 +21,22 @@
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
     "@tanstack/react-query": "^5.99.2",
+    "@tencentcloud/chat": "^3.6.6",
     "better-sqlite3": "^12.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
     "drizzle-orm": "^0.45.2",
+    "electron-updater": "^6.8.3",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.73.1",
     "react-router-dom": "^6.28.0",
     "sonner": "^2.0.7",
-    "sql.js": "^1.11.0",
     "tailwind-merge": "^3.5.0",
     "tesseract.js": "^7.0.0",
+    "tim-upload-plugin": "^1.4.3",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },
@@ -54,12 +60,15 @@
   "build": {
     "appId": "com.gongkao.assistant",
     "productName": "公考小助手",
+    "publish": {
+      "provider": "github",
+      "releaseType": "release"
+    },
     "directories": {
       "output": "release"
     },
     "files": [
-      "dist/**/*",
-      "node_modules/sql.js/dist/sql-wasm.wasm"
+      "dist/**/*"
     ],
     "win": {
       "target": [
@@ -82,6 +91,12 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "公考小助手"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "src/renderer/.env",
+        "to": ".env"
+      }
+    ]
   }
 }

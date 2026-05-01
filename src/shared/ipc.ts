@@ -62,6 +62,20 @@ export const IPC = {
   // 数据导入导出
   DATA_EXPORT: 'data:export',
   DATA_IMPORT: 'data:import',
+
+  // 聊天室
+  CHAT_GENERATE_USER_SIG: 'chat:generate-user-sig',
+
+  // 自动更新
+  UPDATE_CHECKING: 'update:checking',
+  UPDATE_AVAILABLE: 'update:available',
+  UPDATE_NOT_AVAILABLE: 'update:not-available',
+  UPDATE_DOWNLOAD_PROGRESS: 'update:download-progress',
+  UPDATE_DOWNLOADED: 'update:downloaded',
+  UPDATE_ERROR: 'update:error',
+  UPDATE_CHECK: 'update:check',
+  UPDATE_DOWNLOAD: 'update:download',
+  UPDATE_INSTALL: 'update:install',
 } as const;
 
 export type IpcChannel = typeof IPC[keyof typeof IPC];
@@ -127,5 +141,19 @@ export interface Api {
   data: {
     export: () => Promise<any>;
     import: (filePath: string) => Promise<any>;
+  };
+  chat: {
+    generateUserSig: (userID: string) => Promise<string>;
+  };
+  update: {
+    check: () => Promise<void>;
+    download: () => Promise<void>;
+    install: () => void;
+    onChecking: (cb: () => void) => void;
+    onAvailable: (cb: (info: any) => void) => void;
+    onNotAvailable: (cb: (info: any) => void) => void;
+    onProgress: (cb: (progress: any) => void) => void;
+    onDownloaded: (cb: (info: any) => void) => void;
+    onError: (cb: (message: string) => void) => void;
   };
 }

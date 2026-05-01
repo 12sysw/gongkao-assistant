@@ -11,6 +11,7 @@ import {
   BookOpen,
   ClipboardList,
   Trophy,
+  MessageSquare,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -28,6 +29,7 @@ const navItems = [
   { path: '/pomodoro', label: '番茄钟', icon: Timer },
   { path: '/achievements', label: '成就', icon: Trophy },
   { path: '/knowledge', label: '知识点速查', icon: BookOpen },
+  { path: '/chat', label: '聊天室', icon: MessageSquare },
   { path: '/settings', label: '设置', icon: Settings },
 ];
 

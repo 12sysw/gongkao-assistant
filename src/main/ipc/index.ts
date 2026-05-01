@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db, sqlite } from '../db';
 import { IPC } from '../../shared/ipc';
 import * as schema from '../db/schema';
+import { checkForUpdates, downloadUpdate, quitAndInstall } from '../updater';
 import fs from 'fs';
 import path from 'path';
 import {
@@ -611,5 +612,43 @@ export function registerIpcHandlers() {
     }
 
     return { success: true };
+  });
+
+  // 聊天室 - 通过云函数生成 UserSig（SecretKey 仅存储在云函数环境变量中）
+  ipcMain.handle(IPC.CHAT_GENERATE_USER_SIG, async (_event, userID: string) => {
+    const url = process.env.USER_SIG_CLOUD_FUNCTION_URL;
+    if (!url) {
+      console.error('[Chat] USER_SIG_CLOUD_FUNCTION_URL not configured');
+      return '';
+    }
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userID }),
+      });
+      if (!response.ok) {
+        console.error('[Chat] UserSig generation failed: HTTP', response.status);
+        return '';
+      }
+      const data = (await response.json()) as { userSig: string };
+      return data.userSig;
+    } catch (err) {
+      console.error('[Chat] generateUserSig error:', err);
+      return '';
+    }
+  });
+
+  // ==================== 自动更新 ====================
+  ipcMain.handle(IPC.UPDATE_CHECK, async () => {
+    await checkForUpdates();
+  });
+
+  ipcMain.handle(IPC.UPDATE_DOWNLOAD, async () => {
+    await downloadUpdate();
+  });
+
+  ipcMain.handle(IPC.UPDATE_INSTALL, () => {
+    quitAndInstall();
   });
 }

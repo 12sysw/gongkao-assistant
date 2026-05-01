@@ -3,6 +3,7 @@ import path from 'path';
 import { registerIpcHandlers } from './ipc/index';
 import { initDatabase } from './db/migrations';
 import { closeDatabase } from './db';
+import { initUpdater } from './updater';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -48,6 +49,7 @@ app.whenReady().then(() => {
   // 注册 IPC 处理器（better-sqlite3 同步，无需 await）
   registerIpcHandlers();
   createWindow();
+  if (mainWindow) initUpdater(mainWindow);
 
   // 生产环境按 F12 打开开发者工具
   if (app.isPackaged) {

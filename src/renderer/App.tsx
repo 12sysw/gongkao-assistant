@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
+import UpdateNotification from './components/UpdateNotification';
 import Dashboard from './pages/Dashboard';
 import WrongBook from './pages/WrongBook';
 import MindMap from './pages/MindMap';
@@ -13,6 +14,7 @@ import KnowledgeBase from './pages/KnowledgeBase';
 import MockExam from './pages/MockExam';
 import Settings from './pages/Settings';
 import Achievements from './pages/Achievements';
+import ChatRoom from './pages/ChatRoom';
 
 const App: React.FC = () => {
   return (
@@ -31,10 +33,12 @@ const App: React.FC = () => {
           <Route path="/pomodoro" element={<Pomodoro />} />
           <Route path="/knowledge" element={<KnowledgeBase />} />
           <Route path="/achievements" element={<Achievements />} />
+          <Route path="/chat" element={<ChatRoom />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      <UpdateNotification />
     </div>
   );
 };

@@ -1,0 +1,9 @@
+{
+  "name": "scf-usersig",
+  "version": "1.0.0",
+  "description": "Tencent Cloud SCF function for generating IM UserSig",
+  "main": "index.js",
+  "dependencies": {
+    "tls-sig-api-v2": "^1.0.5"
+  }
+}

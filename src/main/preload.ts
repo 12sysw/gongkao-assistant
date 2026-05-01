@@ -62,6 +62,20 @@ const api = {
     export: () => ipcRenderer.invoke(IPC.DATA_EXPORT),
     import: (filePath: string) => ipcRenderer.invoke(IPC.DATA_IMPORT, filePath),
   },
+  chat: {
+    generateUserSig: (userID: string) => ipcRenderer.invoke(IPC.CHAT_GENERATE_USER_SIG, userID),
+  },
+  update: {
+    check: () => ipcRenderer.invoke(IPC.UPDATE_CHECK),
+    download: () => ipcRenderer.invoke(IPC.UPDATE_DOWNLOAD),
+    install: () => ipcRenderer.invoke(IPC.UPDATE_INSTALL),
+    onChecking: (cb: () => void) => ipcRenderer.on(IPC.UPDATE_CHECKING, () => cb()),
+    onAvailable: (cb: (info: any) => void) => ipcRenderer.on(IPC.UPDATE_AVAILABLE, (_e, info) => cb(info)),
+    onNotAvailable: (cb: (info: any) => void) => ipcRenderer.on(IPC.UPDATE_NOT_AVAILABLE, (_e, info) => cb(info)),
+    onProgress: (cb: (progress: any) => void) => ipcRenderer.on(IPC.UPDATE_DOWNLOAD_PROGRESS, (_e, p) => cb(p)),
+    onDownloaded: (cb: (info: any) => void) => ipcRenderer.on(IPC.UPDATE_DOWNLOADED, (_e, info) => cb(info)),
+    onError: (cb: (message: string) => void) => ipcRenderer.on(IPC.UPDATE_ERROR, (_e, msg) => cb(msg)),
+  },
 };
 
 contextBridge.exposeInMainWorld('api', api);
