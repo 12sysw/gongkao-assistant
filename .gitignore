@@ -35,3 +35,7 @@ coverage/
 # Temp files
 *.tmp
 *.temp
+*.zip
+
+# Claude
+.claude/
