@@ -60,6 +60,7 @@
   "build": {
     "appId": "com.gongkao.assistant",
     "productName": "公考小助手",
+    "artifactName": "${productName} ${version}.${ext}",
     "publish": {
       "provider": "github",
       "releaseType": "release"

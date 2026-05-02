@@ -24,6 +24,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate version matches tag
+        run: |
+          $tag = "${{ github.ref_name }}" -replace '^v', ''
+          $pkg = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($tag -ne $pkg) { throw "Tag v$tag != package.json version $pkg" }
+
       - name: Build renderer
         run: npm run build
 
@@ -40,11 +46,3 @@ jobs:
 
       - name: List release files
         run: Get-ChildItem -Path release -Recurse | Select-Object Name, Length
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: release/*
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
