@@ -1,6 +1,6 @@
 {
   "name": "gongkao-assistant",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "公考小助手 - 桌面端公考学习工具",
   "repository": {
     "type": "git",
@@ -92,11 +92,5 @@
       "createDesktopShortcut": true,
       "shortcutName": "公考小助手"
     },
-    "extraResources": [
-      {
-        "from": "src/renderer/.env",
-        "to": ".env"
-      }
-    ]
   }
 }
