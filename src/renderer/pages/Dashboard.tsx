@@ -5,11 +5,17 @@ import {
   BookOpen,
   CheckCircle2,
   ArrowRight,
+  Cloud,
+  CloudRain,
+  Sun,
+  Wind,
+  Loader2,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StatCard } from '../components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { cn } from '../lib/utils';
+import { fetchWeather, type WeatherData } from '../lib/uapi';
 
 function getApi() {
   return (window as unknown as Window & { api: Record<string, unknown> }).api;
@@ -33,6 +39,22 @@ const EMPTY_STATS: DashboardStats = {
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [city] = useState(() => {
+    try { return localStorage.getItem('dashboard_city') || '北京'; }
+    catch { return '北京'; }
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchWeather(city).then(data => {
+      if (!cancelled) { setWeather(data); setWeatherLoading(false); }
+    }).catch(() => {
+      if (!cancelled) setWeatherLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [city]);
 
   const loadStats = useCallback(async () => {
     try {
@@ -78,6 +100,9 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Weather banner */}
+      <WeatherBanner weather={weather} loading={weatherLoading} />
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -167,6 +192,42 @@ function QuickLinks() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function WeatherBanner({ weather, loading }: { weather: WeatherData | null; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white border border-surface-100">
+        <Loader2 className="w-5 h-5 text-surface-400 animate-spin" />
+        <span className="text-sm text-surface-400">加载天气中...</span>
+      </div>
+    );
+  }
+
+  if (!weather) return null;
+
+  const getWeatherIcon = (w: string): typeof Sun => {
+    if (w.includes('雨')) return CloudRain;
+    if (w.includes('云') || w.includes('阴')) return Cloud;
+    if (w.includes('风')) return Wind;
+    return Sun;
+  };
+  const Icon = getWeatherIcon(weather.weather);
+
+  return (
+    <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-white border border-surface-100">
+      <Icon className="w-8 h-8 text-brand-500" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <span className="text-lg font-semibold text-surface-900 font-display">{weather.temperature}°C</span>
+          <span className="text-sm text-surface-500">{weather.weather}</span>
+        </div>
+        <p className="text-xs text-surface-400 truncate">
+          {weather.city} · {weather.wind_direction}{weather.wind_power} · 湿度{weather.humidity}%
+        </p>
+      </div>
+    </div>
   );
 }
 
