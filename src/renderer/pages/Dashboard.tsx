@@ -10,12 +10,14 @@ import {
   Sun,
   Wind,
   Loader2,
+  Quote,
+  Sparkles,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StatCard } from '../components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { cn } from '../lib/utils';
-import { fetchWeather, type WeatherData } from '../lib/uapi';
+import { fetchWeather, fetchSaying, fetchAnswer, type WeatherData } from '../lib/uapi';
 
 function getApi() {
   return (window as unknown as Window & { api: Record<string, unknown> }).api;
@@ -41,6 +43,8 @@ export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
+  const [saying, setSaying] = useState('');
+  const [answer, setAnswer] = useState('');
   const [city] = useState(() => {
     try { return localStorage.getItem('dashboard_city') || '北京'; }
     catch { return '北京'; }
@@ -53,6 +57,8 @@ export default function Dashboard() {
     }).catch(() => {
       if (!cancelled) setWeatherLoading(false);
     });
+    fetchSaying().then(text => { if (!cancelled) setSaying(text); }).catch(() => {});
+    fetchAnswer().then(text => { if (!cancelled) setAnswer(text); }).catch(() => {});
     return () => { cancelled = true; };
   }, [city]);
 
@@ -104,6 +110,9 @@ export default function Dashboard() {
       {/* Weather banner */}
       <WeatherBanner weather={weather} loading={weatherLoading} />
 
+      {/* Daily saying */}
+      {saying && <SayingBanner text={saying} />}
+
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -137,9 +146,10 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <QuickLinks />
         <StudyStats stats={stats} />
+        {answer && <AnswerCard text={answer} />}
       </div>
     </div>
   );
@@ -228,6 +238,31 @@ function WeatherBanner({ weather, loading }: { weather: WeatherData | null; load
         </p>
       </div>
     </div>
+  );
+}
+
+function SayingBanner({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-50 border border-brand-100">
+      <Quote className="w-5 h-5 text-brand-500 shrink-0" />
+      <p className="text-sm text-brand-700 italic">{text}</p>
+    </div>
+  );
+}
+
+function AnswerCard({ text }: { text: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-brand-500" />
+          答案之书
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-surface-600 leading-relaxed">{text}</p>
+      </CardContent>
+    </Card>
   );
 }
 
