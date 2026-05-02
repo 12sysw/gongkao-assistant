@@ -30,17 +30,21 @@ jobs:
       - name: Build main
         run: npm run build:main
 
+      - name: Clean release directory
+        run: if (Test-Path release) { Remove-Item -Recurse -Force release }
+
       - name: Build electron
         run: npx electron-builder --win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: List release files
+        run: Get-ChildItem -Path release -Recurse | Select-Object Name, Length
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            release/*.exe
-            release/*.blockmap
+          files: release/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
