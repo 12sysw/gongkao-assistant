@@ -32,9 +32,14 @@ jobs:
 
       - name: Build renderer
         run: npm run build
+        env:
+          VITE_TENCENT_SDK_APP_ID: ${{ secrets.VITE_TENCENT_SDK_APP_ID }}
 
       - name: Build main
         run: npm run build:main
+        env:
+          TENCENT_SDK_APP_ID: ${{ secrets.VITE_TENCENT_SDK_APP_ID }}
+          USER_SIG_CLOUD_FUNCTION_URL: ${{ secrets.USER_SIG_CLOUD_FUNCTION_URL }}
 
       - name: Clean release directory
         run: if (Test-Path release) { Remove-Item -Recurse -Force release }

@@ -1,6 +1,6 @@
 {
   "name": "gongkao-assistant",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "公考小助手 - 桌面端公考学习工具",
   "repository": {
     "type": "git",
@@ -60,7 +60,7 @@
   "build": {
     "appId": "com.gongkao.assistant",
     "productName": "公考小助手",
-    "artifactName": "${productName} ${version}.${ext}",
+    "artifactName": "${name}-${version}-${arch}.${ext}",
     "publish": {
       "provider": "github",
       "releaseType": "release"

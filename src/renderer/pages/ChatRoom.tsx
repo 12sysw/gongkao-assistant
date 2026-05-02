@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 import {
   SDK_APP_ID, PRESET_ROOMS,
-  loginIM, setMyProfile, initPresetRooms, joinGroup, fetchHistory,
+  loginIM, logoutIM, setMyProfile, initPresetRooms, joinGroup, fetchHistory,
   sendTextMessage, sendImageMessage, sendFileMessage,
   onMessageReceived, onReady, onKickedOut, fetchGroupMembers,
   onMessageRevoked, revokeMessage,
@@ -22,12 +22,43 @@ async function generateUserSig(userID: string): Promise<string> {
   return '';
 }
 
+// 从带设备后缀的 IM userID 中提取原始用户名
+// 例如: "zzz_abc123" -> "zzz", "user_dev_abc" -> "user"
+function extractUsername(imUserID: string): string {
+  if (!imUserID) return '';
+  // 设备后缀格式: _ + 6位字符 (如 _8dbho1)
+  const match = imUserID.match(/^(.+)_[a-z0-9]{6}$/);
+  return match ? match[1] : imUserID;
+}
+
+// 从本地存储获取用户昵称
+function getStoredNick(imUserID: string): string | null {
+  try {
+    const username = extractUsername(imUserID);
+    const users = JSON.parse(localStorage.getItem('chat_users') || '{}');
+    return users[username]?.nick || null;
+  } catch {
+    return null;
+  }
+}
+
 function toChatMessage(msg: any, selfID: string): ChatMessage {
   const isSelf = msg.from === selfID;
+  // 优先使用 SDK 返回的昵称，如果为空或等于 userID 则尝试从本地存储获取
+  let nick = msg.nick || '';
+  if (!nick || nick === msg.from) {
+    // 尝试从本地存储获取昵称
+    const storedNick = getStoredNick(msg.from);
+    if (storedNick) nick = storedNick;
+  }
+  // 最后回退到提取后的用户名（不带设备后缀）
+  if (!nick) {
+    nick = extractUsername(msg.from);
+  }
   const base: ChatMessage = {
     id: msg.ID || msg.id || `${Date.now()}-${Math.random()}`,
     from: msg.from || '',
-    nick: msg.nick || msg.from || '',
+    nick,
     avatar: '',
     type: 'text',
     content: '',
@@ -73,9 +104,32 @@ function formatFileSize(bytes: number): string {
 /* ───── 密码哈希 ───── */
 
 async function hashPassword(password: string): Promise<string> {
-  const data = new TextEncoder().encode(password);
-  const hash = await crypto.subtle.digest('SHA-256', data);
-  return btoa(String.fromCharCode(...new Uint8Array(hash)));
+  // 使用 Web Crypto API（需要安全上下文）或回退到简单哈希
+  // Electron file:// 协议不是安全上下文，需要回退方案
+  try {
+    if (crypto?.subtle) {
+      const data = new TextEncoder().encode(password);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return btoa(String.fromCharCode(...new Uint8Array(hash)));
+    }
+  } catch (e) {
+    console.warn('[Chat] crypto.subtle not available, using fallback hash');
+  }
+  // 回退方案：使用简单但可用的哈希
+  let hash = 0;
+  for (let i = 0; i < password.length; i++) {
+    const char = password.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  // 结合多次哈希增加复杂度
+  const combined = password + hash.toString(36) + 'gongkao_salt_2024';
+  let hash2 = 0;
+  for (let i = 0; i < combined.length; i++) {
+    hash2 = ((hash2 << 5) - hash2) + combined.charCodeAt(i);
+    hash2 = hash2 & hash2;
+  }
+  return btoa(hash2.toString(36) + '_' + hash.toString(36));
 }
 
 /* ───── 用户存储 ───── */
@@ -109,36 +163,40 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const uname = username.trim().toLowerCase();
-    // handleSubmit
     if (!uname || uname.length < 2 || uname.length > 16) { toast.error('用户名 2–16 个字符'); return; }
     if (!password || password.length < 4) { toast.error('密码至少 4 位'); return; }
     setLoading(true);
 
-    const hash = await hashPassword(password);
-    // hash generated
+    try {
+      const hash = await hashPassword(password);
 
-    if (mode === 'register') {
-      const displayName = nick.trim() || uname;
-      const users = getStoredUsers();
-      if (users[uname]) { toast.error('用户名已存在'); setLoading(false); return; }
-      saveUser({ username: uname, nick: displayName, passwordHash: hash, createdAt: Date.now() });
-      toast.success('注册成功');
-      onLogin(uname, displayName);
-    } else if (mode === 'reset') {
-      const users = getStoredUsers();
-      const user = users[uname];
-      if (!user) { toast.error('用户名不存在'); setLoading(false); return; }
-      user.passwordHash = hash;
-      saveUser(user);
-      toast.success('密码已重置，请登录');
-      setMode('login');
-      setPassword('');
+      if (mode === 'register') {
+        const displayName = nick.trim() || uname;
+        const users = getStoredUsers();
+        if (users[uname]) { toast.error('用户名已存在'); setLoading(false); return; }
+        saveUser({ username: uname, nick: displayName, passwordHash: hash, createdAt: Date.now() });
+        toast.success('注册成功');
+        onLogin(uname, displayName);
+      } else if (mode === 'reset') {
+        const users = getStoredUsers();
+        const user = users[uname];
+        if (!user) { toast.error('用户名不存在'); setLoading(false); return; }
+        user.passwordHash = hash;
+        saveUser(user);
+        toast.success('密码已重置，请登录');
+        setMode('login');
+        setPassword('');
+        setLoading(false);
+      } else {
+        const users = getStoredUsers();
+        const user = users[uname];
+        if (!user || user.passwordHash !== hash) { toast.error('用户名或密码错误'); setLoading(false); return; }
+        onLogin(uname, user.nick);
+      }
+    } catch (err: any) {
+      console.error('[Chat] handleSubmit error:', err);
+      toast.error('操作失败: ' + (err.message || '未知错误'));
       setLoading(false);
-    } else {
-      const users = getStoredUsers();
-      const user = users[uname];
-      if (!user || user.passwordHash !== hash) { toast.error('用户名或密码错误'); setLoading(false); return; }
-      onLogin(uname, user.nick);
     }
   };
 
@@ -357,25 +415,43 @@ export default function ChatRoom() {
   /* login */
   const handleLogin = useCallback(async (userID: string, nick: string) => {
     store.setConnStatus('connecting');
-    store.setSelfUserID(userID);
+    // 将 deviceID 追加到 IM userID，防止不同设备注册相同用户名导致身份冲突
+    // 如果 userID 已包含 deviceID 后缀（自动登录场景），则不再追加
+    const devSuffix = '_' + store.deviceID.slice(4, 10);
+    const imUserID = userID.endsWith(devSuffix) ? userID : userID + devSuffix;
+
+    // 如果当前已登录其他用户，先登出
+    const currentUserID = store.selfUserID;
+    if (currentUserID && currentUserID !== imUserID) {
+      console.log('[Chat] Logging out previous user:', currentUserID);
+      await logoutIM();
+    }
+
+    store.setSelfUserID(imUserID);
     store.setSelfNick(nick);
 
     if (!SDK_APP_ID) {
-      toast.error('请在 .env 文件中配置 VITE_TENCENT_SDK_APP_ID');
+      toast.error('聊天服务未初始化，请重新打开应用');
       store.setConnStatus('error');
       return;
     }
 
-    const userSig = await generateUserSig(userID);
+    // UserSig 生成可能因云函数冷启动失败，重试一次
+    let userSig = await generateUserSig(imUserID);
+    console.log('[Chat] Generated UserSig for', imUserID, userSig ? 'success' : 'failed');
     if (!userSig) {
-      toast.error('生成 UserSig 失败，请检查配置');
+      await new Promise(r => setTimeout(r, 2000));
+      userSig = await generateUserSig(imUserID);
+    }
+    if (!userSig) {
+      toast.error('连接聊天服务失败，请稍后重试');
       store.setConnStatus('error');
       return;
     }
 
     try {
       try {
-        await loginIM(userID, userSig);
+        await loginIM(imUserID, userSig);
       } catch (loginErr: any) {
         if (!String(loginErr?.message || loginErr).includes('重复登录')) {
           throw loginErr;
@@ -389,9 +465,9 @@ export default function ChatRoom() {
       if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
       refreshTimerRef.current = setInterval(async () => {
         try {
-          const newSig = await generateUserSig(userID);
+          const newSig = await generateUserSig(imUserID);
           if (newSig) {
-            try { await loginIM(userID, newSig); } catch (e: any) {
+            try { await loginIM(imUserID, newSig); } catch (e: any) {
               if (!String(e?.message || e).includes('重复登录')) throw e;
             }
           }
@@ -409,16 +485,19 @@ export default function ChatRoom() {
         for (const m of groupMsgs) {
           if (m.ID) sdkMessagesRef.current.set(m.ID, m);
         }
-        const chatMsgs = groupMsgs.map((m: any) => toChatMessage(m, selfID));
-        if (chatMsgs.length > 0) {
-          const roomID = chatMsgs[0].from === selfID
-            ? useChatStore.getState().currentRoomId
-            : msgs[0]?.to;
-          if (roomID) {
-            useChatStore.getState().addMessages(roomID, chatMsgs);
-            setTimeout(() => scrollToBottom(true), 50);
-          }
+        // 按 roomId 分组路由消息，而不是全部塞到一个频道
+        const msgsByRoom = new Map<string, any[]>();
+        for (const m of groupMsgs) {
+          const roomId = m.to; // SDK 消息的 to 字段就是群组 ID
+          if (!roomId) continue;
+          if (!msgsByRoom.has(roomId)) msgsByRoom.set(roomId, []);
+          msgsByRoom.get(roomId)!.push(m);
         }
+        for (const [roomId, roomMsgs] of msgsByRoom) {
+          const chatMsgs = roomMsgs.map((m: any) => toChatMessage(m, selfID));
+          useChatStore.getState().addMessages(roomId, chatMsgs);
+        }
+        setTimeout(() => scrollToBottom(true), 50);
       });
 
       unsubRevokeRef.current = onMessageRevoked((revokedList: any[]) => {
@@ -669,7 +748,9 @@ export default function ChatRoom() {
     if (newPwd.length < 4) { toast.error('新密码至少 4 位'); return; }
     if (newPwd !== confirmPwd) { toast.error('两次密码不一致'); return; }
     const users = getStoredUsers();
-    const user = users[store.selfUserID];
+    // selfUserID 是带设备后缀的，需要提取原始用户名查找
+    const username = extractUsername(store.selfUserID);
+    const user = users[username];
     if (!user) { toast.error('用户不存在'); return; }
     const oldHash = await hashPassword(oldPwd);
     if (oldHash !== user.passwordHash) { toast.error('原密码错误'); return; }
@@ -681,7 +762,9 @@ export default function ChatRoom() {
   }, [oldPwd, newPwd, confirmPwd, store.selfUserID]);
 
   /* logout - only clear session, keep registered accounts */
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback(async () => {
+    // 先登出腾讯 IM SDK
+    await logoutIM();
     unsubMsgRef.current?.();
     unsubReadyRef.current?.();
     unsubKickRef.current?.();

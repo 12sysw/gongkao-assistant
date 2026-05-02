@@ -1,7 +1,9 @@
 import TencentCloudChat from '@tencentcloud/chat';
 import TIMUploadPlugin from 'tim-upload-plugin';
 
-export const SDK_APP_ID = Number(import.meta.env.VITE_TENCENT_SDK_APP_ID) || 0;
+// SDK_APP_ID 是公开标识，不是密钥，可以硬编码
+// 这样打包后的应用无需配置环境变量即可工作
+export const SDK_APP_ID = Number(import.meta.env.VITE_TENCENT_SDK_APP_ID) || 1600140076;
 
 export const PRESET_ROOMS = [
   { id: 'gk001exchange', name: '行测交流', desc: '行测题目讨论与解题技巧' },
@@ -24,6 +26,16 @@ export function getChat(): ReturnType<typeof TencentCloudChat.create> {
 export async function loginIM(userID: string, userSig: string) {
   const instance = getChat();
   return instance.login({ userID, userSig });
+}
+
+export async function logoutIM() {
+  const instance = getChat();
+  try {
+    await instance.logout();
+  } catch (err: any) {
+    // 忽略未登录时的错误
+    console.warn('[Chat] logout:', err?.message || err);
+  }
 }
 
 export async function setMyProfile(nick: string) {
