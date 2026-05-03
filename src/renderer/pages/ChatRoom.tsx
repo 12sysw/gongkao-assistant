@@ -799,12 +799,11 @@ export default function ChatRoom() {
   }, [oldPwd, newPwd, confirmPwd, store.selfUserID]);
 
   /* logout - only clear session, keep registered accounts */
-  const handleLogout = useCallback(async () => {
+  const handleLogout = useCallback(() => {
     // 确认退出
     if (!window.confirm('确定要退出登录吗？')) return;
 
-    // 先登出腾讯 IM SDK
-    await logoutIM();
+    // 先清理本地状态，让用户立即看到登录界面
     unsubMsgRef.current?.();
     unsubReadyRef.current?.();
     unsubKickRef.current?.();
@@ -819,6 +818,10 @@ export default function ChatRoom() {
     loginDoneRef.current = false;
     PRESET_ROOMS.forEach(r => store.clearMessages(r.id));
     sdkMessagesRef.current.clear();
+
+    // 后台执行 IM 登出，不阻塞 UI
+    logoutIM();
+
     toast.success('已退出登录');
   }, [store]);
 
