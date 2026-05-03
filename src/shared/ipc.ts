@@ -79,6 +79,7 @@ export const IPC = {
 } as const;
 
 export type IpcChannel = typeof IPC[keyof typeof IPC];
+export type Unsubscribe = () => void;
 
 // API 类型定义（用于 preload 暴露）
 export interface Api {
@@ -140,7 +141,7 @@ export interface Api {
   };
   data: {
     export: () => Promise<any>;
-    import: (filePath: string) => Promise<any>;
+    import: () => Promise<any>;
   };
   chat: {
     generateUserSig: (userID: string) => Promise<string>;
@@ -149,11 +150,11 @@ export interface Api {
     check: () => Promise<void>;
     download: () => Promise<void>;
     install: () => void;
-    onChecking: (cb: () => void) => void;
-    onAvailable: (cb: (info: any) => void) => void;
-    onNotAvailable: (cb: (info: any) => void) => void;
-    onProgress: (cb: (progress: any) => void) => void;
-    onDownloaded: (cb: (info: any) => void) => void;
-    onError: (cb: (message: string) => void) => void;
+    onChecking: (cb: () => void) => Unsubscribe;
+    onAvailable: (cb: (info: any) => void) => Unsubscribe;
+    onNotAvailable: (cb: (info: any) => void) => Unsubscribe;
+    onProgress: (cb: (progress: any) => void) => Unsubscribe;
+    onDownloaded: (cb: (info: any) => void) => Unsubscribe;
+    onError: (cb: (message: string) => void) => Unsubscribe;
   };
 }

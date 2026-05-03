@@ -24,34 +24,43 @@ const UpdateNotification: React.FC = () => {
   useEffect(() => {
     if (!api?.update) return;
 
-    api.update.onChecking(() => {
+    const offChecking = api.update.onChecking(() => {
       setStatus('checking');
       setDismissed(false);
     });
 
-    api.update.onAvailable((updateInfo: any) => {
+    const offAvailable = api.update.onAvailable((updateInfo: any) => {
       setStatus('available');
       setInfo(updateInfo || {});
       setDismissed(false);
     });
 
-    api.update.onNotAvailable(() => {
+    const offNotAvailable = api.update.onNotAvailable(() => {
       setStatus('idle');
     });
 
-    api.update.onProgress((p: any) => {
+    const offProgress = api.update.onProgress((p: any) => {
       setStatus('downloading');
       setProgress(p || {});
     });
 
-    api.update.onDownloaded((updateInfo: any) => {
+    const offDownloaded = api.update.onDownloaded((updateInfo: any) => {
       setStatus('downloaded');
       setInfo(updateInfo || {});
     });
 
-    api.update.onError(() => {
+    const offError = api.update.onError(() => {
       setStatus('idle');
     });
+
+    return () => {
+      offChecking();
+      offAvailable();
+      offNotAvailable();
+      offProgress();
+      offDownloaded();
+      offError();
+    };
   }, []);
 
   if (dismissed || status === 'idle' || status === 'checking') return null;

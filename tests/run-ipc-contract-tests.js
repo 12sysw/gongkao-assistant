@@ -131,6 +131,7 @@ run('achievement progress only counts work pomodoros and distinct checkins', () 
       { mode: 'shortBreak' },
       { mode: 'work' },
     ],
+    today: new Date(2026, 3, 28, 9, 30, 0),
   });
 
   assert.deepEqual(progress, {

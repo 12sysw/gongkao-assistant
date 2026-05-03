@@ -1,6 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '../shared/ipc';
 
+function onChannel<T extends unknown[]>(channel: string, listener: (...args: T) => void) {
+  const wrapped = (_event: Electron.IpcRendererEvent, ...args: T) => listener(...args);
+  ipcRenderer.on(channel, wrapped);
+  return () => ipcRenderer.removeListener(channel, wrapped);
+}
+
 const api = {
   question: {
     add: (q: any) => ipcRenderer.invoke(IPC.QUESTION_ADD, q),
@@ -60,7 +66,7 @@ const api = {
   },
   data: {
     export: () => ipcRenderer.invoke(IPC.DATA_EXPORT),
-    import: (filePath: string) => ipcRenderer.invoke(IPC.DATA_IMPORT, filePath),
+    import: () => ipcRenderer.invoke(IPC.DATA_IMPORT),
   },
   chat: {
     generateUserSig: (userID: string) => ipcRenderer.invoke(IPC.CHAT_GENERATE_USER_SIG, userID),
@@ -69,12 +75,12 @@ const api = {
     check: () => ipcRenderer.invoke(IPC.UPDATE_CHECK),
     download: () => ipcRenderer.invoke(IPC.UPDATE_DOWNLOAD),
     install: () => ipcRenderer.invoke(IPC.UPDATE_INSTALL),
-    onChecking: (cb: () => void) => ipcRenderer.on(IPC.UPDATE_CHECKING, () => cb()),
-    onAvailable: (cb: (info: any) => void) => ipcRenderer.on(IPC.UPDATE_AVAILABLE, (_e, info) => cb(info)),
-    onNotAvailable: (cb: (info: any) => void) => ipcRenderer.on(IPC.UPDATE_NOT_AVAILABLE, (_e, info) => cb(info)),
-    onProgress: (cb: (progress: any) => void) => ipcRenderer.on(IPC.UPDATE_DOWNLOAD_PROGRESS, (_e, p) => cb(p)),
-    onDownloaded: (cb: (info: any) => void) => ipcRenderer.on(IPC.UPDATE_DOWNLOADED, (_e, info) => cb(info)),
-    onError: (cb: (message: string) => void) => ipcRenderer.on(IPC.UPDATE_ERROR, (_e, msg) => cb(msg)),
+    onChecking: (cb: () => void) => onChannel(IPC.UPDATE_CHECKING, cb),
+    onAvailable: (cb: (info: any) => void) => onChannel(IPC.UPDATE_AVAILABLE, cb),
+    onNotAvailable: (cb: (info: any) => void) => onChannel(IPC.UPDATE_NOT_AVAILABLE, cb),
+    onProgress: (cb: (progress: any) => void) => onChannel(IPC.UPDATE_DOWNLOAD_PROGRESS, cb),
+    onDownloaded: (cb: (info: any) => void) => onChannel(IPC.UPDATE_DOWNLOADED, cb),
+    onError: (cb: (message: string) => void) => onChannel(IPC.UPDATE_ERROR, cb),
   },
 };
 

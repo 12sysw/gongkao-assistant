@@ -98,6 +98,47 @@ function mergeMindMaps(dbMaps: ReturnType<typeof toLegacyMindMap>[], fallbackMap
   return [...merged.values()].sort((a, b) => String(b.updated_at ?? '').localeCompare(String(a.updated_at ?? '')));
 }
 
+const IMPORT_TABLES = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes'] as const;
+const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
+
+function assertValidImportFile(filePath: string) {
+  if (path.extname(filePath).toLowerCase() !== '.json') {
+    throw new Error('只能导入 JSON 备份文件');
+  }
+
+  const stat = fs.statSync(filePath);
+  if (!stat.isFile()) {
+    throw new Error('导入路径不是有效文件');
+  }
+
+  if (stat.size > MAX_IMPORT_FILE_SIZE) {
+    throw new Error('导入文件过大，请确认选择的是应用导出的备份文件');
+  }
+}
+
+function parseImportPayload(filePath: string) {
+  assertValidImportFile(filePath);
+
+  const parsed = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('备份文件格式不正确');
+  }
+
+  const hasKnownTable = IMPORT_TABLES.some((table) => table in parsed);
+  if (!hasKnownTable) {
+    throw new Error('备份文件缺少可导入的数据表');
+  }
+
+  for (const table of IMPORT_TABLES) {
+    const value = parsed[table];
+    if (value !== undefined && !Array.isArray(value)) {
+      throw new Error(`备份文件中的 ${table} 格式不正确`);
+    }
+  }
+
+  return parsed as Record<string, unknown>;
+}
+
 export function registerIpcHandlers() {
   // ==================== 题目 ====================
   ipcMain.handle(IPC.QUESTION_ADD, (_, q: any) => {
@@ -549,9 +590,8 @@ export function registerIpcHandlers() {
     });
     if (result.canceled) return { success: false };
 
-    const tables = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes'];
     const data: any = {};
-    for (const table of tables) {
+    for (const table of IMPORT_TABLES) {
       data[table] = sqlite.prepare(`SELECT * FROM ${table}`).all();
     }
 
@@ -567,28 +607,26 @@ export function registerIpcHandlers() {
     return { success: true, path: result.filePath };
   });
 
-  ipcMain.handle(IPC.DATA_IMPORT, async (_, filePath: string) => {
-    if (!filePath) {
-      const result = await dialog.showOpenDialog({
-        title: '导入数据',
-        filters: [{ name: 'JSON', extensions: ['json'] }],
-        properties: ['openFile'],
-      });
-      if (result.canceled) return { success: false };
-      filePath = result.filePaths[0];
-    }
+  ipcMain.handle(IPC.DATA_IMPORT, async () => {
+    const result = await dialog.showOpenDialog({
+      title: '导入数据',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled) return { success: false };
 
-    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    const tables = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes'];
+    const filePath = result.filePaths[0];
+    const data = parseImportPayload(filePath);
 
     sqlite.transaction(() => {
-      for (const table of [...tables].reverse()) {
+      for (const table of [...IMPORT_TABLES].reverse()) {
         sqlite.prepare(`DELETE FROM ${table}`).run();
       }
 
-      for (const table of tables) {
+      for (const table of IMPORT_TABLES) {
         if (data[table] && Array.isArray(data[table])) {
           for (const row of data[table]) {
+            if (!row || typeof row !== 'object' || Array.isArray(row)) continue;
             // Validate column names against actual DB columns
             const tableInfo = sqlite.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
             const validCols = new Set(tableInfo.map((c) => c.name));
@@ -596,7 +634,7 @@ export function registerIpcHandlers() {
             if (safeCols.length === 0) continue;
             const cols = safeCols.join(', ');
             const placeholders = safeCols.map(() => '?').join(', ');
-            const values = safeCols.map((col) => row[col]);
+            const values = safeCols.map((col) => (row as Record<string, unknown>)[col]);
             sqlite.prepare(`INSERT OR REPLACE INTO ${table} (${cols}) VALUES (${placeholders})`).run(...values);
           }
         }

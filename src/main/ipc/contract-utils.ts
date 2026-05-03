@@ -323,12 +323,13 @@ export function buildAchievementProgress(params: {
   wrongRecords: LegacyLikeRecord[];
   flashcards: LegacyLikeRecord[];
   pomodoroRecords: LegacyLikeRecord[];
+  today?: Date;
 }) {
-  const { dailyRecords, wrongRecords, flashcards, pomodoroRecords } = params;
+  const { dailyRecords, wrongRecords, flashcards, pomodoroRecords, today } = params;
 
   const totalMinutes = dailyRecords.reduce((sum, row) => sum + Number(getValue<number>(row, 'studyMinutes', 'study_minutes') ?? 0), 0);
   const totalQuestions = dailyRecords.reduce((sum, row) => sum + Number(getValue<number>(row, 'questionsDone', 'questions_done') ?? 0), 0);
-  const streak = computeStreak(dailyRecords.map((row) => String(row.date)));
+  const streak = computeStreak(dailyRecords.map((row) => String(row.date)), today);
   const mastered = wrongRecords.filter((row) => Boolean(getValue<boolean | number>(row, 'mastered', 'mastered'))).length;
   const flashcard = flashcards.reduce((sum, row) => sum + Number(getValue<number>(row, 'reviewCount', 'review_count') ?? 0), 0);
   const flashcardMastered = flashcards.filter((row) => Boolean(getValue<boolean | number>(row, 'mastered', 'mastered'))).length;

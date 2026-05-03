@@ -57,7 +57,18 @@ interface Window {
     };
     data: {
       export: () => Promise<any>;
-      import: (filePath: string) => Promise<any>;
+      import: () => Promise<any>;
+    };
+    update: {
+      check: () => Promise<void>;
+      download: () => Promise<void>;
+      install: () => void;
+      onChecking: (cb: () => void) => () => void;
+      onAvailable: (cb: (info: any) => void) => () => void;
+      onNotAvailable: (cb: (info: any) => void) => () => void;
+      onProgress: (cb: (progress: any) => void) => () => void;
+      onDownloaded: (cb: (info: any) => void) => () => void;
+      onError: (cb: (message: string) => void) => () => void;
     };
   };
 }
