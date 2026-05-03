@@ -160,6 +160,9 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 检查设备是否已注册账号
+  const hasRegisteredAccount = Object.keys(getStoredUsers()).length > 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const uname = username.trim().toLowerCase();
@@ -171,11 +174,20 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
       const hash = await hashPassword(password);
 
       if (mode === 'register') {
-        const displayName = nick.trim() || uname;
+        // 一个设备只能注册一个账号
         const users = getStoredUsers();
+        const usernames = Object.keys(users);
+        if (usernames.length > 0) {
+          toast.error('此设备已注册账号，如需新账号请先联系管理员');
+          setLoading(false);
+          return;
+        }
+        const displayName = nick.trim() || uname;
         if (users[uname]) { toast.error('用户名已存在'); setLoading(false); return; }
         saveUser({ username: uname, nick: displayName, passwordHash: hash, createdAt: Date.now() });
-        toast.success('注册成功');
+        toast.success('注册成功，正在登录...');
+        // 注册成功后自动登录
+        setLoading(false);
         onLogin(uname, displayName);
       } else if (mode === 'reset') {
         const users = getStoredUsers();
@@ -191,6 +203,7 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
         const users = getStoredUsers();
         const user = users[uname];
         if (!user || user.passwordHash !== hash) { toast.error('用户名或密码错误'); setLoading(false); return; }
+        setLoading(false);
         onLogin(uname, user.nick);
       }
     } catch (err: any) {
@@ -211,7 +224,7 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
           <p className="text-sm text-surface-500">{mode === 'login' ? '登录加入聊天室' : mode === 'register' ? '注册新账号' : '重置密码'}</p>
         </div>
 
-        {mode !== 'reset' && (
+        {mode !== 'reset' && !hasRegisteredAccount && (
           <div className="flex gap-1 p-1 bg-surface-100 rounded-xl">
             <button type="button" onClick={() => setMode('login')}
               className={cn('flex-1 py-1.5 text-sm rounded-lg transition', mode === 'login' ? 'bg-white font-medium shadow-soft' : 'text-surface-500')}>
@@ -222,6 +235,9 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
               注册
             </button>
           </div>
+        )}
+        {mode !== 'reset' && hasRegisteredAccount && (
+          <p className="text-xs text-center text-surface-400">此设备已注册账号，请直接登录</p>
         )}
 
         <div className="space-y-3">
