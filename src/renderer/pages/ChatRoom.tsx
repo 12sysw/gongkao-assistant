@@ -27,8 +27,19 @@ async function generateUserSig(userID: string): Promise<string> {
 function extractUsername(imUserID: string): string {
   if (!imUserID) return '';
   // 设备后缀格式: _ + 6位字符 (如 _8dbho1)
+  // 只有当后缀是小写字母或数字时才认为是设备后缀
   const match = imUserID.match(/^(.+)_[a-z0-9]{6}$/);
   return match ? match[1] : imUserID;
+}
+
+// 清理昵称中的设备后缀（用于群成员列表显示）
+function cleanNick(nick: string, userID: string): string {
+  if (!nick) return extractUsername(userID);
+  // 如果昵称和 userID 相同或昵称以 userID 开头，尝试提取
+  if (nick === userID || nick.startsWith(userID.slice(0, -7))) {
+    return extractUsername(userID);
+  }
+  return nick;
 }
 
 // 从本地存储获取用户昵称
@@ -197,6 +208,7 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
         saveUser(user);
         toast.success('密码已重置，请登录');
         setMode('login');
+        setUsername('');
         setPassword('');
         setLoading(false);
       } else {
@@ -497,9 +509,15 @@ export default function ChatRoom() {
       unsubMsgRef.current = onMessageReceived((msgs: any[]) => {
         const selfID = useChatStore.getState().selfUserID;
         const groupMsgs = msgs.filter((m: any) => m.conversationType === TencentCloudChat.TYPES.CONV_GROUP);
-        // 存储 SDK 原始消息对象（用于撤回）
+        // 存储 SDK 原始消息对象（用于撤回），限制数量防止内存泄漏
         for (const m of groupMsgs) {
           if (m.ID) sdkMessagesRef.current.set(m.ID, m);
+        }
+        if (sdkMessagesRef.current.size > 500) {
+          const keys = [...sdkMessagesRef.current.keys()];
+          for (let i = 0; i < keys.length - 300; i++) {
+            sdkMessagesRef.current.delete(keys[i]);
+          }
         }
         // 按 roomId 分组路由消息，而不是全部塞到一个频道
         const msgsByRoom = new Map<string, any[]>();
@@ -539,10 +557,13 @@ export default function ChatRoom() {
       if (!useChatStore.getState().currentRoomId) {
         useChatStore.getState().setCurrentRoomId(PRESET_ROOMS[0].id);
       }
+      // 标记登录完成
+      loginDoneRef.current = true;
     } catch (err: any) {
       console.error('login failed', err);
       toast.error('连接失败: ' + (err.message || err.code || '未知错误'));
       store.setConnStatus('error');
+      loginDoneRef.current = false;
     }
   }, [store, scrollToBottom]);
 
@@ -639,7 +660,7 @@ export default function ChatRoom() {
       const list = await fetchGroupMembers(groupID);
       const users: ChatUser[] = list.map((m: any) => ({
         userID: m.userID,
-        nick: m.nick || m.userID,
+        nick: cleanNick(m.nick || m.userID, m.userID),
         avatar: '',
         joinTime: m.joinTime || 0,
       }));
@@ -779,6 +800,9 @@ export default function ChatRoom() {
 
   /* logout - only clear session, keep registered accounts */
   const handleLogout = useCallback(async () => {
+    // 确认退出
+    if (!window.confirm('确定要退出登录吗？')) return;
+
     // 先登出腾讯 IM SDK
     await logoutIM();
     unsubMsgRef.current?.();
@@ -795,6 +819,7 @@ export default function ChatRoom() {
     loginDoneRef.current = false;
     PRESET_ROOMS.forEach(r => store.clearMessages(r.id));
     sdkMessagesRef.current.clear();
+    toast.success('已退出登录');
   }, [store]);
 
   /* ── render ── */
