@@ -56,17 +56,28 @@ export const useChatStore = create<ChatState>((set) => ({
       const existingIds = new Set(prev.map((m) => m.id));
       const newMsgs = msgs.filter((m) => !existingIds.has(m.id));
       if (newMsgs.length === 0) return s;
-      return { messages: { ...s.messages, [roomId]: [...prev, ...newMsgs] } };
+      // 限制每个房间最多保留 200 条消息，防止内存无限增长
+      const combined = [...prev, ...newMsgs];
+      const trimmed = combined.slice(-200);
+      return { messages: { ...s.messages, [roomId]: trimmed } };
     }),
   prependMessages: (roomId, msgs) =>
     set((s) => {
       const prev = s.messages[roomId] || [];
       const existingIds = new Set(prev.map((m) => m.id));
       const newMsgs = msgs.filter((m) => !existingIds.has(m.id));
-      return { messages: { ...s.messages, [roomId]: [...newMsgs, ...prev] } };
+      if (newMsgs.length === 0) return s;
+      // 限制每个房间最多保留 200 条消息
+      const combined = [...newMsgs, ...prev];
+      const trimmed = combined.slice(0, 200);
+      return { messages: { ...s.messages, [roomId]: trimmed } };
     }),
   clearMessages: (roomId) =>
-    set((s) => ({ messages: { ...s.messages, [roomId]: [] } })),
+    set((s) => {
+      const newMessages = { ...s.messages };
+      delete newMessages[roomId];
+      return { messages: newMessages };
+    }),
 
   members: [],
   setMembers: (members) => set({ members }),

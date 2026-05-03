@@ -617,10 +617,6 @@ export function registerIpcHandlers() {
   // 聊天室 - 通过云函数生成 UserSig（SecretKey 仅存储在云函数环境变量中）
   ipcMain.handle(IPC.CHAT_GENERATE_USER_SIG, async (_event, userID: string) => {
     const url = 'https://1427868409-96ux8dbho1.ap-guangzhou.tencentscf.com';
-    if (!url) {
-      console.error('[Chat] USER_SIG_CLOUD_FUNCTION_URL not configured');
-      return '';
-    }
     try {
       const response = await fetch(url, {
         method: 'POST',
