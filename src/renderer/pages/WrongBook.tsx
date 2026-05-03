@@ -11,7 +11,6 @@ import {
   ImageIcon,
   Loader2,
 } from 'lucide-react';
-import Tesseract from 'tesseract.js';
 import { Button } from '../components/ui/Button';
 
 const QUESTION_TYPES = [
@@ -107,6 +106,31 @@ function parseOcrText(text: string): { content: string; options: string } {
     content: contentLines.join('\n'),
     options: options.join('\n'),
   };
+}
+
+let tesseractModulePromise: Promise<typeof import('tesseract.js')> | null = null;
+
+async function getTesseract() {
+  if (!tesseractModulePromise) {
+    tesseractModulePromise = import('tesseract.js');
+  }
+
+  const module = await tesseractModulePromise;
+  return ('default' in module ? module.default : module) as typeof import('tesseract.js');
+}
+
+async function recognizeQuestionImage(
+  file: File,
+  onProgress: (progress: number, status: string) => void
+) {
+  const Tesseract = await getTesseract();
+  const result = await Tesseract.recognize(file, 'chi_sim+eng', {
+    logger: (message: { status: string; progress: number }) => {
+      onProgress(Math.round(message.progress * 100), message.status);
+    },
+  });
+
+  return result.data.text.trim();
 }
 
 /* ─── Sub-components ─── */
@@ -667,16 +691,12 @@ const WrongBook: React.FC = () => {
       setOcrProgress(0);
 
       try {
-        const result = await Tesseract.recognize(file, 'chi_sim+eng', {
-          logger: (m: { status: string; progress: number }) => {
-            if (m.status === 'recognizing text') {
-              setOcrProgress(Math.round(m.progress * 100));
-            }
-            console.log('[OCR]', m.status, m.progress);
-          },
+        const text = await recognizeQuestionImage(file, (progress, status) => {
+          if (status === 'recognizing text') {
+            setOcrProgress(progress);
+          }
+          console.log('[OCR]', status, progress / 100);
         });
-
-        const text = result.data.text.trim();
         console.log('[OCR] 识别结果:', text);
 
         if (text) {
@@ -718,15 +738,11 @@ const WrongBook: React.FC = () => {
             setOcrProgress(0);
 
             try {
-              const result = await Tesseract.recognize(file, 'chi_sim+eng', {
-                logger: (m: { status: string; progress: number }) => {
-                  if (m.status === 'recognizing text') {
-                    setOcrProgress(Math.round(m.progress * 100));
-                  }
-                },
+              const text = await recognizeQuestionImage(file, (progress, status) => {
+                if (status === 'recognizing text') {
+                  setOcrProgress(progress);
+                }
               });
-
-              const text = result.data.text.trim();
               if (text) {
                 const parsed = parseOcrText(text);
                 setNewQuestion((prev) => ({
