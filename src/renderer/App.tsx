@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import UpdateNotification from './components/UpdateNotification';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const ReviewHub = lazy(() => import('./pages/ReviewHub'));
 const WrongBook = lazy(() => import('./pages/WrongBook'));
 const MindMap = lazy(() => import('./pages/MindMap'));
 const StudyPlan = lazy(() => import('./pages/StudyPlan'));
@@ -35,6 +36,7 @@ const App: React.FC = () => {
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/review" element={<ReviewHub />} />
             <Route path="/mock-exam" element={<MockExam />} />
             <Route path="/wrong-book" element={<WrongBook />} />
             <Route path="/mind-map" element={<MindMap />} />

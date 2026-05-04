@@ -72,6 +72,20 @@ export function useMindMaps() {
   });
 }
 
+export function useRecentReviewSessions(days: number = 7) {
+  return useQuery({
+    queryKey: ['reviewSessions', days],
+    queryFn: () => api.reviewSession.getRecent(days),
+  });
+}
+
+export function useRecentRecommendationEvents(days: number = 7) {
+  return useQuery({
+    queryKey: ['recommendationEvents', days],
+    queryFn: () => api.recommendationEvent.getRecent(days),
+  });
+}
+
 // ==================== 通用 mutation ====================
 export function useAddDailyRecord() {
   const qc = useQueryClient();

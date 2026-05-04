@@ -323,9 +323,10 @@ export function buildAchievementProgress(params: {
   wrongRecords: LegacyLikeRecord[];
   flashcards: LegacyLikeRecord[];
   pomodoroRecords: LegacyLikeRecord[];
+  reviewSessions?: LegacyLikeRecord[];
   today?: Date;
 }) {
-  const { dailyRecords, wrongRecords, flashcards, pomodoroRecords, today } = params;
+  const { dailyRecords, wrongRecords, flashcards, pomodoroRecords, reviewSessions = [], today } = params;
 
   const totalMinutes = dailyRecords.reduce((sum, row) => sum + Number(getValue<number>(row, 'studyMinutes', 'study_minutes') ?? 0), 0);
   const totalQuestions = dailyRecords.reduce((sum, row) => sum + Number(getValue<number>(row, 'questionsDone', 'questions_done') ?? 0), 0);
@@ -335,6 +336,25 @@ export function buildAchievementProgress(params: {
   const flashcardMastered = flashcards.filter((row) => Boolean(getValue<boolean | number>(row, 'mastered', 'mastered'))).length;
   const pomodoro = pomodoroRecords.filter((row) => (row.mode ?? 'work') === 'work').length;
   const checkin = new Set(dailyRecords.map((row) => String(row.date))).size;
+  const reviewFlow = reviewSessions.filter((row) => {
+    const started = Boolean(getValue<boolean | number>(row, 'started', 'started'));
+    const initialTotal = Number(getValue<number>(row, 'initialTotal', 'initial_total') ?? 0);
+    const completedWrongIds = getValue<number[] | string>(row, 'completedWrongIds', 'completed_wrong_ids');
+    const completedFlashcardIds = getValue<number[] | string>(row, 'completedFlashcardIds', 'completed_flashcard_ids');
+
+    const wrongCount = Array.isArray(completedWrongIds)
+      ? completedWrongIds.length
+      : completedWrongIds
+      ? JSON.parse(String(completedWrongIds)).length
+      : 0;
+    const flashcardCount = Array.isArray(completedFlashcardIds)
+      ? completedFlashcardIds.length
+      : completedFlashcardIds
+      ? JSON.parse(String(completedFlashcardIds)).length
+      : 0;
+
+    return started && initialTotal > 0 && wrongCount + flashcardCount >= initialTotal;
+  }).length;
 
   return {
     streak,
@@ -345,6 +365,7 @@ export function buildAchievementProgress(params: {
     flashcard_master: flashcardMastered,
     pomodoro,
     checkin,
+    review_flow: reviewFlow,
   };
 }
 

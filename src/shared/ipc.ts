@@ -58,6 +58,11 @@ export const IPC = {
 
   // 鼓励语录
   ENCOURAGE_GET_RANDOM: 'encourage:get-random',
+  REVIEW_SESSION_GET: 'review-session:get',
+  REVIEW_SESSION_SET: 'review-session:set',
+  REVIEW_SESSION_GET_RECENT: 'review-session:get-recent',
+  RECOMMENDATION_EVENT_ADD: 'recommendation-event:add',
+  RECOMMENDATION_EVENT_GET_RECENT: 'recommendation-event:get-recent',
 
   // 数据导入导出
   DATA_EXPORT: 'data:export',
@@ -138,6 +143,15 @@ export interface Api {
   };
   encourage: {
     getRandom: (category?: string) => Promise<any>;
+  };
+  reviewSession: {
+    get: (date: string) => Promise<any>;
+    set: (session: any) => Promise<any>;
+    getRecent: (days: number) => Promise<any[]>;
+  };
+  recommendationEvent: {
+    add: (event: any) => Promise<{ success: boolean }>;
+    getRecent: (days: number) => Promise<any[]>;
   };
   data: {
     export: () => Promise<any>;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
+  Focus,
   BookX,
   Brain,
   CalendarCheck,
@@ -20,6 +21,7 @@ import { cn } from '../lib/utils';
 
 const navItems = [
   { path: '/', label: '仪表盘', icon: LayoutDashboard },
+  { path: '/review', label: '统一复习', icon: Focus },
   { path: '/mock-exam', label: '套题测评', icon: ClipboardList },
   { path: '/wrong-book', label: '错题本', icon: BookX },
   { path: '/flashcards', label: '记忆卡片', icon: Layers },
@@ -44,7 +46,6 @@ const Sidebar: React.FC = () => {
         collapsed ? 'w-16' : 'w-[220px]'
       )}
     >
-      {/* Logo */}
       <div className="h-16 flex items-center px-4 shrink-0 border-b border-white/[0.06]">
         <div className="w-9 h-9 bg-brand-500 rounded-lg flex items-center justify-center text-white font-bold text-sm font-display shadow-lg shrink-0">
           公
@@ -61,7 +62,6 @@ const Sidebar: React.FC = () => {
         )}
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 py-3 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden">
         {navItems.map(({ path, label, icon: Icon }) => (
           <NavLink
@@ -81,7 +81,13 @@ const Sidebar: React.FC = () => {
           >
             {({ isActive }) => (
               <>
-                <Icon className={cn('w-[18px] h-[18px] shrink-0', !collapsed && 'mr-3', isActive && 'text-brand-400')} />
+                <Icon
+                  className={cn(
+                    'w-[18px] h-[18px] shrink-0',
+                    !collapsed && 'mr-3',
+                    isActive && 'text-brand-400'
+                  )}
+                />
                 {!collapsed && <span className="truncate">{label}</span>}
                 {collapsed && (
                   <div className="absolute left-full ml-2 px-2 py-1 bg-surface-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 border border-white/[0.06]">
@@ -94,7 +100,6 @@ const Sidebar: React.FC = () => {
         ))}
       </nav>
 
-      {/* Footer */}
       <div className="p-3 border-t border-white/[0.06] shrink-0">
         <button
           onClick={() => setCollapsed(!collapsed)}

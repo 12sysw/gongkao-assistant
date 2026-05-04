@@ -64,6 +64,15 @@ const api = {
   encourage: {
     getRandom: (category?: string) => ipcRenderer.invoke(IPC.ENCOURAGE_GET_RANDOM, category),
   },
+  reviewSession: {
+    get: (date: string) => ipcRenderer.invoke(IPC.REVIEW_SESSION_GET, date),
+    set: (session: any) => ipcRenderer.invoke(IPC.REVIEW_SESSION_SET, session),
+    getRecent: (days: number) => ipcRenderer.invoke(IPC.REVIEW_SESSION_GET_RECENT, days),
+  },
+  recommendationEvent: {
+    add: (event: any) => ipcRenderer.invoke(IPC.RECOMMENDATION_EVENT_ADD, event),
+    getRecent: (days: number) => ipcRenderer.invoke(IPC.RECOMMENDATION_EVENT_GET_RECENT, days),
+  },
   data: {
     export: () => ipcRenderer.invoke(IPC.DATA_EXPORT),
     import: () => ipcRenderer.invoke(IPC.DATA_IMPORT),

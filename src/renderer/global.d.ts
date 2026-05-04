@@ -55,6 +55,15 @@ interface Window {
       getByDate: (date: string) => Promise<any[]>;
       getRange: (start: string, end: string) => Promise<any[]>;
     };
+    reviewSession: {
+      get: (date: string) => Promise<any>;
+      set: (session: any) => Promise<any>;
+      getRecent: (days: number) => Promise<any[]>;
+    };
+    recommendationEvent: {
+      add: (event: any) => Promise<{ success: boolean }>;
+      getRecent: (days: number) => Promise<any[]>;
+    };
     data: {
       export: () => Promise<any>;
       import: () => Promise<any>;

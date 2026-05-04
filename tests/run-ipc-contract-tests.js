@@ -131,6 +131,10 @@ run('achievement progress only counts work pomodoros and distinct checkins', () 
       { mode: 'shortBreak' },
       { mode: 'work' },
     ],
+    reviewSessions: [
+      { started: true, initialTotal: 3, completedWrongIds: [1], completedFlashcardIds: [2, 3] },
+      { started: true, initialTotal: 2, completedWrongIds: [4], completedFlashcardIds: [] },
+    ],
     today: new Date(2026, 3, 28, 9, 30, 0),
   });
 
@@ -143,6 +147,7 @@ run('achievement progress only counts work pomodoros and distinct checkins', () 
     flashcard_master: 1,
     pomodoro: 2,
     checkin: 2,
+    review_flow: 1,
   });
 });
 

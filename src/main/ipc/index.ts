@@ -98,7 +98,16 @@ function mergeMindMaps(dbMaps: ReturnType<typeof toLegacyMindMap>[], fallbackMap
   return [...merged.values()].sort((a, b) => String(b.updated_at ?? '').localeCompare(String(a.updated_at ?? '')));
 }
 
-const IMPORT_TABLES = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes'] as const;
+function normalizeIdList(value: unknown) {
+  if (!Array.isArray(value)) return '[]';
+  return JSON.stringify(
+    value
+      .map((item) => Number(item))
+      .filter((item) => Number.isInteger(item) && item >= 0)
+  );
+}
+
+const IMPORT_TABLES = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'review_sessions', 'recommendation_events', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes'] as const;
 const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
 
 function assertValidImportFile(filePath: string) {
@@ -471,6 +480,7 @@ export function registerIpcHandlers() {
     const wrongRecords = db.select().from(schema.wrongRecords).all();
     const flashcards = db.select().from(schema.flashcards).all();
     const pomodoroRecords = db.select().from(schema.pomodoroRecords).all();
+    const reviewSessions = db.select().from(schema.reviewSessions).all();
     const achievements = db.select().from(schema.achievements).all();
 
     const progressMap = buildAchievementProgress({
@@ -478,6 +488,7 @@ export function registerIpcHandlers() {
       wrongRecords,
       flashcards,
       pomodoroRecords,
+      reviewSessions,
     });
 
     const now = formatLocalDateTime();
@@ -579,6 +590,93 @@ export function registerIpcHandlers() {
 
     if (rows.length === 0) return null;
     return toLegacyQuote(rows[Math.floor(Math.random() * rows.length)]);
+  });
+
+  ipcMain.handle(IPC.REVIEW_SESSION_GET, (_, date: string) => {
+    const row = db.select().from(schema.reviewSessions).where(eq(schema.reviewSessions.date, date)).get();
+    if (!row) {
+      return {
+        date,
+        started: false,
+        initial_total: 0,
+        completed_wrong_ids: [],
+        completed_flashcard_ids: [],
+      };
+    }
+
+    return {
+      date: row.date,
+      started: row.started ? 1 : 0,
+      initial_total: row.initialTotal ?? 0,
+      completed_wrong_ids: JSON.parse(row.completedWrongIds ?? '[]'),
+      completed_flashcard_ids: JSON.parse(row.completedFlashcardIds ?? '[]'),
+    };
+  });
+
+  ipcMain.handle(IPC.REVIEW_SESSION_SET, (_, session: any) => {
+    const payload = {
+      date: String(session?.date ?? formatLocalDate()),
+      started: Boolean(session?.started),
+      initialTotal: Number(session?.initial_total ?? 0),
+      completedWrongIds: normalizeIdList(session?.completed_wrong_ids),
+      completedFlashcardIds: normalizeIdList(session?.completed_flashcard_ids),
+      updatedAt: formatLocalDateTime(),
+    };
+
+    const existing = db.select().from(schema.reviewSessions).where(eq(schema.reviewSessions.date, payload.date)).get();
+    if (existing) {
+      db.update(schema.reviewSessions).set(payload).where(eq(schema.reviewSessions.id, existing.id)).run();
+    } else {
+      db.insert(schema.reviewSessions).values(payload).run();
+    }
+
+    return {
+      date: payload.date,
+      started: payload.started ? 1 : 0,
+      initial_total: payload.initialTotal,
+      completed_wrong_ids: JSON.parse(payload.completedWrongIds),
+      completed_flashcard_ids: JSON.parse(payload.completedFlashcardIds),
+    };
+  });
+
+  ipcMain.handle(IPC.REVIEW_SESSION_GET_RECENT, (_, days: number) => {
+    const limit = Math.max(1, Math.min(Number(days) || 7, 30));
+    return db.select().from(schema.reviewSessions).all()
+      .sort((a, b) => String(b.date).localeCompare(String(a.date)))
+      .slice(0, limit)
+      .map((row) => ({
+        date: row.date,
+        started: row.started ? 1 : 0,
+        initial_total: row.initialTotal ?? 0,
+        completed_wrong_ids: JSON.parse(row.completedWrongIds ?? '[]'),
+        completed_flashcard_ids: JSON.parse(row.completedFlashcardIds ?? '[]'),
+      }));
+  });
+
+  ipcMain.handle(IPC.RECOMMENDATION_EVENT_ADD, (_, event: any) => {
+    db.insert(schema.recommendationEvents).values({
+      date: String(event?.date ?? formatLocalDate()),
+      source: String(event?.source ?? 'unknown'),
+      title: String(event?.title ?? 'unknown'),
+      href: String(event?.href ?? '/'),
+    }).run();
+
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC.RECOMMENDATION_EVENT_GET_RECENT, (_, days: number) => {
+    const limit = Math.max(1, Math.min(Number(days) || 7, 30));
+    return db.select().from(schema.recommendationEvents).all()
+      .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
+      .slice(0, limit * 10)
+      .map((row) => ({
+        id: row.id,
+        date: row.date,
+        source: row.source,
+        title: row.title,
+        href: row.href,
+        created_at: row.createdAt ?? null,
+      }));
   });
 
   // ==================== 数据导入导出 ====================

@@ -52,6 +52,9 @@ const FALLBACK_ACHIEVEMENTS: Achievement[] = [
   { id: 27, type: 'checkin', title: '坚持打卡', description: '打卡7天', icon: '🗓️', threshold: 7, unlocked_at: null, progress: 0 },
   { id: 28, type: 'checkin', title: '打卡达人', description: '打卡30天', icon: '✨', threshold: 30, unlocked_at: null, progress: 0 },
   { id: 29, type: 'checkin', title: '打卡传奇', description: '打卡100天', icon: '🏅', threshold: 100, unlocked_at: null, progress: 0 },
+  { id: 30, type: 'review_flow', title: '今日一条龙', description: '完成1天统一复习', icon: '🧭', threshold: 1, unlocked_at: null, progress: 0 },
+  { id: 31, type: 'review_flow', title: '坚持不断档', description: '完成7天统一复习', icon: '🎌', threshold: 7, unlocked_at: null, progress: 0 },
+  { id: 32, type: 'review_flow', title: '复习工作台熟手', description: '完成30天统一复习', icon: '🛰', threshold: 30, unlocked_at: null, progress: 0 },
 ];
 
 function mergeAchievements(base: Achievement[], progress: Achievement[]) {
@@ -73,6 +76,7 @@ const GROUP_META: Record<string, { label: string; gradient: string }> = {
   flashcard_master: { label: '卡片掌握', gradient: 'from-info to-brand-500' },
   pomodoro: { label: '番茄专注', gradient: 'from-danger to-danger-dark' },
   checkin: { label: '每日打卡', gradient: 'from-success to-brand-500' },
+  review_flow: { label: '统一复习', gradient: 'from-brand-500 to-info' },
 };
 
 const SummaryBar: React.FC<{

@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { db, initAchievements } from './index';
-import { questions, wrongRecords, mindMaps, studyPlans, dailyRecords, achievements, flashcards, examConfig, pomodoroRecords, encourageQuotes } from './schema';
+import { questions, wrongRecords, mindMaps, studyPlans, dailyRecords, reviewSessions, recommendationEvents, achievements, flashcards, examConfig, pomodoroRecords, encourageQuotes } from './schema';
 
 // 初始化所有表（Drizzle 会自动处理 CREATE TABLE IF NOT EXISTS）
 export function initDatabase() {
@@ -79,6 +79,29 @@ export function initDatabase() {
     )
   `);
 
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS review_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL UNIQUE,
+      started INTEGER DEFAULT 0,
+      initial_total INTEGER DEFAULT 0,
+      completed_wrong_ids TEXT DEFAULT '[]',
+      completed_flashcard_ids TEXT DEFAULT '[]',
+      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS recommendation_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      source TEXT NOT NULL,
+      title TEXT NOT NULL,
+      href TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
   // 成就表
   db.run(sql`
     CREATE TABLE IF NOT EXISTS achievements (
@@ -142,6 +165,8 @@ export function initDatabase() {
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_wrong_records_next_review ON wrong_records(next_review_at)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_questions_type ON questions(type)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_daily_records_date ON daily_records(date)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_review_sessions_date ON review_sessions(date)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_recommendation_events_date ON recommendation_events(date)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_study_plans_status ON study_plans(status)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_achievements_type ON achievements(type)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_flashcards_category ON flashcards(category)`);

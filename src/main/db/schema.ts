@@ -63,6 +63,25 @@ export const dailyRecords = sqliteTable('daily_records', {
   createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
 });
 
+export const reviewSessions = sqliteTable('review_sessions', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  date: text('date').notNull().unique(),
+  started: integer('started', { mode: 'boolean' }).default(false),
+  initialTotal: integer('initial_total').default(0),
+  completedWrongIds: text('completed_wrong_ids').default('[]'),
+  completedFlashcardIds: text('completed_flashcard_ids').default('[]'),
+  updatedAt: text('updated_at').default(sql`(datetime('now', 'localtime'))`),
+});
+
+export const recommendationEvents = sqliteTable('recommendation_events', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  date: text('date').notNull(),
+  source: text('source').notNull(),
+  title: text('title').notNull(),
+  href: text('href').notNull(),
+  createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
+});
+
 // ==================== 成就 ====================
 export const achievements = sqliteTable('achievements', {
   id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
@@ -122,6 +141,10 @@ export type StudyPlan = typeof studyPlans.$inferSelect;
 export type NewStudyPlan = typeof studyPlans.$inferInsert;
 export type DailyRecord = typeof dailyRecords.$inferSelect;
 export type NewDailyRecord = typeof dailyRecords.$inferInsert;
+export type ReviewSession = typeof reviewSessions.$inferSelect;
+export type NewReviewSession = typeof reviewSessions.$inferInsert;
+export type RecommendationEvent = typeof recommendationEvents.$inferSelect;
+export type NewRecommendationEvent = typeof recommendationEvents.$inferInsert;
 export type Achievement = typeof achievements.$inferSelect;
 export type NewAchievement = typeof achievements.$inferInsert;
 export type Flashcard = typeof flashcards.$inferSelect;
