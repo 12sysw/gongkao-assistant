@@ -1,9 +1,46 @@
 import { app, BrowserWindow, globalShortcut } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { registerIpcHandlers } from './ipc/index';
 import { initDatabase } from './db/migrations';
 import { closeDatabase } from './db';
 import { initUpdater } from './updater';
+
+// 加载 .env 文件到 process.env（仅开发模式，生产环境通过 CI 注入）
+function loadEnvFile() {
+  try {
+    const envPaths = [
+      path.join(__dirname, '..', '..', '..', '.env'),          // dev: project root
+      path.join(__dirname, '..', '..', '.env'),                  // dev: alternate
+    ];
+    for (const envPath of envPaths) {
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf-8');
+        for (const line of content.split('\n')) {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed.startsWith('#')) continue;
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx === -1) continue;
+          const key = trimmed.slice(0, eqIdx).trim();
+          const value = trimmed.slice(eqIdx + 1).trim();
+          if (!process.env[key]) {
+            process.env[key] = value;
+          }
+        }
+        console.log('[Main] Loaded .env from', envPath);
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('[Main] Failed to load .env file:', err);
+  }
+}
+
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+if (isDevelopment) {
+  loadEnvFile();
+}
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -27,7 +64,7 @@ function createWindow() {
     },
   });
 
-  if (process.env.NODE_ENV === 'development') {
+  if (isDevelopment) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
