@@ -1,6 +1,6 @@
 {
   "name": "gongkao-assistant",
-  "version": "1.2.13",
+  "version": "1.2.14",
   "description": "公考小助手 - 桌面端公考学习工具",
   "author": "12sysw",
   "repository": {
@@ -30,6 +30,7 @@
     "drizzle-orm": "^0.45.2",
     "electron-updater": "^6.8.3",
     "lucide-react": "^0.460.0",
+    "pdf-parse": "^2.4.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.73.1",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",

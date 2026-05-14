@@ -6,6 +6,8 @@ node_modules/
 # Build outputs
 dist/
 release/
+build_tmp/
+dist-release/
 *.tsbuildinfo
 
 # Electron
@@ -39,3 +41,8 @@ coverage/
 
 # Claude
 .claude/
+
+# Database (user data)
+*.db
+*.db-wal
+*.db-shm

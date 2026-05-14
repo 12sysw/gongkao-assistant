@@ -10,6 +10,7 @@ import {
   X,
   ImageIcon,
   Loader2,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
@@ -69,7 +70,7 @@ const DEFAULT_FORM: QuestionForm = {
 };
 
 function getApi() {
-  return (window as unknown as Window & { api: Record<string, unknown> }).api;
+  return (window as any).api;
 }
 
 function parseOptions(options: string | null): string[] {
@@ -348,7 +349,10 @@ const RecordItem: React.FC<{
   onMastered: (id: number) => void;
   onReview: (id: number) => void;
   onDelete: (id: number) => void;
-}> = ({ record, isExpanded, onToggle, onMastered, onReview, onDelete }) => {
+  onAnalyze: (id: number) => void;
+  isAnalyzing: boolean;
+  streamContent: string;
+}> = ({ record, isExpanded, onToggle, onMastered, onReview, onDelete, onAnalyze, isAnalyzing, streamContent }) => {
   const opts = useMemo(() => parseOptions(record.options), [record.options]);
 
   return (
@@ -397,6 +401,47 @@ const RecordItem: React.FC<{
           <AnswerComparison myAnswer={record.my_answer} correctAnswer={record.answer} />
           <InfoBox label="解析" content={record.explanation} bgClass="bg-brand-50" textClass="text-brand-700" />
           <InfoBox label="笔记" content={record.note} bgClass="bg-warning-light" textClass="text-warning-dark" />
+
+          {/* AI 智能分析按钮 */}
+          {!record.note || record.note.length < 100 ? (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onAnalyze(record.id); }}
+                disabled={isAnalyzing}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-gradient-to-r from-brand-500 to-orange-500 text-white rounded-lg hover:from-brand-600 hover:to-orange-600 disabled:opacity-50 transition-all"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    AI 分析中...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    AI 智能分析
+                  </>
+                )}
+              </button>
+              {isAnalyzing && streamContent && (
+                <div className="p-3 bg-surface-50 rounded-lg text-sm text-surface-600 max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                  <div className="flex items-center gap-1.5 mb-1.5 text-xs text-brand-500 font-medium">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    AI 分析中...
+                  </div>
+                  {streamContent}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="p-3 bg-surface-50 rounded-lg text-sm text-surface-600 max-h-64 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+              <div className="flex items-center gap-1.5 mb-1.5 text-xs text-brand-500 font-medium">
+                <Sparkles className="w-3.5 h-3.5" />
+                AI 错题分析
+              </div>
+              {record.note}
+            </div>
+          )}
+
           <RecordActions
             record={record}
             onMastered={onMastered}
@@ -657,6 +702,8 @@ const WrongBook: React.FC = () => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newQuestion, setNewQuestion] = useState<QuestionForm>(DEFAULT_FORM);
+  const [analyzingId, setAnalyzingId] = useState<number | null>(null);
+  const [aiStreamContent, setAiStreamContent] = useState('');
 
   // OCR state
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -855,6 +902,34 @@ const WrongBook: React.FC = () => {
     }
   };
 
+  // AI 分析错题
+  useEffect(() => {
+    const api = getApi();
+    if (!api?.rag?.onStreamChunk || !api?.rag?.onStreamEnd) return;
+    const unsubChunk = api.rag.onStreamChunk((chunk: string) => {
+      setAiStreamContent((prev) => prev + chunk);
+    });
+    const unsubEnd = api.rag.onStreamEnd(() => {
+      setAnalyzingId(null);
+      setAiStreamContent('');
+      loadRecords();
+    });
+    return () => { unsubChunk?.(); unsubEnd?.(); };
+  }, []);
+
+  const handleAnalyze = async (recordId: number) => {
+    const api = getApi();
+    if (!api?.wrongBook?.analyze) return;
+    setAnalyzingId(recordId);
+    setAiStreamContent('');
+    try {
+      await api.wrongBook.analyze(recordId);
+    } catch (e) {
+      console.error('AI 分析失败', e);
+      setAnalyzingId(null);
+    }
+  };
+
   const filteredRecords = useMemo(
     () =>
       records.filter(
@@ -904,6 +979,9 @@ const WrongBook: React.FC = () => {
               onMastered={handleMastered}
               onReview={handleReview}
               onDelete={handleDelete}
+              onAnalyze={handleAnalyze}
+              isAnalyzing={analyzingId === record.id}
+              streamContent={analyzingId === record.id ? aiStreamContent : ''}
             />
           ))}
         </div>

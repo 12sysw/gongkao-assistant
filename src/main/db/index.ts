@@ -73,7 +73,7 @@ export function initAchievements() {
 
   const configCount = sqlite.prepare('SELECT COUNT(*) as count FROM exam_config').get() as { count: number };
   if (configCount.count === 0) {
-    sqlite.prepare("INSERT INTO exam_config (name, date) VALUES ('2026国考', '2025-12-01')").run();
+    sqlite.prepare("INSERT INTO exam_config (name, date) VALUES ('2027国考', '2026-12-01')").run();
   }
 
   const quoteCount = sqlite.prepare('SELECT COUNT(*) as count FROM encourage_quotes').get() as { count: number };
@@ -92,6 +92,37 @@ export function initAchievements() {
       quoteStmt.run(quote.content, quote.author, quote.category);
     }
   }
+}
+
+// ==================== RAG FTS5 初始化 ====================
+export function initRagFts() {
+  sqlite.exec(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS rag_fts USING fts5(
+      title,
+      content,
+      content='rag_docs',
+      content_rowid='id'
+    );
+  `);
+
+  sqlite.exec(`
+    CREATE TRIGGER IF NOT EXISTS rag_docs_ai AFTER INSERT ON rag_docs BEGIN
+      INSERT INTO rag_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
+    END;
+  `);
+
+  sqlite.exec(`
+    CREATE TRIGGER IF NOT EXISTS rag_docs_ad AFTER DELETE ON rag_docs BEGIN
+      INSERT INTO rag_fts(rag_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
+    END;
+  `);
+
+  sqlite.exec(`
+    CREATE TRIGGER IF NOT EXISTS rag_docs_au AFTER UPDATE ON rag_docs BEGIN
+      INSERT INTO rag_fts(rag_fts, rowid, title, content) VALUES('delete', old.id, old.title, old.content);
+      INSERT INTO rag_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
+    END;
+  `);
 }
 
 export function closeDatabase() {

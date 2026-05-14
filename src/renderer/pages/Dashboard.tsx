@@ -272,20 +272,6 @@ export default function Dashboard() {
             <h1 className="text-lg font-semibold mb-1 font-display">公务员考试学习进度</h1>
             <p className="text-white/70 text-xs">持之以恒，循序渐进</p>
           </div>
-          <div className="flex items-center gap-8">
-            <div className="text-center">
-              <p className="text-3xl font-bold font-display">{stats.streak}</p>
-              <p className="text-xs text-white/60 mt-0.5">连续学习(天)</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold font-display">{stats.total_questions.toLocaleString()}</p>
-              <p className="text-xs text-white/60 mt-0.5">累计刷题(道)</p>
-            </div>
-            <div className="text-center">
-              <p className="text-3xl font-bold font-display">{formattedHours}h</p>
-              <p className="text-xs text-white/60 mt-0.5">学习时长</p>
-            </div>
-          </div>
         </div>
       </div>
 

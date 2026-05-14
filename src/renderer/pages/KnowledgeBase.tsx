@@ -28,6 +28,7 @@ interface CategoryConfig {
 }
 
 const CATEGORIES: CategoryConfig[] = [
+  { key: 'all', label: '全部', icon: BookOpen, color: 'bg-surface-100 text-surface-600' },
   { key: 'formula', label: '行测公式', icon: Calculator, color: 'bg-brand-100 text-brand-600' },
   { key: 'politics', label: '政治常识', icon: Landmark, color: 'bg-danger-light text-danger-dark' },
   { key: 'law', label: '法律常识', icon: Scale, color: 'bg-warning-light text-warning-dark' },
@@ -88,11 +89,12 @@ const SearchBar: React.FC<{
 const CategoryGrid: React.FC<{
   activeCategory: string;
   onToggle: (key: string) => void;
-}> = ({ activeCategory, onToggle }) => (
-  <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+  totalCount: number;
+}> = ({ activeCategory, onToggle, totalCount }) => (
+  <div className="grid grid-cols-3 lg:grid-cols-7 gap-3">
     {CATEGORIES.map((cat) => {
       const Icon = cat.icon;
-      const count = KNOWLEDGE_DATA.filter((k) => k.category === cat.key).length;
+      const count = cat.key === 'all' ? totalCount : KNOWLEDGE_DATA.filter((k) => k.category === cat.key).length;
       const isActive = activeCategory === cat.key;
       return (
         <button
@@ -176,7 +178,7 @@ const EmptyState: React.FC = () => (
 /* ─── Main Page ─── */
 
 const KnowledgeBase: React.FC = () => {
-  const [activeCategory, setActiveCategory] = useState('formula');
+  const [activeCategory, setActiveCategory] = useState('all');
   const [searchText, setSearchText] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -211,7 +213,7 @@ const KnowledgeBase: React.FC = () => {
       </div>
 
       <SearchBar value={searchText} onChange={setSearchText} />
-      <CategoryGrid activeCategory={activeCategory} onToggle={handleCategoryToggle} />
+      <CategoryGrid activeCategory={activeCategory} onToggle={handleCategoryToggle} totalCount={KNOWLEDGE_DATA.length} />
 
       <div className="space-y-2">
         {filtered.length === 0 ? (

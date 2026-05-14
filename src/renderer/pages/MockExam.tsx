@@ -9,62 +9,181 @@ import {
 } from 'lucide-react';
 import { useMockExamStore } from '../stores/mock-exam-store';
 
+const api = (window as any).api;
+
 // ==================== 题目生成 ====================
 const QUESTION_TYPES = ['言语理解', '数量关系', '判断推理', '资料分析', '常识判断'];
+const EXAM_COUNTS: Record<string, number> = { '言语理解': 40, '数量关系': 15, '判断推理': 35, '资料分析': 20, '常识判断': 25 };
 
-function generateMockQuestions(): any[] {
-  const counts = { '言语理解': 40, '数量关系': 15, '判断推理': 35, '资料分析': 20, '常识判断': 25 };
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function parseOptions(raw: string | null | undefined): string[] {
+  if (!raw) return ['A.选项一', 'B.选项二', 'C.选项三', 'D.选项四'];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length >= 2) return parsed;
+  } catch {}
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length >= 2) return lines;
+  return ['A.选项一', 'B.选项二', 'C.选项三', 'D.选项四'];
+}
+
+function toExamQuestion(q: any) {
+  return {
+    id: q.id,
+    type: q.type,
+    content: q.content,
+    options: parseOptions(q.options),
+    answer: q.answer,
+    explanation: q.explanation || '',
+  };
+}
+
+function generateFallbackQuestions(type: string, count: number, idOffset: number): any[] {
   const questions: any[] = [];
+  for (let i = 0; i < count; i++) {
+    questions.push({
+      id: idOffset + i,
+      type: `行测-${type}`,
+      content: `【${type}】第${i + 1}题：题库中该类型题目不足，请导入更多真题。`,
+      options: ['A.选项一', 'B.选项二', 'C.选项三', 'D.选项四'],
+      answer: ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)],
+      explanation: '请在题库中导入真实题目',
+    });
+  }
+  return questions;
+}
 
+async function loadExamQuestions(): Promise<any[]> {
+  try {
+    const allQuestions: any[] = await api.question.getAll();
+    if (!allQuestions || allQuestions.length === 0) {
+      return generateFallbackFull();
+    }
+
+    const byType: Record<string, any[]> = {};
+    for (const q of allQuestions) {
+      const shortType = (q.type || '').replace('行测-', '');
+      if (!byType[shortType]) byType[shortType] = [];
+      byType[shortType].push(toExamQuestion(q));
+    }
+
+    const result: any[] = [];
+    let fallbackId = 90000;
+    for (const type of QUESTION_TYPES) {
+      const needed = EXAM_COUNTS[type];
+      const pool = shuffle(byType[type] || []);
+      const picked = pool.slice(0, needed);
+      if (picked.length < needed) {
+        picked.push(...generateFallbackQuestions(type, needed - picked.length, fallbackId));
+        fallbackId += 1000;
+      }
+      result.push(...picked);
+    }
+    return result;
+  } catch (err) {
+    console.error('[MockExam] Failed to load questions from DB:', err);
+    return generateFallbackFull();
+  }
+}
+
+async function loadChallengeQuestions(): Promise<any[]> {
+  try {
+    const allQuestions: any[] = await api.question.getAll();
+    if (!allQuestions || allQuestions.length === 0) {
+      return generateFallbackChallenge();
+    }
+
+    const byType: Record<string, any[]> = {};
+    for (const q of allQuestions) {
+      const shortType = (q.type || '').replace('行测-', '');
+      if (!byType[shortType]) byType[shortType] = [];
+      byType[shortType].push(toExamQuestion(q));
+    }
+
+    const result: any[] = [];
+    let fallbackId = 80000;
+    for (const type of QUESTION_TYPES) {
+      const pool = shuffle(byType[type] || []);
+      const picked = pool.slice(0, 5);
+      if (picked.length < 5) {
+        picked.push(...generateFallbackQuestions(type, 5 - picked.length, fallbackId));
+        fallbackId += 1000;
+      }
+      result.push(...picked);
+    }
+    return shuffle(result);
+  } catch {
+    return generateFallbackChallenge();
+  }
+}
+
+function generateFallbackFull(): any[] {
+  const questions: any[] = [];
   QUESTION_TYPES.forEach((type, typeIndex) => {
-    const count = counts[type as keyof typeof counts];
+    const count = EXAM_COUNTS[type];
     for (let i = 0; i < count; i++) {
       questions.push({
         id: typeIndex * 100 + i,
         type: `行测-${type}`,
-        content: `【${type}】第${i + 1}题：这是一道模拟题目，请在实际使用时导入真实题目。`,
+        content: `【${type}】第${i + 1}题：题库为空，请先在题库中导入真题。`,
         options: ['A.选项一', 'B.选项二', 'C.选项三', 'D.选项四'],
         answer: ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)],
-        explanation: '这是解析内容',
+        explanation: '请导入真实题目',
       });
     }
   });
-
   return questions;
 }
 
-function generateChallengeQuestions(): any[] {
+function generateFallbackChallenge(): any[] {
   const questions: any[] = [];
-
   QUESTION_TYPES.forEach((type, typeIndex) => {
     for (let i = 0; i < 5; i++) {
       questions.push({
         id: typeIndex * 100 + i + 1000,
         type: `行测-${type}`,
-        content: `【${type}挑战题${i + 1}】这是一道随机挑战题目，请认真作答！`,
+        content: `【${type}挑战题${i + 1}】题库为空，请先导入真题。`,
         options: ['A.选项一', 'B.选项二', 'C.选项三', 'D.选项四'],
         answer: ['A', 'B', 'C', 'D'][Math.floor(Math.random() * 4)],
-        explanation: '这是解析内容',
+        explanation: '请导入真实题目',
       });
     }
   });
-
-  // 随机打乱
-  for (let i = questions.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [questions[i], questions[j]] = [questions[j], questions[i]];
-  }
-
-  return questions;
+  return shuffle(questions);
 }
 
 // ==================== AI 分析 ====================
 async function analyzeWithAI(report: any, onStream: (text: string) => void): Promise<string | null> {
-  const savedConfig = localStorage.getItem('ai_config');
-  if (!savedConfig) return null;
+  // Try RAG config first, then fall back to localStorage ai_config
+  let config: { apiUrl: string; apiKey: string; model: string } | null = null;
 
-  const config = JSON.parse(savedConfig);
-  if (!config.apiKey || !config.apiUrl) return null;
+  try {
+    const ragConfig = await api.rag.configGet();
+    if (ragConfig?.llmApiUrl && ragConfig?.llmApiKey) {
+      const baseUrl = ragConfig.llmApiUrl.replace(/\/+$/, '');
+      config = {
+        apiUrl: `${baseUrl}/chat/completions`,
+        apiKey: ragConfig.llmApiKey,
+        model: ragConfig.llmModel || 'deepseek-chat',
+      };
+    }
+  } catch {}
+
+  if (!config) {
+    const savedConfig = localStorage.getItem('ai_config');
+    if (!savedConfig) return null;
+    const parsed = JSON.parse(savedConfig);
+    if (!parsed.apiKey || !parsed.apiUrl) return null;
+    config = { apiUrl: parsed.apiUrl, apiKey: parsed.apiKey, model: parsed.model || 'deepseek-chat' };
+  }
 
   const prompt = `你是公务员考试资深辅导老师，擅长通过答题数据分析考生的薄弱环节并给出精准建议。
 
@@ -187,10 +306,12 @@ export default function MockExam() {
       store.setChallengeCountdown(null);
       store.setChallengeMode(true);
       store.setChallengeTimer(0);
-      store.setQuestions(generateChallengeQuestions());
-      store.setStep('exam');
-      store.clearAnswers();
-      store.setCurrentIndex(0);
+      loadChallengeQuestions().then((questions) => {
+        store.setQuestions(questions);
+        store.setStep('exam');
+        store.clearAnswers();
+        store.setCurrentIndex(0);
+      });
     }
   }, [store.challengeCountdown]);
 
@@ -210,13 +331,14 @@ export default function MockExam() {
   }, [store.challengeMode, store.challengeResult, store.challengeTimeLeft]);
 
   // 开始正式考试
-  const startExam = useCallback(() => {
+  const startExam = useCallback(async () => {
     store.setStep('exam');
     store.setChallengeMode(false);
     store.clearAnswers();
     store.setCurrentIndex(0);
     store.setTimeLeft(120 * 60);
-    store.setQuestions(generateMockQuestions());
+    const questions = await loadExamQuestions();
+    store.setQuestions(questions);
   }, []);
 
   // 开始挑战模式

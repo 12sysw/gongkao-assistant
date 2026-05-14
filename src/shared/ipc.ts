@@ -18,6 +18,7 @@ export const IPC = {
   WRONG_BOOK_DELETE: 'wrong-book:delete',
   WRONG_BOOK_MARK_MASTERED: 'wrong-book:mark-mastered',
   WRONG_BOOK_GET_DUE_REVIEW: 'wrong-book:get-due-review',
+  WRONG_BOOK_ANALYZE: 'wrong-book:analyze',
 
   // 思维导图
   MIND_MAP_SAVE: 'mind-map:save',
@@ -71,6 +72,31 @@ export const IPC = {
   // 聊天室
   CHAT_GENERATE_USER_SIG: 'chat:generate-user-sig',
 
+  // RAG 知识库
+  RAG_DOC_ADD: 'rag:doc:add',
+  RAG_DOC_GET_ALL: 'rag:doc:get-all',
+  RAG_DOC_GET_BY_ID: 'rag:doc:get-by-id',
+  RAG_DOC_UPDATE: 'rag:doc:update',
+  RAG_DOC_DELETE: 'rag:doc:delete',
+  RAG_SYNC_QUESTIONS: 'rag:sync-questions',
+  RAG_SEARCH: 'rag:search',
+  RAG_EMBED_DOC: 'rag:embed-doc',
+  RAG_CONFIG_GET: 'rag:config:get',
+  RAG_CONFIG_SET: 'rag:config:set',
+  RAG_SESSION_CREATE: 'rag:session:create',
+  RAG_SESSION_GET_ALL: 'rag:session:get-all',
+  RAG_SESSION_GET: 'rag:session:get',
+  RAG_SESSION_DELETE: 'rag:session:delete',
+  RAG_SESSION_ADD_MESSAGE: 'rag:session:add-message',
+  RAG_SESSION_GET_MESSAGES: 'rag:session:get-messages',
+  RAG_CHAT: 'rag:chat',
+  RAG_STREAM_CHUNK: 'rag:stream-chunk',
+  RAG_STREAM_END: 'rag:stream-end',
+  RAG_IMPORT_PDFS: 'rag:import-pdfs',
+  RAG_DOC_DELETE_BATCH: 'rag:doc:delete-batch',
+  RAG_CHROMA_STATUS: 'rag:chroma-status',
+  RAG_CHROMA_MIGRATE: 'rag:chroma-migrate',
+
   // 自动更新
   UPDATE_CHECKING: 'update:checking',
   UPDATE_AVAILABLE: 'update:available',
@@ -103,6 +129,7 @@ export interface Api {
     delete: (id: number) => Promise<{ success: boolean }>;
     markMastered: (id: number) => Promise<{ success: boolean }>;
     getDueReview: () => Promise<any[]>;
+    analyze: (recordId: number) => Promise<{ analysis: string }>;
   };
   mindMap: {
     save: (data: any) => Promise<any>;
@@ -159,6 +186,31 @@ export interface Api {
   };
   chat: {
     generateUserSig: (userID: string) => Promise<string>;
+  };
+  rag: {
+    docAdd: (doc: any) => Promise<any>;
+    docGetAll: () => Promise<any[]>;
+    docGetById: (id: number) => Promise<any>;
+    docUpdate: (doc: any) => Promise<any>;
+    docDelete: (id: number) => Promise<{ success: boolean }>;
+    syncQuestions: () => Promise<{ synced: number }>;
+    search: (query: string, topK?: number) => Promise<any[]>;
+    embedDoc: (id: number) => Promise<{ success: boolean }>;
+    configGet: () => Promise<any>;
+    configSet: (config: any) => Promise<{ success: boolean }>;
+    sessionCreate: (title?: string) => Promise<any>;
+    sessionGetAll: () => Promise<any[]>;
+    sessionGet: (id: number) => Promise<any>;
+    sessionDelete: (id: number) => Promise<{ success: boolean }>;
+    sessionAddMessage: (msg: any) => Promise<any>;
+    sessionGetMessages: (sessionId: number) => Promise<any[]>;
+    chat: (sessionId: number, message: string) => Promise<any>;
+    onStreamChunk: (cb: (chunk: string) => void) => Unsubscribe;
+    onStreamEnd: (cb: () => void) => Unsubscribe;
+    importPdfs: (dirPath: string) => Promise<{ imported: number; skipped: number; errors: number }>;
+    docDeleteBatch: (ids: number[]) => Promise<{ deleted: number }>;
+    chromaStatus: () => Promise<{ running: boolean; port: number; host: string; dataDir: string }>;
+    chromaMigrate: () => Promise<{ migrated: number; failed: number }>;
   };
   update: {
     check: () => Promise<void>;

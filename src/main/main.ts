@@ -3,8 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import { registerIpcHandlers } from './ipc/index';
 import { initDatabase } from './db/migrations';
-import { closeDatabase } from './db';
+import { closeDatabase, initRagFts } from './db';
 import { initUpdater } from './updater';
+import * as chroma from './chroma';
 
 // 加载 .env 文件到 process.env（仅开发模式，生产环境通过 CI 注入）
 function loadEnvFile() {
@@ -83,8 +84,13 @@ function createWindow() {
 app.whenReady().then(() => {
   // 初始化数据库（better-sqlite3 建表 + 种子数据）
   initDatabase();
+  initRagFts();
   // 注册 IPC 处理器（better-sqlite3 同步，无需 await）
   registerIpcHandlers();
+  // 启动 ChromaDB 向量数据库（非阻塞，失败不影响核心功能）
+  chroma.startChromaServer().then((ok) => {
+    console.log(`[Main] ChromaDB ${ok ? 'started' : 'unavailable (using fallback)'}`);
+  });
   createWindow();
   if (mainWindow) initUpdater(mainWindow);
 
@@ -100,6 +106,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  chroma.stopChromaServer();
   closeDatabase();
   if (process.platform !== 'darwin') {
     app.quit();
@@ -113,6 +120,7 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
+  chroma.stopChromaServer();
   closeDatabase();
   if (app.isPackaged) {
     globalShortcut.unregisterAll();

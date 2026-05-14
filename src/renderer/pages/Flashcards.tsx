@@ -384,6 +384,9 @@ const Flashcards: React.FC = () => {
       });
       setIsFlipped(false);
       loadCards();
+      if (currentIndex >= filteredCards.length - 1) {
+        setCurrentIndex(0);
+      }
     } catch (e) {
       console.error(e);
     }
@@ -394,6 +397,9 @@ const Flashcards: React.FC = () => {
       const api = getApi();
       await api.flashcard.delete(id);
       loadCards();
+      if (currentIndex >= filteredCards.length - 1) {
+        setCurrentIndex(0);
+      }
     } catch (e) {
       console.error(e);
     }

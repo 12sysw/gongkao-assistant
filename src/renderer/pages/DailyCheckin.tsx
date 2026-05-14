@@ -174,8 +174,8 @@ const DailyCheckin: React.FC = () => {
   const [streak, setStreak] = useState(0);
   const [totalDays, setTotalDays] = useState(0);
   const [checkedDates, setCheckedDates] = useState<string[]>([]);
-  const [examName, setExamName] = useState('2026年国考');
-  const [examDate, setExamDate] = useState('2025-12-01');
+  const [examName, setExamName] = useState('');
+  const [examDate, setExamDate] = useState('');
   const [note, setNote] = useState('');
   const [studyMinutes, setStudyMinutes] = useState(0);
   const [currentMonth, setCurrentMonth] = useState(dayjs());
@@ -232,7 +232,11 @@ const DailyCheckin: React.FC = () => {
         wrong_count: 0,
         note,
       });
-      await api.examConfig.set({ name: examName, date: examDate });
+      // Only save exam config if changed from current
+      const currentConfig = await api.examConfig.get();
+      if (!currentConfig || currentConfig.name !== examName || currentConfig.date !== examDate) {
+        await api.examConfig.set({ name: examName || currentConfig?.name || '2027国考', date: examDate || currentConfig?.date || '2026-12-01' });
+      }
       setTodayRecord({ date: today, study_minutes: studyMinutes, questions_done: 0, note });
       loadData();
     } catch (e) {

@@ -16,6 +16,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  Library,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -31,6 +33,8 @@ const navItems = [
   { path: '/pomodoro', label: '番茄钟', icon: Timer },
   { path: '/achievements', label: '成就', icon: Trophy },
   { path: '/knowledge', label: '知识点速查', icon: BookOpen },
+  { path: '/question-bank', label: '题库管理', icon: Library },
+  { path: '/rag-chat', label: '智能问答', icon: Sparkles },
   { path: '/chat', label: '聊天室', icon: MessageSquare },
   { path: '/settings', label: '设置', icon: Settings },
 ];

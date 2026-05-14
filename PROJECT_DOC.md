@@ -1,6 +1,6 @@
 # 公考小助手 - 项目维护文档
 
-> 版本：v1.2.0 | 最后更新：2026-05-02
+> 版本：v1.2.1 | 最后更新：2026-05-02
 
 ---
 
@@ -13,10 +13,11 @@
 5. [常用命令](#常用命令)
 6. [功能模块说明](#功能模块说明)
 7. [聊天室功能](#聊天室功能)
-8. [自动更新功能](#自动更新功能)
-9. [打包与发布](#打包与发布)
-10. [数据存储](#数据存储)
-11. [常见问题](#常见问题)
+8. [外部 API 接口](#外部-api-接口)
+9. [自动更新功能](#自动更新功能)
+10. [打包与发布](#打包与发布)
+11. [数据存储](#数据存储)
+12. [常见问题](#常见问题)
 
 ---
 
@@ -28,16 +29,17 @@
 
 | 功能 | 说明 |
 |------|------|
-| 仪表盘 | 学习数据统计、考试倒计时 |
+| 仪表盘 | 学习数据统计、考试倒计时、天气信息 |
 | 错题本 | 错题收集管理，支持 OCR 图片识别 |
 | 套题测评 | 模拟真实考试，AI 分析薄弱环节 |
 | 记忆卡片 | 间隔重复算法，科学记忆 |
 | 思维导图 | 知识点可视化整理 |
-| 学习计划 | 目标管理与进度追踪 |
+| 学习计划 | 目标管理与进度追踪、法定假日标记 |
 | 番茄钟 | 专注学习计时 |
 | 打卡系统 | 连续学习天数统计 |
 | AI 分析 | 接入多种 AI 服务商分析测评报告 |
 | 聊天室 | 多人在线交流，支持文字/图片/文件/撤回 |
+| 鼓励语录 | 随机语录、答案之书，备考激励 |
 | 自动更新 | 检测新版本，后台下载，一键安装 |
 
 ---
@@ -60,6 +62,12 @@
          ↕                    ↕
    better-sqlite3       腾讯云 IM SDK
    (本地数据库)          (聊天室)
+                            ↕
+                      腾讯云 SCF 云函数
+                      (UserSig 签发)
+                            ↕
+                      UAPI 公共接口平台
+                      (天气/语录/节假日/翻译)
 ```
 
 ### 技术栈
@@ -120,6 +128,7 @@ gongkao-assistant/
 │   │   │
 │   │   ├── lib/               # 工具库
 │   │   │   ├── tencent-im.ts  # 腾讯云 IM SDK 封装
+│   │   │   ├── uapi.ts        # UAPI 外部接口封装
 │   │   │   └── utils.ts       # 通用工具函数
 │   │   │
 │   │   ├── pages/             # 功能页面
@@ -297,6 +306,162 @@ Windows: C:\Users\<用户名>\AppData\Roaming\gongkao-assistant\gongkao.db
 
 ---
 
+## 外部 API 接口
+
+项目集成了 [UAPI](https://uapis.cn/) 公共接口平台，提供天气、语录、节假日、翻译等服务。
+
+接口基础地址：`https://uapis.cn/api/v1`
+
+### 已集成接口
+
+#### 1. 随机语录（Saying）
+
+```
+GET /api/v1/saying
+```
+
+返回随机励志语录，用于鼓励语录页面。
+
+**响应示例：**
+```json
+{
+  "text": "之所以会羡慕别人，是因为看到别人背上的梅干。"
+}
+```
+
+**使用位置：** `Encourage.tsx` 鼓励语录页面
+
+---
+
+#### 2. 天气查询（Weather）
+
+```
+GET /api/v1/misc/weather?city={城市名}
+```
+
+查询指定城市的实时天气信息，包含天气预警。
+
+**响应示例：**
+```json
+{
+  "province": "北京市",
+  "city": "北京",
+  "weather": "多云",
+  "temperature": 22,
+  "wind_direction": "西风",
+  "wind_power": "4级",
+  "humidity": 34,
+  "alerts": [
+    {
+      "title": "大风蓝色预警",
+      "type": "大风",
+      "level": "蓝色",
+      "text": "市气象台发布大风蓝色预警..."
+    }
+  ]
+}
+```
+
+**使用位置：** `Dashboard.tsx` 仪表盘
+
+---
+
+#### 3. 法定节假日（Holiday Calendar）
+
+```
+GET /api/v1/misc/holiday-calendar?year={年份}
+```
+
+获取指定年份的法定节假日、调休安排、农历信息。返回全年每天的详细数据。
+
+**响应字段：**
+- `is_holiday` - 是否为节假日
+- `is_workday` - 是否为工作日（含调休）
+- `legal_holiday_name` - 法定假日名称（元旦、春节、国庆等）
+- `lunar_month_name` / `lunar_day_name` - 农历日期
+- `solar_term` - 节气
+
+**使用位置：** `StudyPlan.tsx` 学习计划（自动标记法定假日）
+
+---
+
+#### 4. 翻译（Translate）
+
+```
+POST /api/v1/translate/text
+Content-Type: application/json
+
+{
+  "text": "hello",
+  "ToLang": "zh"
+}
+```
+
+文本翻译，支持多语言互译。
+
+**响应示例：**
+```json
+{
+  "text": "hello",
+  "translate": "你好"
+}
+```
+
+**使用位置：** 申论素材翻译、行测常识补充
+
+---
+
+#### 5. 答案之书（Answer Book）
+
+```
+GET /api/v1/answerbook/ask
+```
+
+返回随机答案，用于趣味互动和减压。
+
+**响应示例：**
+```json
+{
+  "question": "随机答案",
+  "answer": "答案会让你豁然开朗。"
+}
+```
+
+**使用位置：** `Encourage.tsx` 鼓励语录页面
+
+---
+
+### 接口封装
+
+外部 API 统一封装在 `src/renderer/lib/uapi.ts`：
+
+```typescript
+const UAPI_BASE = 'https://uapis.cn/api/v1';
+
+// 获取随机语录
+export async function fetchSaying(): Promise<string> { ... }
+
+// 获取天气
+export async function fetchWeather(city: string): Promise<WeatherData> { ... }
+
+// 获取节假日
+export async function fetchHolidays(year: number): Promise<HolidayData[]> { ... }
+
+// 翻译
+export async function translateText(text: string, toLang: string): Promise<string> { ... }
+
+// 答案之书
+export async function fetchAnswer(): Promise<string> { ... }
+```
+
+### 注意事项
+
+- UAPI 为免费公共接口，无需 API Key
+- 接口有频率限制，建议本地缓存结果（天气缓存 30 分钟，节假日缓存 24 小时）
+- 若接口不可用，页面应降级显示本地数据或默认内容
+
+---
+
 ## 自动更新功能
 
 ### 工作流程
@@ -304,7 +469,7 @@ Windows: C:\Users\<用户名>\AppData\Roaming\gongkao-assistant\gongkao.db
 ```
 发布新版本                    用户端
    │                           │
-   ├── git tag v1.2.0          ├── 启动 5 秒后检查更新
+   ├── git tag v1.2.1          ├── 启动时检查更新
    ├── git push --tags         ├── 发现新版本 → 弹窗提示
    ├── GitHub Actions 自动打包  ├── 点击下载 → 后台下载
    └── 发布到 GitHub Releases   └── 下载完成 → 点击安装 → 重启
@@ -356,8 +521,9 @@ npm run electron:build
 推送到 `v*` tag 后自动触发，流程：
 1. Windows 环境安装依赖
 2. 构建渲染进程和主进程
-3. electron-builder 打包
-4. 创建 GitHub Release 并上传 exe
+3. 清理 release 目录
+4. electron-builder 打包
+5. 创建 GitHub Release 并上传 exe
 
 ---
 
@@ -421,6 +587,12 @@ npm run electron:dev
 - 开发模式下不会检查更新（设计如此）
 - 只有打包后的 exe 才会检查更新
 - 需要推送到 GitHub Releases 才能触发
+
+### Q: 天气/语录接口无响应
+
+- UAPI 为公共免费接口，偶有限流
+- 检查网络连接
+- 接口有降级处理，会显示默认内容
 
 ---
 

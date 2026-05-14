@@ -4,8 +4,10 @@ import { db, sqlite } from '../db';
 import { IPC } from '../../shared/ipc';
 import * as schema from '../db/schema';
 import { checkForUpdates, downloadUpdate, quitAndInstall } from '../updater';
+import * as chroma from '../chroma';
 import fs from 'fs';
 import path from 'path';
+import { PDFParse } from 'pdf-parse';
 import {
   applyFlashcardFilters,
   applyQuestionFilters,
@@ -146,6 +148,51 @@ function parseImportPayload(filePath: string) {
   }
 
   return parsed as Record<string, unknown>;
+}
+
+// 将长 PDF 文本按题目/段落拆分为多个知识片段
+function splitPdfText(text: string, fileName: string): { index: number; content: string }[] {
+  const MAX_CHUNK = 3000;
+
+  // 尝试按题目编号拆分（如 1.、1．、第1题、1、 等）
+  const questionPattern = /(?:^|\n)\s*(?:\d{1,3}[.．、）]\s|第\d{1,3}题)/g;
+  const matches = [...text.matchAll(questionPattern)];
+
+  if (matches.length >= 3) {
+    const chunks: { index: number; content: string }[] = [];
+    for (let i = 0; i < matches.length; i++) {
+      const start = matches[i].index!;
+      const end = i + 1 < matches.length ? matches[i + 1].index! : text.length;
+      const content = text.slice(start, end).trim();
+      if (content.length > 10) {
+        chunks.push({ index: i + 1, content });
+      }
+    }
+    if (chunks.length > 0) return chunks;
+  }
+
+  // 未能按题目拆分时，按固定长度切分
+  if (text.length <= MAX_CHUNK) {
+    return [{ index: 1, content: text }];
+  }
+
+  const chunks: { index: number; content: string }[] = [];
+  let pos = 0;
+  let idx = 1;
+  while (pos < text.length) {
+    let end = Math.min(pos + MAX_CHUNK, text.length);
+    // 在段落边界切分
+    if (end < text.length) {
+      const lastNewline = text.lastIndexOf('\n', end);
+      if (lastNewline > pos + MAX_CHUNK * 0.5) end = lastNewline;
+    }
+    const content = text.slice(pos, end).trim();
+    if (content.length > 10) {
+      chunks.push({ index: idx++, content });
+    }
+    pos = end;
+  }
+  return chunks;
 }
 
 export function registerIpcHandlers() {
@@ -606,7 +653,7 @@ export function registerIpcHandlers() {
 
     return {
       date: row.date,
-      started: row.started ? 1 : 0,
+      started: !!row.started,
       initial_total: row.initialTotal ?? 0,
       completed_wrong_ids: JSON.parse(row.completedWrongIds ?? '[]'),
       completed_flashcard_ids: JSON.parse(row.completedFlashcardIds ?? '[]'),
@@ -632,7 +679,7 @@ export function registerIpcHandlers() {
 
     return {
       date: payload.date,
-      started: payload.started ? 1 : 0,
+      started: !!payload.started,
       initial_total: payload.initialTotal,
       completed_wrong_ids: JSON.parse(payload.completedWrongIds),
       completed_flashcard_ids: JSON.parse(payload.completedFlashcardIds),
@@ -769,6 +816,693 @@ export function registerIpcHandlers() {
       console.error('[Chat] generateUserSig error:', err);
       return '';
     }
+  });
+
+  // ==================== RAG 知识库 ====================
+  // RAG 配置
+  const RAG_CONFIG_PATH = path.join(app.getPath('userData'), 'rag_config.json');
+
+  function getRagConfig() {
+    try {
+      if (fs.existsSync(RAG_CONFIG_PATH)) {
+        const config = JSON.parse(fs.readFileSync(RAG_CONFIG_PATH, 'utf-8'));
+        // 兼容旧配置格式
+        if (config.apiUrl && !config.embedApiUrl) {
+          return {
+            embedApiUrl: config.apiUrl,
+            embedApiKey: config.apiKey,
+            embedModel: config.embedModel || '',
+            rerankerModel: config.rerankerModel || '',
+            llmApiUrl: config.apiUrl,
+            llmApiKey: config.apiKey,
+            llmModel: config.llmModel || '',
+          };
+        }
+        return config;
+      }
+    } catch (_) { /* ignore */ }
+    return { embedApiUrl: '', embedApiKey: '', embedModel: '', rerankerModel: '', llmApiUrl: '', llmApiKey: '', llmModel: '' };
+  }
+
+  function saveRagConfig(config: any) {
+    fs.writeFileSync(RAG_CONFIG_PATH, JSON.stringify(config, null, 2), 'utf-8');
+  }
+
+  ipcMain.handle(IPC.RAG_CONFIG_GET, () => getRagConfig());
+  ipcMain.handle(IPC.RAG_CONFIG_SET, (_, config: any) => {
+    saveRagConfig(config);
+    return { success: true };
+  });
+
+  // Embedding 计算
+  async function computeEmbedding(text: string, config: any): Promise<number[] | null> {
+    if (!config.embedApiUrl || !config.embedApiKey || !config.embedModel) return null;
+    try {
+      const baseUrl = config.embedApiUrl.replace(/\/+$/, '');
+      const resp = await fetch(`${baseUrl}/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.embedApiKey}` },
+        body: JSON.stringify({ model: config.embedModel, input: text }),
+      });
+      if (!resp.ok) return null;
+      const data = (await resp.json()) as any;
+      return data.data?.[0]?.embedding ?? null;
+    } catch (err) {
+      console.error('[RAG] Embedding error:', err);
+      return null;
+    }
+  }
+
+  // 余弦相似度
+  function cosineSimilarity(a: number[], b: number[]): number {
+    let dot = 0, normA = 0, normB = 0;
+    for (let i = 0; i < a.length; i++) {
+      dot += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
+    }
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB) + 1e-10);
+  }
+
+  // RAG 文档 CRUD
+  ipcMain.handle(IPC.RAG_DOC_ADD, (_, doc: any) => {
+    const result = db.insert(schema.ragDocs).values({
+      title: doc.title,
+      content: doc.content,
+      source: doc.source || 'manual',
+      category: doc.category || 'common',
+    }).returning().get();
+    return {
+      id: result.id,
+      title: result.title,
+      content: result.content,
+      source: result.source,
+      category: result.category,
+      created_at: result.createdAt,
+      updated_at: result.updatedAt,
+    };
+  });
+
+  ipcMain.handle(IPC.RAG_DOC_GET_ALL, () => {
+    const rows = sqlite.prepare(`
+      SELECT id, title, content, source, category, created_at, updated_at
+      FROM rag_docs ORDER BY created_at DESC
+    `).all() as any[];
+    return rows;
+  });
+
+  ipcMain.handle(IPC.RAG_DOC_GET_BY_ID, (_, id: number) => {
+    return sqlite.prepare(`
+      SELECT id, title, content, source, category, created_at, updated_at
+      FROM rag_docs WHERE id = ?
+    `).get(id) ?? null;
+  });
+
+  ipcMain.handle(IPC.RAG_DOC_UPDATE, (_, doc: any) => {
+    db.update(schema.ragDocs).set({
+      title: doc.title,
+      content: doc.content,
+      source: doc.source,
+      category: doc.category,
+      updatedAt: formatLocalDateTime(),
+    }).where(eq(schema.ragDocs.id, doc.id)).run();
+    const d = db.select().from(schema.ragDocs).where(eq(schema.ragDocs.id, doc.id)).get();
+    if (!d) return null;
+    return {
+      id: d.id,
+      title: d.title,
+      content: d.content,
+      source: d.source,
+      category: d.category,
+      created_at: d.createdAt,
+      updated_at: d.updatedAt,
+    };
+  });
+
+  ipcMain.handle(IPC.RAG_DOC_DELETE, async (_, id: number) => {
+    db.delete(schema.ragDocs).where(eq(schema.ragDocs.id, id)).run();
+    if (chroma.isChromaReady()) await chroma.deleteDocuments([id]);
+    return { success: true };
+  });
+
+  // 同步题库为知识文档
+  ipcMain.handle(IPC.RAG_SYNC_QUESTIONS, async () => {
+    const questions = db.select().from(schema.questions).all();
+    const existingDocs = db.select().from(schema.ragDocs).where(eq(schema.ragDocs.source, 'question_bank')).all();
+    const existingIds = new Set(existingDocs.map((d) => d.title));
+
+    let synced = 0;
+    for (const q of questions) {
+      const title = `题目#${q.id}: ${q.content.slice(0, 50)}`;
+      if (existingIds.has(title)) continue;
+
+      const content = [
+        `类型: ${q.type}`,
+        `题目: ${q.content}`,
+        q.options ? `选项: ${q.options}` : '',
+        `答案: ${q.answer}`,
+        q.explanation ? `解析: ${q.explanation}` : '',
+        q.tags ? `标签: ${q.tags}` : '',
+      ].filter(Boolean).join('\n');
+
+      db.insert(schema.ragDocs).values({
+        title,
+        content,
+        source: 'question_bank',
+        category: q.type,
+      }).run();
+      synced++;
+    }
+    return { synced };
+  });
+
+  // 批量删除文档
+  ipcMain.handle(IPC.RAG_DOC_DELETE_BATCH, async (_, ids: number[]) => {
+    const placeholders = ids.map(() => '?').join(',');
+    sqlite.prepare(`DELETE FROM rag_docs WHERE id IN (${placeholders})`).run(...ids);
+    if (chroma.isChromaReady()) await chroma.deleteDocuments(ids);
+    return { deleted: ids.length };
+  });
+
+  // Embed 单个文档
+  ipcMain.handle(IPC.RAG_EMBED_DOC, async (_, id: number) => {
+    const config = getRagConfig();
+    const doc = db.select().from(schema.ragDocs).where(eq(schema.ragDocs.id, id)).get();
+    if (!doc) return { success: false };
+
+    const text = `${doc.title}\n${doc.content}`;
+    const embedding = await computeEmbedding(text, config);
+    if (!embedding) return { success: false };
+
+    db.update(schema.ragDocs).set({
+      embedding: JSON.stringify(embedding),
+      updatedAt: formatLocalDateTime(),
+    }).where(eq(schema.ragDocs.id, id)).run();
+
+    // Sync to ChromaDB
+    if (chroma.isChromaReady()) {
+      await chroma.addDocuments([{
+        id: doc.id,
+        content: doc.content,
+        embedding,
+        metadata: { title: doc.title, category: doc.category ?? 'common', source: doc.source ?? 'manual' },
+      }]);
+    }
+
+    return { success: true };
+  });
+
+  // FTS5 + ChromaDB 向量混合搜索
+  ipcMain.handle(IPC.RAG_SEARCH, async (_, query: string, topK: number = 5) => {
+    const config = getRagConfig();
+
+    // 阶段一: FTS5 召回
+    let ftsResults: any[] = [];
+    try {
+      ftsResults = sqlite.prepare(`
+        SELECT d.id, d.title, d.content, d.source, d.category, bm25(rag_fts) as rank
+        FROM rag_fts
+        JOIN rag_docs d ON d.id = rag_fts.rowid
+        WHERE rag_fts MATCH ?
+        ORDER BY rank
+        LIMIT 20
+      `).all(query);
+    } catch (_) {
+      // FTS5 可能因特殊字符报错，降级为 LIKE 搜索
+      ftsResults = sqlite.prepare(`
+        SELECT id, title, content, source, category, 0 as rank
+        FROM rag_docs
+        WHERE title LIKE ? OR content LIKE ?
+        LIMIT 20
+      `).all(`%${query}%`, `%${query}%`);
+    }
+
+    // 阶段二: 向量搜索
+    const queryEmbedding = await computeEmbedding(query, config);
+    if (queryEmbedding) {
+      // 优先使用 ChromaDB，否则回退到内存余弦相似度
+      let vectorResults: Array<{ id: number; title: string; content: string; source: string; category: string; score: number }>;
+
+      if (chroma.isChromaReady()) {
+        const chromaResults = await chroma.queryByEmbedding(queryEmbedding, topK * 2);
+        vectorResults = chromaResults.map((r) => ({
+          id: Number(r.id),
+          title: r.metadata.title ?? '',
+          content: r.content,
+          source: r.metadata.source ?? '',
+          category: r.metadata.category ?? '',
+          score: r.score,
+        }));
+      } else {
+        // Fallback: 内存余弦相似度
+        const allDocs = db.select().from(schema.ragDocs).all();
+        vectorResults = allDocs
+          .filter((d) => d.embedding)
+          .map((d) => {
+            const emb = JSON.parse(d.embedding!);
+            const score = cosineSimilarity(queryEmbedding, emb);
+            return { id: d.id, title: d.title, content: d.content, source: d.source ?? '', category: d.category ?? '', score };
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, topK * 2);
+      }
+
+      // 合并 FTS 和向量结果，去重
+      const merged = new Map<number, any>();
+      for (const r of ftsResults) {
+        merged.set(r.id, { ...r, ftsRank: r.rank, vectorScore: 0 });
+      }
+      for (const r of vectorResults) {
+        if (merged.has(r.id)) {
+          merged.get(r.id).vectorScore = r.score;
+        } else {
+          merged.set(r.id, { ...r, ftsRank: 0, vectorScore: r.score });
+        }
+      }
+      return [...merged.values()]
+        .sort((a, b) => b.vectorScore - a.vectorScore)
+        .slice(0, topK);
+    }
+
+    return ftsResults.slice(0, topK);
+  });
+
+  // LLM 问答 (带流式推送)
+  ipcMain.handle(IPC.RAG_CHAT, async (event, sessionId: number, message: string) => {
+    const config = getRagConfig();
+    if (!config.llmApiUrl || !config.llmApiKey) {
+      event.sender.send(IPC.RAG_STREAM_END);
+      return { error: '请先在 RAG 设置中配置对话模型 API' };
+    }
+
+    // 保存用户消息
+    db.insert(schema.ragMessages).values({
+      sessionId,
+      role: 'user',
+      content: message,
+    }).run();
+
+    // 检索相关文档 (ChromaDB 向量搜索 + FTS5 关键词搜索)
+    const searchResults = await (async () => {
+      const queryEmbedding = await computeEmbedding(message, config);
+      let ftsResults: any[] = [];
+      try {
+        ftsResults = sqlite.prepare(`
+          SELECT d.id, d.title, d.content, d.source, d.category, bm25(rag_fts) as rank
+          FROM rag_fts JOIN rag_docs d ON d.id = rag_fts.rowid
+          WHERE rag_fts MATCH ?
+          ORDER BY rank LIMIT 10
+        `).all(message);
+      } catch (_) {
+        ftsResults = sqlite.prepare(`
+          SELECT id, title, content, source, category, 0 as rank
+          FROM rag_docs WHERE title LIKE ? OR content LIKE ? LIMIT 10
+        `).all(`%${message}%`, `%${message}%`);
+      }
+
+      if (queryEmbedding) {
+        let vectorResults: Array<{ id: number; title: string; content: string; source: string; category: string; score: number }>;
+
+        if (chroma.isChromaReady()) {
+          const chromaResults = await chroma.queryByEmbedding(queryEmbedding, 10);
+          vectorResults = chromaResults.map((r) => ({
+            id: Number(r.id),
+            title: r.metadata.title ?? '',
+            content: r.content,
+            source: r.metadata.source ?? '',
+            category: r.metadata.category ?? '',
+            score: r.score,
+          }));
+        } else {
+          const allDocs = db.select().from(schema.ragDocs).all();
+          vectorResults = allDocs
+            .filter((d) => d.embedding)
+            .map((d) => ({
+              id: d.id, title: d.title, content: d.content, source: d.source ?? '', category: d.category ?? '',
+              score: cosineSimilarity(queryEmbedding, JSON.parse(d.embedding!)),
+            }))
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+        }
+
+        const merged = new Map<number, any>();
+        for (const r of ftsResults) merged.set(r.id, r);
+        for (const r of vectorResults) {
+          if (merged.has(r.id)) merged.get(r.id).score = r.score;
+          else merged.set(r.id, r);
+        }
+        return [...merged.values()].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 5);
+      }
+      return ftsResults.slice(0, 5);
+    })();
+
+    // 构建上下文
+    const context = searchResults.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join('\n\n---\n\n');
+
+    // 获取历史消息
+    const history = db.select().from(schema.ragMessages)
+      .where(eq(schema.ragMessages.sessionId, sessionId))
+      .all()
+      .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))
+      .slice(-10);
+
+    const messages = [
+      { role: 'system', content: `你是一个公考知识助手。根据以下参考资料回答用户问题。如果资料中没有相关内容，请如实说明。回答时请引用资料编号如 [1] [2]。\n\n参考资料:\n${context}` },
+      ...history.map((m) => ({ role: m.role, content: m.content })),
+    ];
+
+    // 调用 LLM API
+    const baseUrl = config.llmApiUrl.replace(/\/+$/, '');
+    let answer = '';
+    try {
+      const resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.llmApiKey}` },
+        body: JSON.stringify({
+          model: config.llmModel || 'deepseek-chat',
+          messages,
+          max_tokens: 2000,
+          stream: true,
+        }),
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text().catch(() => '');
+        answer = `API 错误 (${resp.status}): ${errText.slice(0, 200)}`;
+      } else {
+        // 流式读取
+        const reader = resp.body?.getReader();
+        if (!reader) {
+          answer = '无法读取响应流';
+        } else {
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed || !trimmed.startsWith('data:')) continue;
+              const data = trimmed.slice(5).trim();
+              if (data === '[DONE]') continue;
+
+              try {
+                const parsed = JSON.parse(data);
+                const delta = parsed.choices?.[0]?.delta?.content;
+                if (delta) {
+                  answer += delta;
+                  event.sender.send(IPC.RAG_STREAM_CHUNK, delta);
+                }
+              } catch (_) { /* skip malformed chunks */ }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[RAG] LLM error:', err);
+      answer = `请求失败: ${err}`;
+    }
+
+    // 先保存助手消息，再通知流结束，避免竞态
+    if (answer) {
+      db.insert(schema.ragMessages).values({
+        sessionId,
+        role: 'assistant',
+        content: answer,
+        sources: JSON.stringify(searchResults.map((r) => ({ id: r.id, title: r.title }))),
+      }).returning().get();
+    }
+
+    // 更新会话标题
+    db.update(schema.ragSessions).set({
+      title: message.slice(0, 30),
+      updatedAt: formatLocalDateTime(),
+    }).where(eq(schema.ragSessions.id, sessionId)).run();
+
+    event.sender.send(IPC.RAG_STREAM_END);
+
+    return { answer, sources: searchResults.map((r) => ({ id: r.id, title: r.title, source: r.source })) };
+  });
+
+  // 错题 AI 分析 (RAG + LLM)
+  ipcMain.handle(IPC.WRONG_BOOK_ANALYZE, async (event, recordId: number) => {
+    const config = getRagConfig();
+    if (!config.llmApiUrl || !config.llmApiKey) {
+      return { error: '请先在智能问答中配置对话模型 API' };
+    }
+
+    const wrongRecord = db.select().from(schema.wrongRecords).where(eq(schema.wrongRecords.id, recordId)).get();
+    if (!wrongRecord) return { error: '错题记录不存在' };
+
+    const question = db.select().from(schema.questions).where(eq(schema.questions.id, wrongRecord.questionId)).get();
+    if (!question) return { error: '题目不存在' };
+
+    // 从知识库检索同类型题目
+    let relatedDocs: any[] = [];
+    try {
+      relatedDocs = sqlite.prepare(`
+        SELECT id, title, content FROM rag_docs WHERE category LIKE ? LIMIT 5
+      `).all(`%${question.type}%`);
+    } catch (_) { /* ignore */ }
+
+    const context = relatedDocs.length > 0
+      ? relatedDocs.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join('\n\n')
+      : '无相关参考资料';
+
+    const prompt = `你是公务员考试辅导专家。请分析以下错题并给出学习建议。
+
+题目类型：${question.type}
+题目内容：${question.content}
+选项：${question.options || '无'}
+正确答案：${question.answer}
+考生答案：${wrongRecord.myAnswer}
+解析：${question.explanation || '无'}
+错题次数：${wrongRecord.wrongCount}
+
+参考资料：
+${context}
+
+请从以下方面分析：
+1. 【错因分析】为什么会做错？是知识点不熟、审题不清还是计算错误？
+2. 【知识点梳理】这道题涉及的核心考点和相关知识点
+3. 【解题技巧】下次遇到类似题目的解题思路
+4. 【举一反三】给出1-2道类似的真题或模拟题`;
+
+    const baseUrl = config.llmApiUrl.replace(/\/+$/, '');
+    let answer = '';
+    try {
+      const resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.llmApiKey}` },
+        body: JSON.stringify({
+          model: config.llmModel || 'deepseek-chat',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 2000,
+          stream: true,
+        }),
+      });
+
+      if (!resp.ok) return { error: `API 错误: ${resp.status}` };
+
+      const reader = resp.body?.getReader();
+      if (!reader) return { error: '无法读取响应流' };
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data:')) continue;
+          const data = trimmed.slice(5).trim();
+          if (data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              answer += delta;
+              event.sender.send(IPC.RAG_STREAM_CHUNK, delta);
+            }
+          } catch (_) { /* skip malformed chunks */ }
+        }
+      }
+    } catch (err) {
+      console.error('[AI] Wrong question analysis error:', err);
+      return { error: `请求失败: ${err}` };
+    }
+
+    event.sender.send(IPC.RAG_STREAM_END);
+
+    // 保存分析结果到错题记录
+    db.update(schema.wrongRecords).set({ note: answer }).where(eq(schema.wrongRecords.id, recordId)).run();
+
+    return { analysis: answer };
+  });
+
+  // RAG 会话 CRUD
+  ipcMain.handle(IPC.RAG_SESSION_CREATE, (_, title?: string) => {
+    const row = db.insert(schema.ragSessions).values({ title: title || '新对话' }).returning().get();
+    return { id: row.id, title: row.title, created_at: row.createdAt, updated_at: row.updatedAt };
+  });
+
+  ipcMain.handle(IPC.RAG_SESSION_GET_ALL, () => {
+    return db.select().from(schema.ragSessions).all()
+      .sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')))
+      .map((r) => ({ id: r.id, title: r.title, created_at: r.createdAt, updated_at: r.updatedAt }));
+  });
+
+  ipcMain.handle(IPC.RAG_SESSION_GET, (_, id: number) => {
+    const r = db.select().from(schema.ragSessions).where(eq(schema.ragSessions.id, id)).get();
+    if (!r) return null;
+    return { id: r.id, title: r.title, created_at: r.createdAt, updated_at: r.updatedAt };
+  });
+
+  ipcMain.handle(IPC.RAG_SESSION_DELETE, (_, id: number) => {
+    db.delete(schema.ragMessages).where(eq(schema.ragMessages.sessionId, id)).run();
+    db.delete(schema.ragSessions).where(eq(schema.ragSessions.id, id)).run();
+    return { success: true };
+  });
+
+  ipcMain.handle(IPC.RAG_SESSION_ADD_MESSAGE, (_, msg: any) => {
+    return db.insert(schema.ragMessages).values({
+      sessionId: msg.session_id,
+      role: msg.role,
+      content: msg.content,
+      sources: msg.sources ? JSON.stringify(msg.sources) : '[]',
+    }).returning().get();
+  });
+
+  ipcMain.handle(IPC.RAG_SESSION_GET_MESSAGES, (_, sessionId: number) => {
+    return db.select().from(schema.ragMessages)
+      .where(eq(schema.ragMessages.sessionId, sessionId))
+      .all()
+      .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))
+      .map((m) => ({
+        id: m.id,
+        session_id: m.sessionId,
+        role: m.role,
+        content: m.content,
+        sources: m.sources ? JSON.parse(m.sources) : [],
+        created_at: m.createdAt,
+      }));
+  });
+
+  // 批量导入 PDF 文件到知识库
+  ipcMain.handle(IPC.RAG_IMPORT_PDFS, async (_, dirPath: string) => {
+    if (!dirPath || !fs.existsSync(dirPath)) {
+      return { imported: 0, skipped: 0, errors: 0, message: '目录不存在' };
+    }
+
+    const pdfFiles: string[] = [];
+    function walkDir(dir: string) {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walkDir(fullPath);
+        } else if (entry.name.toLowerCase().endsWith('.pdf')) {
+          pdfFiles.push(fullPath);
+        }
+      }
+    }
+    walkDir(dirPath);
+
+    let imported = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    // 获取现有文档标题，避免重复导入
+    const existingDocs = db.select().from(schema.ragDocs).all();
+    const existingTitles = new Set(existingDocs.map((d) => d.title));
+
+    for (const filePath of pdfFiles) {
+      try {
+        const fileName = path.basename(filePath, '.pdf');
+
+        if (existingTitles.has(fileName)) {
+          skipped++;
+          continue;
+        }
+
+        const dataBuffer = fs.readFileSync(filePath);
+        const pdfParser = new PDFParse(new Uint8Array(dataBuffer));
+        const pdfData = await pdfParser.getText();
+        pdfParser.destroy();
+        const text = pdfData.text?.trim();
+
+        if (!text || text.length < 50) {
+          skipped++;
+          continue;
+        }
+
+        // 从文件路径推断分类
+        const relPath = path.relative(dirPath, filePath);
+        const parts = relPath.split(/[/\\]/);
+        const category = parts.length > 1 ? parts[0] : '国考真题';
+
+        // 判断是真题还是解析
+        const isAnswer = fileName.includes('答案') || fileName.includes('解析') || fileName.includes('参考答案');
+
+        // 如果文本很长，按章节/题目拆分
+        const chunks = splitPdfText(text, fileName);
+        for (const chunk of chunks) {
+          const title = chunks.length > 1
+            ? `${fileName} (${chunk.index}/${chunks.length})`
+            : fileName;
+
+          if (existingTitles.has(title)) {
+            skipped++;
+            continue;
+          }
+
+          db.insert(schema.ragDocs).values({
+            title,
+            content: chunk.content,
+            source: isAnswer ? 'pdf_answer' : 'pdf_exam',
+            category,
+          }).run();
+          existingTitles.add(title);
+          imported++;
+        }
+      } catch (err) {
+        console.error(`[RAG] Failed to parse PDF: ${filePath}`, err);
+        errors++;
+      }
+    }
+
+    return { imported, skipped, errors };
+  });
+
+  // ==================== ChromaDB 管理 ====================
+  ipcMain.handle(IPC.RAG_CHROMA_STATUS, () => chroma.getStatus());
+
+  ipcMain.handle(IPC.RAG_CHROMA_MIGRATE, async () => {
+    if (!chroma.isChromaReady()) {
+      return { migrated: 0, failed: 0, error: 'ChromaDB 服务未启动' };
+    }
+    const docs = db.select().from(schema.ragDocs).all();
+    const withEmbedding = docs
+      .filter((d) => d.embedding)
+      .map((d) => ({
+        id: d.id,
+        content: d.content,
+        embedding: d.embedding!,
+        title: d.title,
+        category: d.category ?? 'common',
+        source: d.source ?? 'manual',
+      }));
+    return chroma.migrateFromSqlite(withEmbedding);
   });
 
   // ==================== 自动更新 ====================

@@ -173,6 +173,46 @@ export function initDatabase() {
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_flashcards_next_review ON flashcards(next_review)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_pomodoro_records_date ON pomodoro_records(date)`);
 
+  // RAG 知识库表
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS rag_docs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      source TEXT DEFAULT 'manual',
+      category TEXT DEFAULT 'common',
+      embedding TEXT,
+      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS rag_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT DEFAULT '新对话',
+      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS rag_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id INTEGER NOT NULL,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      sources TEXT DEFAULT '[]',
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_rag_messages_session ON rag_messages(session_id)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_rag_docs_source ON rag_docs(source)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_rag_sessions_updated ON rag_sessions(updated_at)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_wrong_records_question ON wrong_records(question_id)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_achievements_unlocked ON achievements(unlocked_at)`);
+
   // 初始化成就和默认数据
   initAchievements();
 }

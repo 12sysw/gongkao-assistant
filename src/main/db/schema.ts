@@ -130,6 +130,34 @@ export const encourageQuotes = sqliteTable('encourage_quotes', {
   category: text('category', { enum: ['perseverance', 'confidence', 'method', 'wisdom'] }).notNull(),
 });
 
+// ==================== RAG 知识库 ====================
+export const ragDocs = sqliteTable('rag_docs', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  source: text('source').default('manual'),
+  category: text('category').default('common'),
+  embedding: text('embedding'),
+  createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
+  updatedAt: text('updated_at').default(sql`(datetime('now', 'localtime'))`),
+});
+
+export const ragSessions = sqliteTable('rag_sessions', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  title: text('title').default('新对话'),
+  createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
+  updatedAt: text('updated_at').default(sql`(datetime('now', 'localtime'))`),
+});
+
+export const ragMessages = sqliteTable('rag_messages', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  sessionId: integer('session_id').notNull(),
+  role: text('role', { enum: ['user', 'assistant'] }).notNull(),
+  content: text('content').notNull(),
+  sources: text('sources').default('[]'),
+  createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
+});
+
 // ==================== 类型导出 ====================
 export type Question = typeof questions.$inferSelect;
 export type NewQuestion = typeof questions.$inferInsert;
@@ -153,3 +181,9 @@ export type PomodoroRecord = typeof pomodoroRecords.$inferSelect;
 export type NewPomodoroRecord = typeof pomodoroRecords.$inferInsert;
 export type ExamConfig = typeof examConfig.$inferSelect;
 export type EncourageQuote = typeof encourageQuotes.$inferSelect;
+export type RagDoc = typeof ragDocs.$inferSelect;
+export type NewRagDoc = typeof ragDocs.$inferInsert;
+export type RagSession = typeof ragSessions.$inferSelect;
+export type NewRagSession = typeof ragSessions.$inferInsert;
+export type RagMessage = typeof ragMessages.$inferSelect;
+export type NewRagMessage = typeof ragMessages.$inferInsert;

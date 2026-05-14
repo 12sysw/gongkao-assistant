@@ -451,7 +451,6 @@ export default function ChatRoom() {
     // 如果当前已登录其他用户，先登出
     const currentUserID = store.selfUserID;
     if (currentUserID && currentUserID !== imUserID) {
-      console.log('[Chat] Logging out previous user:', currentUserID);
       await logoutIM();
     }
 
@@ -466,7 +465,6 @@ export default function ChatRoom() {
 
     // UserSig 生成可能因云函数冷启动失败，重试一次
     let userSig = await generateUserSig(imUserID);
-    console.log('[Chat] Generated UserSig for', imUserID, userSig ? 'success' : 'failed');
     if (!userSig) {
       await new Promise(r => setTimeout(r, 2000));
       userSig = await generateUserSig(imUserID);
