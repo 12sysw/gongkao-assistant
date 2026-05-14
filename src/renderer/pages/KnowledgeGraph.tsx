@@ -53,6 +53,7 @@ const KnowledgeGraph: React.FC = () => {
   const nodesRef = useRef<KgNode[]>([]);
   const edgesRef = useRef<KgEdge[]>([]);
   const dragRef = useRef<{ nodeId: number | null; offsetX: number; offsetY: number }>({ nodeId: null, offsetX: 0, offsetY: 0 });
+  const drawStateRef = useRef<{ selectedId: number | null; hoveredId: number | null }>({ selectedId: null, hoveredId: null });
 
   const loadGraph = useCallback(async () => {
     setLoading(true);
@@ -106,6 +107,10 @@ const KnowledgeGraph: React.FC = () => {
     edgesRef.current = [];
     setSelectedNode(null);
   };
+
+  // Keep draw state ref in sync
+  useEffect(() => { drawStateRef.current.selectedId = selectedNode?.id ?? null; }, [selectedNode]);
+  useEffect(() => { drawStateRef.current.hoveredId = hoveredNode?.id ?? null; }, [hoveredNode]);
 
   // Force-directed layout simulation
   useEffect(() => {
@@ -170,7 +175,7 @@ const KnowledgeGraph: React.FC = () => {
         n.y = Math.max(50, Math.min(550, n.y!));
       }
 
-      draw();
+      drawCanvas();
       animRef.current = requestAnimationFrame(simulate);
     };
 
@@ -178,7 +183,7 @@ const KnowledgeGraph: React.FC = () => {
     return () => cancelAnimationFrame(animRef.current);
   }, [nodes, edges]);
 
-  const draw = useCallback(() => {
+  const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -187,6 +192,8 @@ const KnowledgeGraph: React.FC = () => {
     const ns = nodesRef.current;
     const es = edgesRef.current;
     const nodeMap = new Map(ns.map((n) => [n.id, n]));
+    const selId = drawStateRef.current.selectedId;
+    const hovId = drawStateRef.current.hoveredId;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -199,10 +206,10 @@ const KnowledgeGraph: React.FC = () => {
       ctx.beginPath();
       ctx.moveTo(a.x!, a.y!);
       ctx.lineTo(b.x!, b.y!);
-      ctx.strokeStyle = selectedNode && (selectedNode.id === a.id || selectedNode.id === b.id)
+      ctx.strokeStyle = selId !== null && (selId === a.id || selId === b.id)
         ? '#c2410c'
         : '#e5e7eb';
-      ctx.lineWidth = selectedNode && (selectedNode.id === a.id || selectedNode.id === b.id) ? 2 : 1;
+      ctx.lineWidth = selId !== null && (selId === a.id || selId === b.id) ? 2 : 1;
       ctx.stroke();
 
       // Draw relation label at midpoint
@@ -218,8 +225,8 @@ const KnowledgeGraph: React.FC = () => {
     for (const n of ns) {
       const r = getRadius(n.questionCount);
       const color = getColor(n.category);
-      const isSelected = selectedNode?.id === n.id;
-      const isHovered = hoveredNode?.id === n.id;
+      const isSelected = selId === n.id;
+      const isHovered = hovId === n.id;
 
       ctx.beginPath();
       ctx.arc(n.x!, n.y!, r, 0, Math.PI * 2);
@@ -237,7 +244,7 @@ const KnowledgeGraph: React.FC = () => {
       ctx.textAlign = 'center';
       ctx.fillText(n.name.length > 8 ? n.name.slice(0, 7) + '…' : n.name, n.x!, n.y! + r + 14);
     }
-  }, [selectedNode, hoveredNode]);
+  }, []);
 
   // Mouse interaction
   const getNodeAt = (x: number, y: number): KgNode | null => {
