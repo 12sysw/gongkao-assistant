@@ -213,6 +213,33 @@ export function initDatabase() {
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_wrong_records_question ON wrong_records(question_id)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_achievements_unlocked ON achievements(unlocked_at)`);
 
+  // 知识图谱表
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS kg_nodes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      category TEXT DEFAULT 'common',
+      description TEXT DEFAULT '',
+      question_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS kg_edges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      source_id INTEGER NOT NULL,
+      target_id INTEGER NOT NULL,
+      relation TEXT DEFAULT 'related',
+      weight INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
+  db.run(sql`CREATE UNIQUE INDEX IF NOT EXISTS idx_kg_nodes_name ON kg_nodes(name)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_kg_edges_source ON kg_edges(source_id)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_kg_edges_target ON kg_edges(target_id)`);
+
   // 初始化成就和默认数据
   initAchievements();
 }

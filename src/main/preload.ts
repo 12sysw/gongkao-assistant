@@ -110,6 +110,11 @@ const api = {
     onEssayStreamChunk: (cb: (chunk: string) => void) => onChannel(IPC.RAG_ESSAY_STREAM_CHUNK, cb),
     onEssayStreamEnd: (cb: () => void) => onChannel(IPC.RAG_ESSAY_STREAM_END, cb),
   },
+  kg: {
+    getGraph: () => ipcRenderer.invoke(IPC.KG_GET_GRAPH),
+    build: () => ipcRenderer.invoke(IPC.KG_BUILD),
+    clear: () => ipcRenderer.invoke(IPC.KG_CLEAR),
+  },
   update: {
     check: () => ipcRenderer.invoke(IPC.UPDATE_CHECK),
     download: () => ipcRenderer.invoke(IPC.UPDATE_DOWNLOAD),

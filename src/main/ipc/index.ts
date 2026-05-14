@@ -1738,6 +1738,166 @@ ${referenceContext ? `## 参考资料\n${referenceContext}` : ''}
     return { review };
   });
 
+  // ==================== 知识图谱 ====================
+  ipcMain.handle(IPC.KG_GET_GRAPH, () => {
+    const nodes = db.select().from(schema.kgNodes).all().map((n) => ({
+      id: n.id,
+      name: n.name,
+      category: n.category,
+      description: n.description,
+      questionCount: n.questionCount,
+    }));
+    const edges = db.select().from(schema.kgEdges).all().map((e) => ({
+      id: e.id,
+      source: e.sourceId,
+      target: e.targetId,
+      relation: e.relation,
+      weight: e.weight,
+    }));
+    return { nodes, edges };
+  });
+
+  ipcMain.handle(IPC.KG_BUILD, async () => {
+    const config = getRagConfig();
+    if (!config.llmApiUrl || !config.llmApiKey) {
+      return { nodes: 0, edges: 0, error: '请先配置 AI 模型 API' };
+    }
+
+    const questions = db.select().from(schema.questions).all();
+    if (questions.length === 0) {
+      return { nodes: 0, edges: 0, error: '题库为空，请先导入题目' };
+    }
+
+    // 按题型分组，每组取样最多10题
+    const byType: Record<string, typeof questions> = {};
+    for (const q of questions) {
+      if (!byType[q.type]) byType[q.type] = [];
+      byType[q.type].push(q);
+    }
+
+    const sampleQuestions: string[] = [];
+    for (const [type, qs] of Object.entries(byType)) {
+      const sample = qs.slice(0, 10);
+      sampleQuestions.push(`【${type}】共${qs.length}题，示例：`);
+      for (const q of sample) {
+        sampleQuestions.push(`- ${q.content.slice(0, 100)}`);
+      }
+    }
+
+    const prompt = `你是公务员考试知识体系专家。根据以下题库内容，提取知识点实体和它们之间的关系，构建知识图谱。
+
+## 题库概况
+总题数：${questions.length}
+${sampleQuestions.join('\n')}
+
+## 要求
+请提取15-30个核心知识点节点，以及它们之间的关系边。
+
+输出严格的JSON格式（不要包含其他文字）：
+{
+  "nodes": [
+    {"name": "知识点名称", "category": "所属题型如行测-数量关系", "description": "简短描述"}
+  ],
+  "edges": [
+    {"source": "知识点A名称", "target": "知识点B名称", "relation": "关系类型如prerequisite/related/contains"}
+  ]
+}
+
+关系类型说明：
+- prerequisite: A是B的前置知识
+- related: A和B相关联
+- contains: A包含B（上下位关系）`;
+
+    const baseUrl = config.llmApiUrl.replace(/\/+$/, '');
+    try {
+      const resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.llmApiKey}` },
+        body: JSON.stringify({
+          model: config.llmModel || 'deepseek-chat',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 3000,
+          stream: false,
+        }),
+      });
+
+      if (!resp.ok) return { nodes: 0, edges: 0, error: `API 错误: ${resp.status}` };
+
+      const data = (await resp.json()) as any;
+      const content = data.choices?.[0]?.message?.content ?? '';
+
+      // 解析 JSON（可能被包裹在 ```json ... ``` 中）
+      let parsed: { nodes: any[]; edges: any[] };
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return { nodes: 0, edges: 0, error: '无法解析 AI 返回的 JSON' };
+        parsed = JSON.parse(jsonMatch[0]);
+      } catch {
+        return { nodes: 0, edges: 0, error: '解析 JSON 失败' };
+      }
+
+      if (!parsed.nodes || !parsed.edges) return { nodes: 0, edges: 0, error: '返回格式不正确' };
+
+      // 清空旧数据
+      sqlite.prepare('DELETE FROM kg_edges').run();
+      sqlite.prepare('DELETE FROM kg_nodes').run();
+
+      // 统计每个知识点关联的题目数
+      const nodeQuestionCounts: Record<string, number> = {};
+      for (const node of parsed.nodes) {
+        const name = String(node.name ?? '').trim();
+        if (!name) continue;
+        let count = 0;
+        for (const q of questions) {
+          if (q.content.includes(name) || q.type.includes(node.category ?? '') || (q.tags ?? '').includes(name)) {
+            count++;
+          }
+        }
+        nodeQuestionCounts[name] = count;
+      }
+
+      // 插入节点
+      const nodeIdMap = new Map<string, number>();
+      for (const node of parsed.nodes) {
+        const name = String(node.name ?? '').trim();
+        if (!name || nodeIdMap.has(name)) continue;
+        const result = db.insert(schema.kgNodes).values({
+          name,
+          category: node.category ?? 'common',
+          description: node.description ?? '',
+          questionCount: nodeQuestionCounts[name] ?? 0,
+        }).returning().get();
+        nodeIdMap.set(name, result.id);
+      }
+
+      // 插入边
+      let edgeCount = 0;
+      for (const edge of parsed.edges) {
+        const sourceId = nodeIdMap.get(String(edge.source ?? '').trim());
+        const targetId = nodeIdMap.get(String(edge.target ?? '').trim());
+        if (!sourceId || !targetId || sourceId === targetId) continue;
+        db.insert(schema.kgEdges).values({
+          sourceId,
+          targetId,
+          relation: edge.relation ?? 'related',
+          weight: 1,
+        }).run();
+        edgeCount++;
+      }
+
+      return { nodes: nodeIdMap.size, edges: edgeCount };
+    } catch (err) {
+      console.error('[KG Build] Error:', err);
+      return { nodes: 0, edges: 0, error: `请求失败: ${err}` };
+    }
+  });
+
+  ipcMain.handle(IPC.KG_CLEAR, () => {
+    sqlite.prepare('DELETE FROM kg_edges').run();
+    sqlite.prepare('DELETE FROM kg_nodes').run();
+    return { success: true };
+  });
+
   // ==================== 自动更新 ====================
   ipcMain.handle(IPC.UPDATE_CHECK, async () => {
     await checkForUpdates();

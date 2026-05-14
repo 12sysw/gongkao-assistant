@@ -19,6 +19,7 @@ import {
   Sparkles,
   Library,
   PenTool,
+  Network,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -37,6 +38,7 @@ const navItems = [
   { path: '/question-bank', label: '题库管理', icon: Library },
   { path: '/rag-chat', label: '智能问答', icon: Sparkles },
   { path: '/essay-review', label: '申论批改', icon: PenTool },
+  { path: '/knowledge-graph', label: '知识图谱', icon: Network },
   { path: '/chat', label: '聊天室', icon: MessageSquare },
   { path: '/settings', label: '设置', icon: Settings },
 ];

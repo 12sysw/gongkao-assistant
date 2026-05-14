@@ -101,6 +101,11 @@ export const IPC = {
   RAG_ESSAY_STREAM_CHUNK: 'rag:essay-stream-chunk',
   RAG_ESSAY_STREAM_END: 'rag:essay-stream-end',
 
+  // 知识图谱
+  KG_GET_GRAPH: 'kg:get-graph',
+  KG_BUILD: 'kg:build',
+  KG_CLEAR: 'kg:clear',
+
   // 自动更新
   UPDATE_CHECKING: 'update:checking',
   UPDATE_AVAILABLE: 'update:available',
@@ -219,6 +224,11 @@ export interface Api {
     essayReview: (params: { topic: string; material: string; answer: string; type: string }) => Promise<{ review: string }>;
     onEssayStreamChunk: (cb: (chunk: string) => void) => Unsubscribe;
     onEssayStreamEnd: (cb: () => void) => Unsubscribe;
+  };
+  kg: {
+    getGraph: () => Promise<{ nodes: any[]; edges: any[] }>;
+    build: () => Promise<{ nodes: number; edges: number }>;
+    clear: () => Promise<{ success: boolean }>;
   };
   update: {
     check: () => Promise<void>;

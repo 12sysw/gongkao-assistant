@@ -187,3 +187,27 @@ export type RagSession = typeof ragSessions.$inferSelect;
 export type NewRagSession = typeof ragSessions.$inferInsert;
 export type RagMessage = typeof ragMessages.$inferSelect;
 export type NewRagMessage = typeof ragMessages.$inferInsert;
+
+// ==================== 知识图谱 ====================
+export const kgNodes = sqliteTable('kg_nodes', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  category: text('category').default('common'),
+  description: text('description').default(''),
+  questionCount: integer('question_count').default(0),
+  createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
+});
+
+export const kgEdges = sqliteTable('kg_edges', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  sourceId: integer('source_id').notNull(),
+  targetId: integer('target_id').notNull(),
+  relation: text('relation').default('related'),
+  weight: integer('weight').default(1),
+  createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
+});
+
+export type KgNode = typeof kgNodes.$inferSelect;
+export type NewKgNode = typeof kgNodes.$inferInsert;
+export type KgEdge = typeof kgEdges.$inferSelect;
+export type NewKgEdge = typeof kgEdges.$inferInsert;
