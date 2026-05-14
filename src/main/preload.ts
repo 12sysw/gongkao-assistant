@@ -106,6 +106,9 @@ const api = {
     chromaStatus: () => ipcRenderer.invoke(IPC.RAG_CHROMA_STATUS),
     chromaMigrate: () => ipcRenderer.invoke(IPC.RAG_CHROMA_MIGRATE),
     aiRecommend: () => ipcRenderer.invoke(IPC.RAG_AI_RECOMMEND),
+    essayReview: (params: { topic: string; material: string; answer: string; type: string }) => ipcRenderer.invoke(IPC.RAG_ESSAY_REVIEW, params),
+    onEssayStreamChunk: (cb: (chunk: string) => void) => onChannel(IPC.RAG_ESSAY_STREAM_CHUNK, cb),
+    onEssayStreamEnd: (cb: () => void) => onChannel(IPC.RAG_ESSAY_STREAM_END, cb),
   },
   update: {
     check: () => ipcRenderer.invoke(IPC.UPDATE_CHECK),

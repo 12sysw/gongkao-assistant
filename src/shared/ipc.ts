@@ -97,6 +97,9 @@ export const IPC = {
   RAG_CHROMA_STATUS: 'rag:chroma-status',
   RAG_CHROMA_MIGRATE: 'rag:chroma-migrate',
   RAG_AI_RECOMMEND: 'rag:ai-recommend',
+  RAG_ESSAY_REVIEW: 'rag:essay-review',
+  RAG_ESSAY_STREAM_CHUNK: 'rag:essay-stream-chunk',
+  RAG_ESSAY_STREAM_END: 'rag:essay-stream-end',
 
   // 自动更新
   UPDATE_CHECKING: 'update:checking',
@@ -213,6 +216,9 @@ export interface Api {
     chromaStatus: () => Promise<{ running: boolean; port: number; host: string; dataDir: string }>;
     chromaMigrate: () => Promise<{ migrated: number; failed: number }>;
     aiRecommend: () => Promise<{ recommendations: string }>;
+    essayReview: (params: { topic: string; material: string; answer: string; type: string }) => Promise<{ review: string }>;
+    onEssayStreamChunk: (cb: (chunk: string) => void) => Unsubscribe;
+    onEssayStreamEnd: (cb: () => void) => Unsubscribe;
   };
   update: {
     check: () => Promise<void>;

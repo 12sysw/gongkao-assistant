@@ -20,6 +20,7 @@ const Achievements = lazy(() => import('./pages/Achievements'));
 const ChatRoom = lazy(() => import('./pages/ChatRoom'));
 const RagChat = lazy(() => import('./pages/RagChat'));
 const QuestionBank = lazy(() => import('./pages/QuestionBank'));
+const EssayReview = lazy(() => import('./pages/EssayReview'));
 
 const RouteFallback: React.FC = () => (
   <div className="flex h-full items-center justify-center bg-surface-0">
@@ -101,6 +102,7 @@ const App: React.FC = () => {
               <Route path="/chat" element={<ChatRoom />} />
               <Route path="/rag-chat" element={<RagChat />} />
               <Route path="/question-bank" element={<QuestionBank />} />
+              <Route path="/essay-review" element={<EssayReview />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
