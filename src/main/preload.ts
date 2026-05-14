@@ -105,6 +105,7 @@ const api = {
     docDeleteBatch: (ids: number[]) => ipcRenderer.invoke(IPC.RAG_DOC_DELETE_BATCH, ids),
     chromaStatus: () => ipcRenderer.invoke(IPC.RAG_CHROMA_STATUS),
     chromaMigrate: () => ipcRenderer.invoke(IPC.RAG_CHROMA_MIGRATE),
+    aiRecommend: () => ipcRenderer.invoke(IPC.RAG_AI_RECOMMEND),
   },
   update: {
     check: () => ipcRenderer.invoke(IPC.UPDATE_CHECK),

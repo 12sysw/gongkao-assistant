@@ -96,6 +96,7 @@ export const IPC = {
   RAG_DOC_DELETE_BATCH: 'rag:doc:delete-batch',
   RAG_CHROMA_STATUS: 'rag:chroma-status',
   RAG_CHROMA_MIGRATE: 'rag:chroma-migrate',
+  RAG_AI_RECOMMEND: 'rag:ai-recommend',
 
   // 自动更新
   UPDATE_CHECKING: 'update:checking',
@@ -211,6 +212,7 @@ export interface Api {
     docDeleteBatch: (ids: number[]) => Promise<{ deleted: number }>;
     chromaStatus: () => Promise<{ running: boolean; port: number; host: string; dataDir: string }>;
     chromaMigrate: () => Promise<{ migrated: number; failed: number }>;
+    aiRecommend: () => Promise<{ recommendations: string }>;
   };
   update: {
     check: () => Promise<void>;

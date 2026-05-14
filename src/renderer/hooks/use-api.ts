@@ -191,6 +191,17 @@ export function useChromaMigrate() {
   });
 }
 
+// ==================== AI 个性化推荐 ====================
+export function useAiRecommend() {
+  return useQuery({
+    queryKey: ['aiRecommend'],
+    queryFn: () => api.rag.aiRecommend(),
+    staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    enabled: false,
+  });
+}
+
 // ==================== 通用 mutation ====================
 export function useAddDailyRecord() {
   const qc = useQueryClient();

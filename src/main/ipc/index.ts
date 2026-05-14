@@ -1505,6 +1505,101 @@ ${context}
     return chroma.migrateFromSqlite(withEmbedding);
   });
 
+  // ==================== AI 个性化推荐 ====================
+  ipcMain.handle(IPC.RAG_AI_RECOMMEND, async () => {
+    const config = getRagConfig();
+    if (!config.llmApiUrl || !config.llmApiKey) {
+      return { recommendations: '' };
+    }
+
+    // 收集用户学习数据
+    const wrongRecords = db.select().from(schema.wrongRecords).all();
+    const questions = db.select().from(schema.questions).all();
+    const dailyRecords = db.select().from(schema.dailyRecords).all();
+    const flashcards = db.select().from(schema.flashcards).all();
+    const studyPlans = db.select().from(schema.studyPlans).all();
+    const pomodoroRecords = db.select().from(schema.pomodoroRecords).all();
+
+    // 统计错题分布
+    const questionMap = new Map(questions.map((q) => [q.id, q]));
+    const wrongByType: Record<string, { total: number; mastered: number }> = {};
+    for (const wr of wrongRecords) {
+      const q = questionMap.get(wr.questionId);
+      const type = q?.type ?? '未分类';
+      if (!wrongByType[type]) wrongByType[type] = { total: 0, mastered: 0 };
+      wrongByType[type].total++;
+      if (wr.mastered) wrongByType[type].mastered++;
+    }
+
+    // 最近7天学习情况
+    const today = formatLocalDate();
+    const weekAgo = formatLocalDate(new Date(Date.now() - 6 * 86400000));
+    const recentDays = dailyRecords.filter((r) => r.date >= weekAgo && r.date <= today);
+    const totalMinutes = recentDays.reduce((sum, r) => sum + (r.studyMinutes ?? 0), 0);
+    const totalQuestions = recentDays.reduce((sum, r) => sum + (r.questionsDone ?? 0), 0);
+    const activeDays = recentDays.length;
+
+    // 番茄钟统计
+    const recentPomodoros = pomodoroRecords.filter((r) => r.date >= weekAgo && r.date <= today);
+    const pomodoroCount = recentPomodoros.filter((r) => r.mode === 'work').length;
+
+    // 待复习错题数
+    const dueWrong = wrongRecords.filter((r) => !r.mastered && isDueReview(r.nextReviewAt)).length;
+
+    // 待复习卡片数
+    const dueFlashcards = flashcards.filter((f) => !f.mastered && String(f.nextReview ?? '').slice(0, 10) <= today).length;
+
+    // 学习计划状态
+    const activePlans = studyPlans.filter((p) => p.status !== 'completed');
+
+    const prompt = `你是一位公务员考试备考规划师。根据以下学习数据，给出今天的个性化学习建议。
+
+## 学习数据概览
+- 最近7天学习 ${activeDays} 天，共 ${totalMinutes} 分钟，做题 ${totalQuestions} 道
+- 完成番茄钟 ${pomodoroCount} 个
+- 题库总题数：${questions.length}
+- 错题总数：${wrongRecords.length}，已掌握：${wrongRecords.filter((r) => r.mastered).length}
+
+## 错题分布
+${Object.entries(wrongByType).map(([type, stat]) => `- ${type}：${stat.total}题（已掌握${stat.mastered}）`).join('\n')}
+
+## 当前待办
+- 待复习错题：${dueWrong} 道
+- 待复习卡片：${dueFlashcards} 张
+- 进行中的学习计划：${activePlans.length} 个${activePlans.length > 0 ? '（' + activePlans.map((p) => p.title).join('、') + '）' : ''}
+
+## 要求
+请给出3-5条具体的、可执行的今日学习建议，包括：
+1. 今天应该优先做什么（基于薄弱环节和待复习项）
+2. 建议的时间分配
+3. 需要重点突破的题型和知识点
+4. 学习节奏建议
+
+用简洁的中文回答，不要使用markdown格式，每条建议用【序号】开头。`;
+
+    const baseUrl = config.llmApiUrl.replace(/\/+$/, '');
+    try {
+      const resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.llmApiKey}` },
+        body: JSON.stringify({
+          model: config.llmModel || 'deepseek-chat',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 1000,
+          stream: false,
+        }),
+      });
+
+      if (!resp.ok) return { recommendations: '' };
+      const data = (await resp.json()) as any;
+      const content = data.choices?.[0]?.message?.content ?? '';
+      return { recommendations: content };
+    } catch (err) {
+      console.error('[AI Recommend] Error:', err);
+      return { recommendations: '' };
+    }
+  });
+
   // ==================== 自动更新 ====================
   ipcMain.handle(IPC.UPDATE_CHECK, async () => {
     await checkForUpdates();

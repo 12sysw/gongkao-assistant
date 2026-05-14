@@ -26,6 +26,7 @@ import {
   useDueReviews,
   useFlashcards,
   useStudyPlans,
+  useAiRecommend,
 } from '../hooks/use-api';
 import { fetchWeather, fetchSaying, fetchAnswer, type WeatherData } from '../lib/uapi';
 
@@ -312,6 +313,8 @@ export default function Dashboard() {
 
       <RecommendationCard items={recommendations} />
 
+      <AiRecommendCard />
+
       <RecommendationAdoptionCard
         events={recommendationEvents}
         loading={recommendationEventsQuery.isLoading}
@@ -374,6 +377,62 @@ function RecommendationCard({ items }: { items: Array<{ title: string; body: str
             </Link>
           ))}
         </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function AiRecommendCard() {
+  const { data, refetch, isFetching } = useAiRecommend();
+  const [hasRequested, setHasRequested] = useState(false);
+
+  const handleGenerate = () => {
+    setHasRequested(true);
+    refetch();
+  };
+
+  const text = data?.recommendations || '';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-brand-500" />
+          AI 个性化建议
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {!hasRequested && !text ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-surface-500 mb-3">基于你的学习数据，AI 为你生成今日专属学习计划</p>
+            <button
+              onClick={handleGenerate}
+              disabled={isFetching}
+              className="px-5 py-2.5 bg-gradient-to-r from-brand-500 to-orange-500 text-white text-sm rounded-lg hover:from-brand-600 hover:to-orange-600 disabled:opacity-50 transition-all inline-flex items-center gap-2"
+            >
+              {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              {isFetching ? '生成中...' : '生成今日建议'}
+            </button>
+          </div>
+        ) : isFetching ? (
+          <div className="flex items-center gap-2 text-sm text-surface-400 py-4 justify-center">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            AI 正在分析你的学习数据...
+          </div>
+        ) : text ? (
+          <div className="space-y-2">
+            <div className="text-sm text-surface-700 whitespace-pre-wrap leading-relaxed">{text}</div>
+            <button
+              onClick={handleGenerate}
+              disabled={isFetching}
+              className="text-xs text-surface-400 hover:text-brand-500 transition-colors mt-2"
+            >
+              重新生成
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-surface-400 py-2">请先在智能问答中配置 AI 模型 API</p>
+        )}
       </CardContent>
     </Card>
   );
