@@ -1,6 +1,6 @@
 {
   "name": "gongkao-assistant",
-  "version": "1.2.21",
+  "version": "1.2.22",
   "description": "公考小助手 - 桌面端公考学习工具",
   "author": "12sysw",
   "repository": {
@@ -77,16 +77,17 @@
     "win": {
       "target": [
         {
-          "target": "portable",
+          "target": "nsis",
           "arch": [
             "x64"
           ]
         },
         {
-          "target": "nsis",
+          "target": "portable",
           "arch": [
             "x64"
-          ]
+          ],
+          "artifactName": "${name}-${version}-portable.${ext}"
         }
       ]
     },
