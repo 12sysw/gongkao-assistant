@@ -65,7 +65,11 @@ function readFallbackMindMaps(): FallbackMindMap[] {
 }
 
 function writeFallbackMindMaps(maps: FallbackMindMap[]) {
-  fs.writeFileSync(getFallbackMindMapPath(), JSON.stringify(maps, null, 2), 'utf-8');
+  try {
+    fs.writeFileSync(getFallbackMindMapPath(), JSON.stringify(maps, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[IPC] Failed to write fallback mind maps', err);
+  }
 }
 
 function upsertFallbackMindMap(record: FallbackMindMap) {
@@ -195,9 +199,27 @@ function splitPdfText(text: string, fileName: string): { index: number; content:
   return chunks;
 }
 
+function safeParseJson(value: unknown, fallback: unknown = []) {
+  try {
+    return JSON.parse(String(value ?? '[]'));
+  } catch {
+    return fallback;
+  }
+}
+
 export function registerIpcHandlers() {
+  // Helper: wrap sync IPC handler with try/catch, return error on failure
+  const safe = <T extends any[]>(fn: (...args: T) => any) => (_: any, ...args: T) => {
+    try {
+      return fn(...args);
+    } catch (err) {
+      console.error('[IPC] Handler error:', err);
+      return { error: String(err) };
+    }
+  };
+
   // ==================== 题目 ====================
-  ipcMain.handle(IPC.QUESTION_ADD, (_, q: any) => {
+  ipcMain.handle(IPC.QUESTION_ADD, safe((q: any) => {
     const result = db.insert(schema.questions).values({
       type: q.type,
       content: q.content,
@@ -208,19 +230,19 @@ export function registerIpcHandlers() {
     }).returning().get();
 
     return toLegacyQuestion(result);
-  });
+  }));
 
-  ipcMain.handle(IPC.QUESTION_GET_ALL, (_, filters?: any) => {
+  ipcMain.handle(IPC.QUESTION_GET_ALL, safe((_filters?: any) => {
     const rows = db.select().from(schema.questions).all();
-    return applyQuestionFilters(rows, filters).map((row) => toLegacyQuestion(row));
-  });
+    return applyQuestionFilters(rows, _filters).map((row) => toLegacyQuestion(row));
+  }));
 
-  ipcMain.handle(IPC.QUESTION_GET_BY_ID, (_, id: number) => {
+  ipcMain.handle(IPC.QUESTION_GET_BY_ID, safe((id: number) => {
     const row = db.select().from(schema.questions).where(eq(schema.questions.id, id)).get();
     return toLegacyQuestion(row);
-  });
+  }));
 
-  ipcMain.handle(IPC.QUESTION_UPDATE, (_, q: any) => {
+  ipcMain.handle(IPC.QUESTION_UPDATE, safe((q: any) => {
     db.update(schema.questions).set({
       type: q.type,
       content: q.content,
@@ -232,15 +254,15 @@ export function registerIpcHandlers() {
 
     const updated = db.select().from(schema.questions).where(eq(schema.questions.id, q.id)).get();
     return toLegacyQuestion(updated);
-  });
+  }));
 
-  ipcMain.handle(IPC.QUESTION_DELETE, (_, id: number) => {
+  ipcMain.handle(IPC.QUESTION_DELETE, safe((id: number) => {
     db.delete(schema.questions).where(eq(schema.questions.id, id)).run();
     return { success: true };
-  });
+  }));
 
   // ==================== 错题本 ====================
-  ipcMain.handle(IPC.WRONG_BOOK_ADD, (_, record: any) => {
+  ipcMain.handle(IPC.WRONG_BOOK_ADD, safe((record: any) => {
     // Validate question exists
     const question = db.select().from(schema.questions).where(eq(schema.questions.id, record.question_id)).get();
     if (!question) {
@@ -272,24 +294,24 @@ export function registerIpcHandlers() {
     }).returning().get();
 
     return toLegacyWrongRecord(result, question);
-  });
+  }));
 
-  ipcMain.handle(IPC.WRONG_BOOK_GET_ALL, (_, filters?: any) => {
+  ipcMain.handle(IPC.WRONG_BOOK_GET_ALL, safe((_filters?: any) => {
     const questionMap = getQuestionMap();
     const rows = db.select().from(schema.wrongRecords).all();
     const records = rows.map((row) => toLegacyWrongRecord(row, questionMap.get(row.questionId)));
-    return applyWrongBookFilters(records, filters);
-  });
+    return applyWrongBookFilters(records, _filters);
+  }));
 
-  ipcMain.handle(IPC.WRONG_BOOK_GET_BY_ID, (_, id: number) => {
+  ipcMain.handle(IPC.WRONG_BOOK_GET_BY_ID, safe((id: number) => {
     const row = db.select().from(schema.wrongRecords).where(eq(schema.wrongRecords.id, id)).get();
     if (!row) return null;
 
     const question = db.select().from(schema.questions).where(eq(schema.questions.id, row.questionId)).get();
     return toLegacyWrongRecord(row, question);
-  });
+  }));
 
-  ipcMain.handle(IPC.WRONG_BOOK_UPDATE, (_, record: any) => {
+  ipcMain.handle(IPC.WRONG_BOOK_UPDATE, safe((record: any) => {
     const updates: Record<string, unknown> = {};
     if (record.my_answer !== undefined) updates.myAnswer = record.my_answer;
     if (record.note !== undefined) updates.note = record.note;
@@ -304,19 +326,19 @@ export function registerIpcHandlers() {
 
     const question = db.select().from(schema.questions).where(eq(schema.questions.id, updated.questionId)).get();
     return toLegacyWrongRecord(updated, question);
-  });
+  }));
 
-  ipcMain.handle(IPC.WRONG_BOOK_DELETE, (_, id: number) => {
+  ipcMain.handle(IPC.WRONG_BOOK_DELETE, safe((id: number) => {
     db.delete(schema.wrongRecords).where(eq(schema.wrongRecords.id, id)).run();
     return { success: true };
-  });
+  }));
 
-  ipcMain.handle(IPC.WRONG_BOOK_MARK_MASTERED, (_, id: number) => {
+  ipcMain.handle(IPC.WRONG_BOOK_MARK_MASTERED, safe((id: number) => {
     db.update(schema.wrongRecords).set({ mastered: true }).where(eq(schema.wrongRecords.id, id)).run();
     return { success: true };
-  });
+  }));
 
-  ipcMain.handle(IPC.WRONG_BOOK_GET_DUE_REVIEW, () => {
+  ipcMain.handle(IPC.WRONG_BOOK_GET_DUE_REVIEW, safe(() => {
     const questionMap = getQuestionMap();
     const rows = db.select().from(schema.wrongRecords).all();
 
@@ -324,7 +346,7 @@ export function registerIpcHandlers() {
       .filter((row) => !row.mastered && isDueReview(row.nextReviewAt))
       .sort((a, b) => String(a.nextReviewAt ?? '').localeCompare(String(b.nextReviewAt ?? '')))
       .map((row) => toLegacyWrongRecord(row, questionMap.get(row.questionId)));
-  });
+  }));
 
   // ==================== 思维导图 ====================
   ipcMain.handle(IPC.MIND_MAP_SAVE, (_, data: any) => {
@@ -417,7 +439,7 @@ export function registerIpcHandlers() {
   });
 
   // ==================== 学习计划 ====================
-  ipcMain.handle(IPC.STUDY_PLAN_ADD, (_, plan: any) => {
+  ipcMain.handle(IPC.STUDY_PLAN_ADD, safe((plan: any) => {
     const result = db.insert(schema.studyPlans).values({
       title: plan.title,
       subject: plan.subject,
@@ -428,14 +450,14 @@ export function registerIpcHandlers() {
     }).returning().get();
 
     return toLegacyStudyPlan(result);
-  });
+  }));
 
-  ipcMain.handle(IPC.STUDY_PLAN_GET_ALL, () => {
+  ipcMain.handle(IPC.STUDY_PLAN_GET_ALL, safe(() => {
     const rows = db.select().from(schema.studyPlans).all();
     return sortStudyPlans(rows).map((row) => toLegacyStudyPlan(row));
-  });
+  }));
 
-  ipcMain.handle(IPC.STUDY_PLAN_UPDATE, (_, plan: any) => {
+  ipcMain.handle(IPC.STUDY_PLAN_UPDATE, safe((plan: any) => {
     db.update(schema.studyPlans).set({
       title: plan.title,
       subject: plan.subject,
@@ -449,15 +471,15 @@ export function registerIpcHandlers() {
 
     const updated = db.select().from(schema.studyPlans).where(eq(schema.studyPlans.id, plan.id)).get();
     return toLegacyStudyPlan(updated);
-  });
+  }));
 
-  ipcMain.handle(IPC.STUDY_PLAN_DELETE, (_, id: number) => {
+  ipcMain.handle(IPC.STUDY_PLAN_DELETE, safe((id: number) => {
     db.delete(schema.studyPlans).where(eq(schema.studyPlans.id, id)).run();
     return { success: true };
-  });
+  }));
 
   // ==================== 每日记录 ====================
-  ipcMain.handle(IPC.DAILY_RECORD_ADD, (_, record: any) => {
+  ipcMain.handle(IPC.DAILY_RECORD_ADD, safe((record: any) => {
     const existing = db.select().from(schema.dailyRecords).where(eq(schema.dailyRecords.date, record.date)).get();
     if (existing) {
       const nextNote = record.note !== undefined && record.note !== '' ? record.note : existing.note;
@@ -479,21 +501,21 @@ export function registerIpcHandlers() {
     }
 
     return { success: true };
-  });
+  }));
 
-  ipcMain.handle(IPC.DAILY_RECORD_GET_BY_DATE, (_, date: string) => {
+  ipcMain.handle(IPC.DAILY_RECORD_GET_BY_DATE, safe((date: string) => {
     const row = db.select().from(schema.dailyRecords).where(eq(schema.dailyRecords.date, date)).get();
     return toLegacyDailyRecord(row);
-  });
+  }));
 
-  ipcMain.handle(IPC.DAILY_RECORD_GET_RANGE, (_, start: string, end: string) => {
+  ipcMain.handle(IPC.DAILY_RECORD_GET_RANGE, safe((start: string, end: string) => {
     return db.select().from(schema.dailyRecords).all()
       .filter((row) => row.date >= start && row.date <= end)
       .sort((a, b) => String(a.date).localeCompare(String(b.date)))
       .map((row) => toLegacyDailyRecord(row));
-  });
+  }));
 
-  ipcMain.handle(IPC.DAILY_RECORD_GET_STATS, (_, days: number) => {
+  ipcMain.handle(IPC.DAILY_RECORD_GET_STATS, safe((days: number) => {
     const cutoff = formatLocalDate(new Date(Date.now() - Math.max(days - 1, 0) * 86400000));
     const rows = db.select().from(schema.dailyRecords).all().filter((row) => row.date >= cutoff);
     const allWrongRecords = db.select().from(schema.wrongRecords).all();
@@ -513,16 +535,16 @@ export function registerIpcHandlers() {
     };
 
     return stats;
-  });
+  }));
 
   // ==================== 成就 ====================
-  ipcMain.handle(IPC.ACHIEVEMENT_GET_ALL, () => {
+  ipcMain.handle(IPC.ACHIEVEMENT_GET_ALL, safe(() => {
     return db.select().from(schema.achievements).all()
       .sort((a, b) => a.type.localeCompare(b.type) || a.threshold - b.threshold)
       .map((row) => toLegacyAchievement(row));
-  });
+  }));
 
-  ipcMain.handle(IPC.ACHIEVEMENT_CHECK, () => {
+  ipcMain.handle(IPC.ACHIEVEMENT_CHECK, safe(() => {
     const dailyRecords = db.select().from(schema.dailyRecords).all();
     const wrongRecords = db.select().from(schema.wrongRecords).all();
     const flashcards = db.select().from(schema.flashcards).all();
@@ -547,10 +569,10 @@ export function registerIpcHandlers() {
     return db.select().from(schema.achievements).all()
       .sort((a, b) => a.type.localeCompare(b.type) || a.threshold - b.threshold)
       .map((row) => toLegacyAchievement(row, progressMap[row.type] || 0));
-  });
+  }));
 
   // ==================== 记忆卡片 ====================
-  ipcMain.handle(IPC.FLASHCARD_ADD, (_, card: any) => {
+  ipcMain.handle(IPC.FLASHCARD_ADD, safe((card: any) => {
     const result = db.insert(schema.flashcards).values({
       front: card.front,
       back: card.back,
@@ -559,14 +581,14 @@ export function registerIpcHandlers() {
     }).returning().get();
 
     return toLegacyFlashcard(result);
-  });
+  }));
 
-  ipcMain.handle(IPC.FLASHCARD_GET_ALL, (_, filters?: any) => {
+  ipcMain.handle(IPC.FLASHCARD_GET_ALL, safe((_filters?: any) => {
     const rows = db.select().from(schema.flashcards).all();
-    return applyFlashcardFilters(rows, filters).map((row) => toLegacyFlashcard(row));
-  });
+    return applyFlashcardFilters(rows, _filters).map((row) => toLegacyFlashcard(row));
+  }));
 
-  ipcMain.handle(IPC.FLASHCARD_UPDATE, (_, card: any) => {
+  ipcMain.handle(IPC.FLASHCARD_UPDATE, safe((card: any) => {
     const updates: Record<string, unknown> = {};
     if (card.front !== undefined) updates.front = card.front;
     if (card.back !== undefined) updates.back = card.back;
@@ -580,21 +602,21 @@ export function registerIpcHandlers() {
 
     const updated = db.select().from(schema.flashcards).where(eq(schema.flashcards.id, card.id)).get();
     return toLegacyFlashcard(updated);
-  });
+  }));
 
-  ipcMain.handle(IPC.FLASHCARD_DELETE, (_, id: number) => {
+  ipcMain.handle(IPC.FLASHCARD_DELETE, safe((id: number) => {
     db.delete(schema.flashcards).where(eq(schema.flashcards.id, id)).run();
     return { success: true };
-  });
+  }));
 
   // ==================== 考试配置 ====================
-  ipcMain.handle(IPC.EXAM_CONFIG_GET, () => {
+  ipcMain.handle(IPC.EXAM_CONFIG_GET, safe(() => {
     const row = db.select().from(schema.examConfig).all()
       .sort((a, b) => b.id - a.id)[0];
     return toLegacyExamConfig(row);
-  });
+  }));
 
-  ipcMain.handle(IPC.EXAM_CONFIG_SET, (_, config: any) => {
+  ipcMain.handle(IPC.EXAM_CONFIG_SET, safe((config: any) => {
     const existing = db.select().from(schema.examConfig).all().sort((a, b) => b.id - a.id)[0];
     if (existing) {
       db.update(schema.examConfig).set({ name: config.name, date: config.date }).where(eq(schema.examConfig.id, existing.id)).run();
@@ -602,11 +624,12 @@ export function registerIpcHandlers() {
       db.insert(schema.examConfig).values({ name: config.name, date: config.date }).run();
     }
 
-    return { name: config.name, date: config.date };
-  });
+    const row = db.select().from(schema.examConfig).all().sort((a, b) => b.id - a.id)[0];
+    return toLegacyExamConfig(row);
+  }));
 
   // ==================== 番茄钟 ====================
-  ipcMain.handle(IPC.POMODORO_RECORD_ADD, (_, record: any) => {
+  ipcMain.handle(IPC.POMODORO_RECORD_ADD, safe((record: any) => {
     const result = db.insert(schema.pomodoroRecords).values({
       date: record.date,
       duration: record.duration || 25,
@@ -614,32 +637,32 @@ export function registerIpcHandlers() {
     }).returning().get();
 
     return toLegacyPomodoroRecord(result);
-  });
+  }));
 
-  ipcMain.handle(IPC.POMODORO_RECORD_GET_BY_DATE, (_, date: string) => {
+  ipcMain.handle(IPC.POMODORO_RECORD_GET_BY_DATE, safe((date: string) => {
     return db.select().from(schema.pomodoroRecords).all()
       .filter((row) => row.date === date)
       .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))
       .map((row) => toLegacyPomodoroRecord(row));
-  });
+  }));
 
-  ipcMain.handle(IPC.POMODORO_RECORD_GET_RANGE, (_, start: string, end: string) => {
+  ipcMain.handle(IPC.POMODORO_RECORD_GET_RANGE, safe((start: string, end: string) => {
     return db.select().from(schema.pomodoroRecords).all()
       .filter((row) => row.date >= start && row.date <= end)
       .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')))
       .map((row) => toLegacyPomodoroRecord(row));
-  });
+  }));
 
   // ==================== 鼓励语录 ====================
-  ipcMain.handle(IPC.ENCOURAGE_GET_RANDOM, (_, category?: string) => {
+  ipcMain.handle(IPC.ENCOURAGE_GET_RANDOM, safe((_category?: string) => {
     const rows = db.select().from(schema.encourageQuotes).all()
-      .filter((row) => !category || row.category === category);
+      .filter((row) => !_category || row.category === _category);
 
     if (rows.length === 0) return null;
     return toLegacyQuote(rows[Math.floor(Math.random() * rows.length)]);
-  });
+  }));
 
-  ipcMain.handle(IPC.REVIEW_SESSION_GET, (_, date: string) => {
+  ipcMain.handle(IPC.REVIEW_SESSION_GET, safe((date: string) => {
     const row = db.select().from(schema.reviewSessions).where(eq(schema.reviewSessions.date, date)).get();
     if (!row) {
       return {
@@ -655,12 +678,12 @@ export function registerIpcHandlers() {
       date: row.date,
       started: !!row.started,
       initial_total: row.initialTotal ?? 0,
-      completed_wrong_ids: JSON.parse(row.completedWrongIds ?? '[]'),
-      completed_flashcard_ids: JSON.parse(row.completedFlashcardIds ?? '[]'),
+      completed_wrong_ids: safeParseJson(row.completedWrongIds),
+      completed_flashcard_ids: safeParseJson(row.completedFlashcardIds),
     };
-  });
+  }));
 
-  ipcMain.handle(IPC.REVIEW_SESSION_SET, (_, session: any) => {
+  ipcMain.handle(IPC.REVIEW_SESSION_SET, safe((session: any) => {
     const payload = {
       date: String(session?.date ?? formatLocalDate()),
       started: Boolean(session?.started),
@@ -681,12 +704,12 @@ export function registerIpcHandlers() {
       date: payload.date,
       started: !!payload.started,
       initial_total: payload.initialTotal,
-      completed_wrong_ids: JSON.parse(payload.completedWrongIds),
-      completed_flashcard_ids: JSON.parse(payload.completedFlashcardIds),
+      completed_wrong_ids: safeParseJson(payload.completedWrongIds),
+      completed_flashcard_ids: safeParseJson(payload.completedFlashcardIds),
     };
-  });
+  }));
 
-  ipcMain.handle(IPC.REVIEW_SESSION_GET_RECENT, (_, days: number) => {
+  ipcMain.handle(IPC.REVIEW_SESSION_GET_RECENT, safe((days: number) => {
     const limit = Math.max(1, Math.min(Number(days) || 7, 30));
     return db.select().from(schema.reviewSessions).all()
       .sort((a, b) => String(b.date).localeCompare(String(a.date)))
@@ -695,12 +718,12 @@ export function registerIpcHandlers() {
         date: row.date,
         started: row.started ? 1 : 0,
         initial_total: row.initialTotal ?? 0,
-        completed_wrong_ids: JSON.parse(row.completedWrongIds ?? '[]'),
-        completed_flashcard_ids: JSON.parse(row.completedFlashcardIds ?? '[]'),
+        completed_wrong_ids: safeParseJson(row.completedWrongIds),
+        completed_flashcard_ids: safeParseJson(row.completedFlashcardIds),
       }));
-  });
+  }));
 
-  ipcMain.handle(IPC.RECOMMENDATION_EVENT_ADD, (_, event: any) => {
+  ipcMain.handle(IPC.RECOMMENDATION_EVENT_ADD, safe((event: any) => {
     db.insert(schema.recommendationEvents).values({
       date: String(event?.date ?? formatLocalDate()),
       source: String(event?.source ?? 'unknown'),
@@ -709,9 +732,9 @@ export function registerIpcHandlers() {
     }).run();
 
     return { success: true };
-  });
+  }));
 
-  ipcMain.handle(IPC.RECOMMENDATION_EVENT_GET_RECENT, (_, days: number) => {
+  ipcMain.handle(IPC.RECOMMENDATION_EVENT_GET_RECENT, safe((days: number) => {
     const limit = Math.max(1, Math.min(Number(days) || 7, 30));
     return db.select().from(schema.recommendationEvents).all()
       .sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
@@ -724,7 +747,7 @@ export function registerIpcHandlers() {
         href: row.href,
         created_at: row.createdAt ?? null,
       }));
-  });
+  }));
 
   // ==================== 数据导入导出 ====================
   ipcMain.handle(IPC.DATA_EXPORT, async () => {
@@ -849,10 +872,10 @@ export function registerIpcHandlers() {
   }
 
   ipcMain.handle(IPC.RAG_CONFIG_GET, () => getRagConfig());
-  ipcMain.handle(IPC.RAG_CONFIG_SET, (_, config: any) => {
+  ipcMain.handle(IPC.RAG_CONFIG_SET, safe((config: any) => {
     saveRagConfig(config);
     return { success: true };
-  });
+  }));
 
   // Embedding 计算
   async function computeEmbedding(text: string, config: any): Promise<number[] | null> {
@@ -885,7 +908,7 @@ export function registerIpcHandlers() {
   }
 
   // RAG 文档 CRUD
-  ipcMain.handle(IPC.RAG_DOC_ADD, (_, doc: any) => {
+  ipcMain.handle(IPC.RAG_DOC_ADD, safe((doc: any) => {
     const result = db.insert(schema.ragDocs).values({
       title: doc.title,
       content: doc.content,
@@ -901,24 +924,24 @@ export function registerIpcHandlers() {
       created_at: result.createdAt,
       updated_at: result.updatedAt,
     };
-  });
+  }));
 
-  ipcMain.handle(IPC.RAG_DOC_GET_ALL, () => {
+  ipcMain.handle(IPC.RAG_DOC_GET_ALL, safe(() => {
     const rows = sqlite.prepare(`
       SELECT id, title, content, source, category, created_at, updated_at
       FROM rag_docs ORDER BY created_at DESC
     `).all() as any[];
     return rows;
-  });
+  }));
 
-  ipcMain.handle(IPC.RAG_DOC_GET_BY_ID, (_, id: number) => {
+  ipcMain.handle(IPC.RAG_DOC_GET_BY_ID, safe((id: number) => {
     return sqlite.prepare(`
       SELECT id, title, content, source, category, created_at, updated_at
       FROM rag_docs WHERE id = ?
     `).get(id) ?? null;
-  });
+  }));
 
-  ipcMain.handle(IPC.RAG_DOC_UPDATE, (_, doc: any) => {
+  ipcMain.handle(IPC.RAG_DOC_UPDATE, safe((doc: any) => {
     db.update(schema.ragDocs).set({
       title: doc.title,
       content: doc.content,
@@ -937,13 +960,13 @@ export function registerIpcHandlers() {
       created_at: d.createdAt,
       updated_at: d.updatedAt,
     };
-  });
+  }));
 
-  ipcMain.handle(IPC.RAG_DOC_DELETE, async (_, id: number) => {
+  ipcMain.handle(IPC.RAG_DOC_DELETE, safe(async (id: number) => {
     db.delete(schema.ragDocs).where(eq(schema.ragDocs.id, id)).run();
     if (chroma.isChromaReady()) await chroma.deleteDocuments([id]);
     return { success: true };
-  });
+  }));
 
   // 同步题库为知识文档
   ipcMain.handle(IPC.RAG_SYNC_QUESTIONS, async () => {
@@ -1351,39 +1374,47 @@ ${context}
   });
 
   // RAG 会话 CRUD
-  ipcMain.handle(IPC.RAG_SESSION_CREATE, (_, title?: string) => {
+  ipcMain.handle(IPC.RAG_SESSION_CREATE, safe((title?: string) => {
     const row = db.insert(schema.ragSessions).values({ title: title || '新对话' }).returning().get();
     return { id: row.id, title: row.title, created_at: row.createdAt, updated_at: row.updatedAt };
-  });
+  }));
 
-  ipcMain.handle(IPC.RAG_SESSION_GET_ALL, () => {
+  ipcMain.handle(IPC.RAG_SESSION_GET_ALL, safe(() => {
     return db.select().from(schema.ragSessions).all()
       .sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')))
       .map((r) => ({ id: r.id, title: r.title, created_at: r.createdAt, updated_at: r.updatedAt }));
-  });
+  }));
 
-  ipcMain.handle(IPC.RAG_SESSION_GET, (_, id: number) => {
+  ipcMain.handle(IPC.RAG_SESSION_GET, safe((id: number) => {
     const r = db.select().from(schema.ragSessions).where(eq(schema.ragSessions.id, id)).get();
     if (!r) return null;
     return { id: r.id, title: r.title, created_at: r.createdAt, updated_at: r.updatedAt };
-  });
+  }));
 
-  ipcMain.handle(IPC.RAG_SESSION_DELETE, (_, id: number) => {
+  ipcMain.handle(IPC.RAG_SESSION_DELETE, safe((id: number) => {
     db.delete(schema.ragMessages).where(eq(schema.ragMessages.sessionId, id)).run();
     db.delete(schema.ragSessions).where(eq(schema.ragSessions.id, id)).run();
     return { success: true };
-  });
+  }));
 
-  ipcMain.handle(IPC.RAG_SESSION_ADD_MESSAGE, (_, msg: any) => {
-    return db.insert(schema.ragMessages).values({
+  ipcMain.handle(IPC.RAG_SESSION_ADD_MESSAGE, safe((msg: any) => {
+    const row = db.insert(schema.ragMessages).values({
       sessionId: msg.session_id,
       role: msg.role,
       content: msg.content,
       sources: msg.sources ? JSON.stringify(msg.sources) : '[]',
     }).returning().get();
-  });
+    return {
+      id: row.id,
+      session_id: row.sessionId,
+      role: row.role,
+      content: row.content,
+      sources: safeParseJson(row.sources),
+      created_at: row.createdAt,
+    };
+  }));
 
-  ipcMain.handle(IPC.RAG_SESSION_GET_MESSAGES, (_, sessionId: number) => {
+  ipcMain.handle(IPC.RAG_SESSION_GET_MESSAGES, safe((sessionId: number) => {
     return db.select().from(schema.ragMessages)
       .where(eq(schema.ragMessages.sessionId, sessionId))
       .all()
@@ -1393,10 +1424,10 @@ ${context}
         session_id: m.sessionId,
         role: m.role,
         content: m.content,
-        sources: m.sources ? JSON.parse(m.sources) : [],
+        sources: m.sources ? safeParseJson(m.sources) : [],
         created_at: m.createdAt,
       }));
-  });
+  }));
 
   // 批量导入 PDF 文件到知识库
   ipcMain.handle(IPC.RAG_IMPORT_PDFS, async (_, dirPath: string) => {
@@ -1739,7 +1770,7 @@ ${referenceContext ? `## 参考资料\n${referenceContext}` : ''}
   });
 
   // ==================== 知识图谱 ====================
-  ipcMain.handle(IPC.KG_GET_GRAPH, () => {
+  ipcMain.handle(IPC.KG_GET_GRAPH, safe(() => {
     const nodes = db.select().from(schema.kgNodes).all().map((n) => ({
       id: n.id,
       name: n.name,
@@ -1755,7 +1786,7 @@ ${referenceContext ? `## 参考资料\n${referenceContext}` : ''}
       weight: e.weight,
     }));
     return { nodes, edges };
-  });
+  }));
 
   ipcMain.handle(IPC.KG_BUILD, async () => {
     const config = getRagConfig();
@@ -1846,52 +1877,55 @@ ${sampleQuestions.join('\n')}
 
       if (!parsed.nodes || !parsed.edges) return { nodes: 0, edges: 0, error: '返回格式不正确' };
 
-      // 清空旧数据
-      sqlite.prepare('DELETE FROM kg_edges').run();
-      sqlite.prepare('DELETE FROM kg_nodes').run();
-
-      // 统计每个知识点关联的题目数
-      const nodeQuestionCounts: Record<string, number> = {};
-      for (const node of parsed.nodes) {
-        const name = String(node.name ?? '').trim();
-        if (!name) continue;
-        let count = 0;
-        for (const q of questions) {
-          if (q.content.includes(name) || q.type.includes(node.category ?? '') || (q.tags ?? '').includes(name)) {
-            count++;
-          }
-        }
-        nodeQuestionCounts[name] = count;
-      }
-
-      // 插入节点
       const nodeIdMap = new Map<string, number>();
-      for (const node of parsed.nodes) {
-        const name = String(node.name ?? '').trim();
-        if (!name || nodeIdMap.has(name)) continue;
-        const result = db.insert(schema.kgNodes).values({
-          name,
-          category: node.category ?? 'common',
-          description: node.description ?? '',
-          questionCount: nodeQuestionCounts[name] ?? 0,
-        }).returning().get();
-        nodeIdMap.set(name, result.id);
-      }
-
-      // 插入边
       let edgeCount = 0;
-      for (const edge of parsed.edges) {
-        const sourceId = nodeIdMap.get(String(edge.source ?? '').trim());
-        const targetId = nodeIdMap.get(String(edge.target ?? '').trim());
-        if (!sourceId || !targetId || sourceId === targetId) continue;
-        db.insert(schema.kgEdges).values({
-          sourceId,
-          targetId,
-          relation: edge.relation ?? 'related',
-          weight: 1,
-        }).run();
-        edgeCount++;
-      }
+
+      // Transaction: atomic clear + rebuild
+      sqlite.transaction(() => {
+        sqlite.prepare('DELETE FROM kg_edges').run();
+        sqlite.prepare('DELETE FROM kg_nodes').run();
+
+        // 统计每个知识点关联的题目数
+        const nodeQuestionCounts: Record<string, number> = {};
+        for (const node of parsed.nodes) {
+          const name = String(node.name ?? '').trim();
+          if (!name) continue;
+          let count = 0;
+          for (const q of questions) {
+            if (q.content.includes(name) || q.type.includes(node.category ?? '') || (q.tags ?? '').includes(name)) {
+              count++;
+            }
+          }
+          nodeQuestionCounts[name] = count;
+        }
+
+        // 插入节点
+        for (const node of parsed.nodes) {
+          const name = String(node.name ?? '').trim();
+          if (!name || nodeIdMap.has(name)) continue;
+          const result = db.insert(schema.kgNodes).values({
+            name,
+            category: node.category ?? 'common',
+            description: node.description ?? '',
+            questionCount: nodeQuestionCounts[name] ?? 0,
+          }).returning().get();
+          nodeIdMap.set(name, result.id);
+        }
+
+        // 插入边
+        for (const edge of parsed.edges) {
+          const sourceId = nodeIdMap.get(String(edge.source ?? '').trim());
+          const targetId = nodeIdMap.get(String(edge.target ?? '').trim());
+          if (!sourceId || !targetId || sourceId === targetId) continue;
+          db.insert(schema.kgEdges).values({
+            sourceId,
+            targetId,
+            relation: edge.relation ?? 'related',
+            weight: 1,
+          }).run();
+          edgeCount++;
+        }
+      })();
 
       return { nodes: nodeIdMap.size, edges: edgeCount };
     } catch (err) {
@@ -1900,11 +1934,11 @@ ${sampleQuestions.join('\n')}
     }
   });
 
-  ipcMain.handle(IPC.KG_CLEAR, () => {
+  ipcMain.handle(IPC.KG_CLEAR, safe(() => {
     sqlite.prepare('DELETE FROM kg_edges').run();
     sqlite.prepare('DELETE FROM kg_nodes').run();
     return { success: true };
-  });
+  }));
 
   // ==================== 自动更新 ====================
   ipcMain.handle(IPC.UPDATE_CHECK, async () => {

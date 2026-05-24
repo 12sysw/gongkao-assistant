@@ -235,6 +235,18 @@ const Pomodoro: React.FC = () => {
 
   const handleTimerEnd = useCallback(() => {
     setIsRunning(false);
+
+    // Desktop notification
+    try {
+      const nextLabel = mode === 'work'
+        ? (completed % 4 === 3 ? MODES.longBreak.label : MODES.shortBreak.label)
+        : MODES.work.label;
+      new Notification(
+        mode === 'work' ? '专注结束！' : '休息结束！',
+        { body: `接下来：${nextLabel}`, silent: false }
+      );
+    } catch {}
+
     if (mode === 'work') {
       setCompleted((prev) => {
         const newCount = prev + 1;
