@@ -3,6 +3,8 @@ import { BrowserWindow, app } from 'electron';
 import { IPC } from '../shared/ipc';
 
 let mainWindow: BrowserWindow | null = null;
+let updateTimer: ReturnType<typeof setInterval> | null = null;
+const CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 
 export function initUpdater(window: BrowserWindow): void {
   mainWindow = window;
@@ -37,6 +39,12 @@ export function initUpdater(window: BrowserWindow): void {
     console.error('[Updater]', error.message);
     mainWindow?.webContents.send(IPC.UPDATE_ERROR, error.message);
   });
+
+  // 启动时检查一次
+  checkForUpdates();
+
+  // 每 4 小时自动检查
+  updateTimer = setInterval(() => checkForUpdates(), CHECK_INTERVAL);
 }
 
 export async function checkForUpdates(): Promise<void> {
@@ -59,4 +67,11 @@ export async function downloadUpdate(): Promise<void> {
 
 export function quitAndInstall(): void {
   autoUpdater.quitAndInstall();
+}
+
+export function stopUpdater(): void {
+  if (updateTimer) {
+    clearInterval(updateTimer);
+    updateTimer = null;
+  }
 }

@@ -4,7 +4,7 @@ import fs from 'fs';
 import { registerIpcHandlers } from './ipc/index';
 import { initDatabase } from './db/migrations';
 import { closeDatabase, initRagFts } from './db';
-import { initUpdater } from './updater';
+import { initUpdater, stopUpdater } from './updater';
 import * as chroma from './chroma';
 
 // 加载 .env 文件到 process.env（仅开发模式，生产环境通过 CI 注入）
@@ -106,6 +106,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  stopUpdater();
   chroma.stopChromaServer();
   closeDatabase();
   if (process.platform !== 'darwin') {
