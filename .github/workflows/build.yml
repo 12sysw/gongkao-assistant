@@ -44,8 +44,8 @@ jobs:
       - name: Clean release directory
         run: if (Test-Path release) { Remove-Item -Recurse -Force release }
 
-      - name: Build electron
-        run: npx electron-builder --win
+      - name: Build & publish electron
+        run: npx electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
