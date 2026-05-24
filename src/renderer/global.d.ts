@@ -79,5 +79,6 @@ interface Window {
       onDownloaded: (cb: (info: any) => void) => () => void;
       onError: (cb: (message: string) => void) => () => void;
     };
+    getAppVersion: () => Promise<string>;
   };
 }

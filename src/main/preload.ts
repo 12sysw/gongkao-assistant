@@ -126,6 +126,7 @@ const api = {
     onDownloaded: (cb: (info: any) => void) => onChannel(IPC.UPDATE_DOWNLOADED, cb),
     onError: (cb: (message: string) => void) => onChannel(IPC.UPDATE_ERROR, cb),
   },
+  getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
 };
 
 contextBridge.exposeInMainWorld('api', api);

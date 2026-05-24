@@ -222,11 +222,25 @@ const SettingsPage: React.FC = () => {
     label: p.name,
   }));
 
+  const [appVersion, setAppVersion] = useState('');
+
+  useEffect(() => {
+    const api = (window as any).api;
+    if (api?.getAppVersion) {
+      api.getAppVersion().then((v: string) => setAppVersion(v)).catch(() => {});
+    }
+  }, []);
+
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-xl font-bold text-surface-900 font-display">设置</h1>
-        <p className="text-sm text-surface-400 mt-1">配置AI分析接口</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-surface-900 font-display">设置</h1>
+          <p className="text-sm text-surface-400 mt-1">配置AI分析接口</p>
+        </div>
+        {appVersion && (
+          <span className="text-xs text-surface-400 bg-surface-50 px-2 py-1 rounded-md">v{appVersion}</span>
+        )}
       </div>
 
       <div className="bg-white rounded-xl border border-surface-200 p-6 space-y-5">

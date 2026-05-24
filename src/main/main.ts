@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut } from 'electron';
+import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { registerIpcHandlers } from './ipc/index';
@@ -87,6 +87,10 @@ app.whenReady().then(() => {
   initRagFts();
   // 注册 IPC 处理器（better-sqlite3 同步，无需 await）
   registerIpcHandlers();
+
+  // 版本号查询
+  ipcMain.handle('app:getVersion', () => app.getVersion());
+
   // 启动 ChromaDB 向量数据库（非阻塞，失败不影响核心功能）
   chroma.startChromaServer().then((ok) => {
     console.log(`[Main] ChromaDB ${ok ? 'started' : 'unavailable (using fallback)'}`);

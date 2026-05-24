@@ -22,28 +22,20 @@ const UpdateNotification: React.FC = () => {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (!api?.update) {
-      console.warn('[UpdateNotification] api.update not available — auto-update disabled');
-      return;
-    }
-
-    console.log('[UpdateNotification] Listening for update events');
+    if (!api?.update) return;
 
     const offChecking = api.update.onChecking(() => {
-      console.log('[UpdateNotification] Checking for update...');
       setStatus('checking');
       setDismissed(false);
     });
 
     const offAvailable = api.update.onAvailable((updateInfo: any) => {
-      console.log('[UpdateNotification] Update available!', updateInfo);
       setStatus('available');
       setInfo(updateInfo || {});
       setDismissed(false);
     });
 
     const offNotAvailable = api.update.onNotAvailable(() => {
-      console.log('[UpdateNotification] No update available');
       setStatus('idle');
     });
 
@@ -57,8 +49,7 @@ const UpdateNotification: React.FC = () => {
       setInfo(updateInfo || {});
     });
 
-    const offError = api.update.onError((msg: string) => {
-      console.log('[UpdateNotification] Error/debug msg:', msg);
+    const offError = api.update.onError(() => {
       setStatus('idle');
     });
 
@@ -72,17 +63,7 @@ const UpdateNotification: React.FC = () => {
     };
   }, []);
 
-  if (dismissed || status === 'idle') return null;
-
-  if (status === 'checking') {
-    return (
-      <div className="fixed bottom-4 right-4 z-50 max-w-sm">
-        <div className="bg-surface-1 border border-surface-200 rounded-lg shadow-lg p-3">
-          <p className="text-xs text-surface-500">正在检查更新...</p>
-        </div>
-      </div>
-    );
-  }
+  if (dismissed || status === 'idle' || status === 'checking') return null;
 
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-sm">
