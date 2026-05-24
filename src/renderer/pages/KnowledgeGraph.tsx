@@ -79,8 +79,6 @@ const KnowledgeGraph: React.FC = () => {
   const sizeRef = useRef({ w: 800, h: 600 });
   const dragRef = useRef<{ nodeId: number | null; startX: number; startY: number }>({ nodeId: null, startX: 0, startY: 0 });
   const panDragRef = useRef<{ active: boolean; startX: number; startY: number; panX: number; panY: number }>({ active: false, startX: 0, startY: 0, panX: 0, panY: 0 });
-  const [hoveredNode, setHoveredNode] = useState<KgNode | null>(null);
-
   const hoveredRef = useRef<number | null>(null);
   const selectedRef = useRef<number | null>(null);
   const zoomRef = useRef(1);
@@ -89,8 +87,6 @@ const KnowledgeGraph: React.FC = () => {
   const stableCountRef = useRef(0);
   const searchRef = useRef('');
   const toastIdRef = useRef(0);
-  const animRunningRef = useRef(false);
-  const tickFnRef = useRef<(() => void) | null>(null);
 
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { panRef.current = pan; }, [pan]);
