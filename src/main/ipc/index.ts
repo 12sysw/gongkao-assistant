@@ -1768,7 +1768,7 @@ ${referenceContext ? `## 参考资料\n${referenceContext}` : ''}
       return { nodes: 0, edges: 0, error: '题库为空，请先导入题目' };
     }
 
-    // 按题型分组，每组取样最多10题
+    // 按题型分组，每组取样最多5题
     const byType: Record<string, typeof questions> = {};
     for (const q of questions) {
       if (!byType[q.type]) byType[q.type] = [];
@@ -1777,36 +1777,20 @@ ${referenceContext ? `## 参考资料\n${referenceContext}` : ''}
 
     const sampleQuestions: string[] = [];
     for (const [type, qs] of Object.entries(byType)) {
-      const sample = qs.slice(0, 10);
-      sampleQuestions.push(`【${type}】共${qs.length}题，示例：`);
+      const sample = qs.slice(0, 5);
+      sampleQuestions.push(`【${type}】共${qs.length}题`);
       for (const q of sample) {
-        sampleQuestions.push(`- ${q.content.slice(0, 100)}`);
+        sampleQuestions.push(`- ${q.content.slice(0, 80)}`);
       }
     }
 
-    const prompt = `你是公务员考试知识体系专家。根据以下题库内容，提取知识点实体和它们之间的关系，构建知识图谱。
+    const prompt = `你是公务员考试知识体系专家。根据以下题库概况，提取核心知识点和关系。
 
-## 题库概况
-总题数：${questions.length}
+题库：共${questions.length}题
 ${sampleQuestions.join('\n')}
 
-## 要求
-请提取15-30个核心知识点节点，以及它们之间的关系边。
-
-输出严格的JSON格式（不要包含其他文字）：
-{
-  "nodes": [
-    {"name": "知识点名称", "category": "所属题型如行测-数量关系", "description": "简短描述"}
-  ],
-  "edges": [
-    {"source": "知识点A名称", "target": "知识点B名称", "relation": "关系类型如prerequisite/related/contains"}
-  ]
-}
-
-关系类型说明：
-- prerequisite: A是B的前置知识
-- related: A和B相关联
-- contains: A包含B（上下位关系）`;
+请提取20-35个知识点节点和它们之间的关系边。要求覆盖所有题型，每个题型至少3-5个知识点。直接输出JSON，不要其他文字：
+{"nodes":[{"name":"名称","category":"题型如行测-数量关系","description":"一句话描述"}],"edges":[{"source":"知识点A","target":"知识点B","relation":"prerequisite或related或contains"}]}`;
 
     const baseUrl = config.llmApiUrl.replace(/\/+$/, '');
     try {
@@ -1816,15 +1800,39 @@ ${sampleQuestions.join('\n')}
         body: JSON.stringify({
           model: config.llmModel || 'deepseek-chat',
           messages: [{ role: 'user', content: prompt }],
-          max_tokens: 3000,
-          stream: false,
+          max_tokens: 2500,
+          stream: true,
         }),
       });
 
       if (!resp.ok) return { nodes: 0, edges: 0, error: `API 错误: ${resp.status}` };
 
-      const data = (await resp.json()) as any;
-      const content = data.choices?.[0]?.message?.content ?? '';
+      // Stream mode to avoid server timeout
+      const reader = resp.body?.getReader();
+      if (!reader) return { nodes: 0, edges: 0, error: '无法读取响应流' };
+
+      const decoder = new TextDecoder();
+      let content = '';
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data:')) continue;
+          const data = trimmed.slice(5).trim();
+          if (data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) content += delta;
+          } catch (_) {}
+        }
+      }
 
       // 解析 JSON（可能被包裹在 ```json ... ``` 中）
       let parsed: { nodes: any[]; edges: any[] };
