@@ -9,7 +9,6 @@ const CHECK_INTERVAL = 4 * 60 * 60 * 1000; // 4 hours
 export function initUpdater(window: BrowserWindow): void {
   mainWindow = window;
 
-  // 仅在打包后的生产环境启用自动更新
   if (!app.isPackaged) return;
 
   autoUpdater.autoDownload = false;
@@ -40,10 +39,7 @@ export function initUpdater(window: BrowserWindow): void {
     mainWindow?.webContents.send(IPC.UPDATE_ERROR, error.message);
   });
 
-  // 启动时检查一次
   checkForUpdates();
-
-  // 每 4 小时自动检查
   updateTimer = setInterval(() => checkForUpdates(), CHECK_INTERVAL);
 }
 
