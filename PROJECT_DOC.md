@@ -1,6 +1,6 @@
 # 公考小助手 - 项目维护文档
 
-> 版本：v1.2.1 | 最后更新：2026-05-02
+> 版本：v1.2.18 | 最后更新：2026-05-24
 
 ---
 
@@ -12,27 +12,34 @@
 4. [开发环境搭建](#开发环境搭建)
 5. [常用命令](#常用命令)
 6. [功能模块说明](#功能模块说明)
-7. [聊天室功能](#聊天室功能)
-8. [外部 API 接口](#外部-api-接口)
-9. [自动更新功能](#自动更新功能)
-10. [打包与发布](#打包与发布)
-11. [数据存储](#数据存储)
-12. [常见问题](#常见问题)
+7. [知识图谱](#知识图谱)
+8. [申论 AI 批改](#申论-ai-批改)
+9. [RAG 知识库](#rag-知识库)
+10. [聊天室功能](#聊天室功能)
+11. [外部 API 接口](#外部-api-接口)
+12. [自动更新功能](#自动更新功能)
+13. [打包与发布](#打包与发布)
+14. [数据存储](#数据存储)
+15. [常见问题](#常见问题)
 
 ---
 
 ## 项目概述
 
-公考小助手是一款基于 Electron 的桌面端公务员考试学习工具，集成了错题本、记忆卡片、思维导图、学习计划、番茄钟、聊天室等功能。
+公考小助手是一款基于 Electron 的桌面端公务员考试学习工具，集成了错题本、记忆卡片、思维导图、知识图谱、申论批改、RAG 知识库、学习计划、番茄钟、聊天室等功能。
 
 ### 核心功能
 
 | 功能 | 说明 |
 |------|------|
-| 仪表盘 | 学习数据统计、考试倒计时、天气信息 |
-| 错题本 | 错题收集管理，支持 OCR 图片识别 |
+| 仪表盘 | 学习数据统计、考试倒计时、天气、每日语录、AI 推荐任务 |
+| 题库管理 | 题目导入/分类、OCR 图片识别 |
+| 错题本 | 错题收集管理，支持统一复习 |
 | 套题测评 | 模拟真实考试，AI 分析薄弱环节 |
 | 记忆卡片 | 间隔重复算法，科学记忆 |
+| 知识图谱 | LLM 驱动提取知识点，力导向布局可视化，缩放/搜索/交互 |
+| 知识库 | RAG 向量检索，ChromaDB 嵌入存储，智能问答 |
+| 申论批改 | 流式 AI 批改，逐段点评与改进建议 |
 | 思维导图 | 知识点可视化整理 |
 | 学习计划 | 目标管理与进度追踪、法定假日标记 |
 | 番茄钟 | 专注学习计时 |
@@ -57,17 +64,18 @@
 │  │  - IPC 处理  │←→│  - Tailwind CSS      │  │
 │  │  - 自动更新  │  │  - Zustand 状态管理   │  │
 │  │  - 文件系统  │  │  - TanStack Query    │  │
+│  │  - ChromaDB  │  │                      │  │
 │  └──────────────┘  └──────────────────────┘  │
 └─────────────────────────────────────────────┘
          ↕                    ↕
    better-sqlite3       腾讯云 IM SDK
    (本地数据库)          (聊天室)
-                            ↕
-                      腾讯云 SCF 云函数
-                      (UserSig 签发)
-                            ↕
-                      UAPI 公共接口平台
-                      (天气/语录/节假日/翻译)
+         ↕                    ↕
+   ChromaDB             腾讯云 SCF 云函数
+   (向量存储)            (UserSig 签发)
+                              ↕
+                        UAPI 公共接口平台
+                        (天气/语录/节假日/翻译)
 ```
 
 ### 技术栈
@@ -86,7 +94,7 @@
 | @tencentcloud/chat | 3.6 | 腾讯云 IM SDK |
 | electron-updater | 6.8 | 自动更新 |
 | tesseract.js | 7.0 | OCR 图片识别 |
-| sonner | 2.0 | Toast 通知 |
+| chromadb | 0.5 | 向量数据库 |
 
 ---
 
@@ -132,21 +140,29 @@ gongkao-assistant/
 │   │   │   └── utils.ts       # 通用工具函数
 │   │   │
 │   │   ├── pages/             # 功能页面
-│   │   │   ├── Dashboard.tsx  # 仪表盘
-│   │   │   ├── WrongBook.tsx  # 错题本
-│   │   │   ├── Flashcards.tsx # 记忆卡片
-│   │   │   ├── MindMap.tsx    # 思维导图
-│   │   │   ├── StudyPlan.tsx  # 学习计划
-│   │   │   ├── Pomodoro.tsx   # 番茄钟
-│   │   │   ├── DailyCheckin.tsx # 打卡
-│   │   │   ├── ChatRoom.tsx   # 聊天室
-│   │   │   ├── Achievements.tsx # 成就
-│   │   │   ├── Encourage.tsx  # 鼓励语录
-│   │   │   ├── Settings.tsx   # 设置
-│   │   │   └── MockExam.tsx   # 套题测评
+│   │   │   ├── Dashboard.tsx       # 仪表盘
+│   │   │   ├── QuestionBank.tsx     # 题库管理
+│   │   │   ├── WrongBook.tsx       # 错题本
+│   │   │   ├── Flashcards.tsx      # 记忆卡片
+│   │   │   ├── KnowledgeGraph.tsx  # 知识图谱
+│   │   │   ├── KnowledgeBase.tsx   # RAG 知识库
+│   │   │   ├── EssayReview.tsx     # 申论批改
+│   │   │   ├── ReviewHub.tsx       # 统一复习
+│   │   │   ├── MockExam.tsx        # 套题测评
+│   │   │   ├── MindMap.tsx         # 思维导图
+│   │   │   ├── StudyPlan.tsx       # 学习计划
+│   │   │   ├── Pomodoro.tsx        # 番茄钟
+│   │   │   ├── DailyCheckin.tsx    # 打卡
+│   │   │   ├── ChatRoom.tsx        # 聊天室
+│   │   │   ├── RagChat.tsx         # RAG 问答
+│   │   │   ├── Achievements.tsx    # 成就
+│   │   │   ├── Encourage.tsx       # 鼓励语录
+│   │   │   └── Settings.tsx        # 设置
 │   │   │
 │   │   ├── stores/            # Zustand 状态管理
-│   │   │   └── chat-store.ts  # 聊天室状态
+│   │   │   ├── app-store.ts   # 全局 UI 状态
+│   │   │   ├── chat-store.ts  # 聊天室状态
+│   │   │   └── mock-exam-store.ts # 考试状态机
 │   │   │
 │   │   ├── App.tsx            # 路由配置
 │   │   ├── main.tsx           # 渲染进程入口
@@ -162,6 +178,7 @@ gongkao-assistant/
 ├── tsconfig.main.json         # TypeScript 配置（主进程）
 ├── vite.config.ts             # Vite 配置
 ├── tailwind.config.js         # Tailwind CSS 配置
+├── CLAUDE.md                  # Claude Code 工作指引
 └── PROJECT_DOC.md             # 本文档
 ```
 
@@ -209,6 +226,7 @@ npm install
 | `npm run electron:dev` | 开发模式运行（推荐） |
 | `npm run electron:build` | 构建安装包 |
 | `npm run lint` | TypeScript 类型检查 |
+| `npm run test` | IPC 契约测试 |
 
 ---
 
@@ -224,6 +242,9 @@ npm install
     │                           │
     ├── api.question.add() ──→  IPC.QUESTION_ADD
     ├── api.wrongBook.getAll()→ IPC.WRONG_BOOK_GET_ALL
+    ├── api.kg.build() ──────→  IPC.KG_BUILD
+    ├── api.rag.query() ─────→  IPC.RAG_QUERY
+    ├── api.essay.review() ──→  IPC.ESSAY_REVIEW
     ├── api.chat.generateUserSig() → IPC.CHAT_GENERATE_USER_SIG
     └── api.update.check() ──→ IPC.UPDATE_CHECK
 ```
@@ -249,6 +270,70 @@ Windows: C:\Users\<用户名>\AppData\Roaming\gongkao-assistant\gongkao.db
 - `pomodoro_records` - 番茄钟记录
 - `exam_config` - 考试配置
 - `encourage_quotes` - 鼓励语录
+- `kg_nodes` - 知识图谱节点
+- `kg_edges` - 知识图谱关系边
+
+---
+
+## 知识图谱
+
+### 架构
+
+利用 LLM 从题库中提取知识点和关系，存入 `kg_nodes` / `kg_edges` 表，前端以 Canvas 力导向图渲染。
+
+```
+题库 → 按题型取样 → LLM 提取 JSON → 解析入库 → Canvas 渲染
+```
+
+### 前端交互
+
+- **力导向布局**：库仑斥力 + 弹簧引力 + 中心引力，模拟稳定后自动停帧
+- **缩放平移**：滚轮以鼠标位置为中心缩放，拖拽平移，键盘 +/- 缩放
+- **搜索高亮**：输入关键词匹配节点，橙色环标记
+- **节点交互**：拖拽移动、点击查看详情、选中高亮关联节点/边
+- **方向箭头**：边上绘制箭头表示关系方向（prerequisite/contains）
+- **HiDPI 适配**：`devicePixelRatio` + `ResizeObserver` 响应式
+
+### 性能优化
+
+- 颜色查找缓存（`COLOR_CACHE` Map）
+- 选中节点邻接预计算（`connectedIds` Set）
+- 物理模拟保活：拖拽节点时重启模拟
+- 稳定后停止 `requestAnimationFrame` 循环
+
+### LLM 调用
+
+- 流式 SSE 请求，避免服务端超时
+- 按 `config.llmApiUrl` / `config.llmModel` 配置
+- `max_tokens: 2500`，返回 20-35 个知识点节点
+
+---
+
+## 申论 AI 批改
+
+### 流程
+
+```
+用户提交申论 → 发送至 LLM → 流式返回点评 → 实时渲染反馈
+```
+
+- 支持逐段点评和改进建议
+- 流式输出（SSE），避免长时间等待
+- 通过设置页配置 AI 服务商
+
+---
+
+## RAG 知识库
+
+### 架构
+
+```
+题库 → 分块嵌入 → ChromaDB 向量存储 → 查询时检索相关片段 → 组装 prompt → LLM 回答
+```
+
+- ChromaDB 本地实例，嵌入维度与配置的 LLM 模型匹配
+- 相似度阈值过滤，Top-K 检索
+- 查询时自动注入检索到的参考内容
 
 ---
 
@@ -329,7 +414,7 @@ GET /api/v1/saying
 }
 ```
 
-**使用位置：** `Encourage.tsx` 鼓励语录页面
+**使用位置：** `Encourage.tsx` 鼓励语录页面、`Dashboard.tsx` 仪表盘
 
 ---
 
@@ -469,7 +554,7 @@ export async function fetchAnswer(): Promise<string> { ... }
 ```
 发布新版本                    用户端
    │                           │
-   ├── git tag v1.2.1          ├── 启动时检查更新
+   ├── git tag v1.2.18         ├── 启动时检查更新
    ├── git push --tags         ├── 发现新版本 → 弹窗提示
    ├── GitHub Actions 自动打包  ├── 点击下载 → 后台下载
    └── 发布到 GitHub Releases   └── 下载完成 → 点击安装 → 重启
@@ -594,6 +679,12 @@ npm run electron:dev
 - 检查网络连接
 - 接口有降级处理，会显示默认内容
 
+### Q: 知识图谱构建失败
+
+- 确保已在设置页配置 AI 模型 API URL 和 Key
+- 构建使用流式请求，部分模型可能不支持 SSE
+- 题库需要先导入题目
+
 ---
 
 ## 设计系统
@@ -607,6 +698,21 @@ npm run electron:dev
 | `success` / `warning` / `danger` / `info` | 状态色 |
 
 字体：Outfit（标题）+ Plus Jakarta Sans（正文）
+
+---
+
+## 版本历史
+
+| 版本 | 主要变更 |
+|------|----------|
+| v1.2.18 | 知识图谱增强：鼠标跟随缩放、搜索高亮、方向箭头、力模拟自动停帧、Toast 通知 |
+| v1.2.17 | 知识图谱 Canvas 闭包修复 |
+| v1.2.16 | 知识图谱功能上线（LLM 实体提取 + 力导向布局） |
+| v1.2.15 | 申论 AI 批改（流式反馈） |
+| v1.2.12 | 统一复习 + 推荐反馈循环 |
+| v1.2.4 | RAG 知识库、ChromaDB 向量搜索、套题使用真题 |
+| v1.2.3 | UAPI 天气/语录/答案之书集成 |
+| v1.2.1 | 初始文档版本 |
 
 ---
 
