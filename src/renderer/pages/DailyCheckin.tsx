@@ -219,7 +219,11 @@ const DailyCheckin: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  const daysLeft = useMemo(() => Math.max(0, dayjs(examDate).diff(dayjs(), 'day')), [examDate]);
+  const daysLeft = useMemo(() => {
+    if (!examDate) return 0;
+    const diff = dayjs(examDate).diff(dayjs(), 'day');
+    return isNaN(diff) ? 0 : Math.max(0, diff);
+  }, [examDate]);
 
   const handleCheckin = useCallback(async () => {
     try {

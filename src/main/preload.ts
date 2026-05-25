@@ -93,6 +93,7 @@ const api = {
     embedDoc: (id: number) => ipcRenderer.invoke(IPC.RAG_EMBED_DOC, id),
     configGet: () => ipcRenderer.invoke(IPC.RAG_CONFIG_GET),
     configSet: (config: any) => ipcRenderer.invoke(IPC.RAG_CONFIG_SET, config),
+    configTest: (params: { apiUrl: string; apiKey: string; model: string }) => ipcRenderer.invoke(IPC.RAG_CONFIG_TEST, params),
     sessionCreate: (title?: string) => ipcRenderer.invoke(IPC.RAG_SESSION_CREATE, title),
     sessionGetAll: () => ipcRenderer.invoke(IPC.RAG_SESSION_GET_ALL),
     sessionGet: (id: number) => ipcRenderer.invoke(IPC.RAG_SESSION_GET, id),
@@ -110,6 +111,8 @@ const api = {
     essayReview: (params: { topic: string; material: string; answer: string; type: string }) => ipcRenderer.invoke(IPC.RAG_ESSAY_REVIEW, params),
     onEssayStreamChunk: (cb: (chunk: string) => void) => onChannel(IPC.RAG_ESSAY_STREAM_CHUNK, cb),
     onEssayStreamEnd: (cb: () => void) => onChannel(IPC.RAG_ESSAY_STREAM_END, cb),
+    parsePdf: (buffer: ArrayBuffer) => ipcRenderer.invoke(IPC.RAG_PARSE_PDF, buffer),
+    parsePdfAi: (text: string) => ipcRenderer.invoke(IPC.RAG_PARSE_PDF_AI, text),
   },
   kg: {
     getGraph: () => ipcRenderer.invoke(IPC.KG_GET_GRAPH),

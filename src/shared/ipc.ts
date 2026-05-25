@@ -84,6 +84,7 @@ export const IPC = {
   RAG_EMBED_DOC: 'rag:embed-doc',
   RAG_CONFIG_GET: 'rag:config:get',
   RAG_CONFIG_SET: 'rag:config:set',
+  RAG_CONFIG_TEST: 'rag:config:test',
   RAG_SESSION_CREATE: 'rag:session:create',
   RAG_SESSION_GET_ALL: 'rag:session:get-all',
   RAG_SESSION_GET: 'rag:session:get',
@@ -101,6 +102,8 @@ export const IPC = {
   RAG_ESSAY_REVIEW: 'rag:essay-review',
   RAG_ESSAY_STREAM_CHUNK: 'rag:essay-stream-chunk',
   RAG_ESSAY_STREAM_END: 'rag:essay-stream-end',
+  RAG_PARSE_PDF: 'rag:parse-pdf',
+  RAG_PARSE_PDF_AI: 'rag:parse-pdf-ai',
 
   // 知识图谱
   KG_GET_GRAPH: 'kg:get-graph',
@@ -226,6 +229,8 @@ export interface Api {
     essayReview: (params: { topic: string; material: string; answer: string; type: string }) => Promise<{ review: string }>;
     onEssayStreamChunk: (cb: (chunk: string) => void) => Unsubscribe;
     onEssayStreamEnd: (cb: () => void) => Unsubscribe;
+    parsePdf: (buffer: ArrayBuffer) => Promise<{ text: string; error?: string }>;
+    parsePdfAi: (text: string) => Promise<{ sections: any[]; error?: string }>;
   };
   kg: {
     getGraph: () => Promise<{ nodes: any[]; edges: any[] }>;

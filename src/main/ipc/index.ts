@@ -932,6 +932,29 @@ td{padding:7px 6px;border-bottom:1px solid #e7e5e4;word-break:break-all;font-siz
     return { success: true };
   }));
 
+  ipcMain.handle(IPC.RAG_CONFIG_TEST, async (_event, params: { apiUrl: string; apiKey: string; model: string }) => {
+    const { apiUrl, apiKey, model } = params;
+    let chatUrl = apiUrl.trim().replace(/\/+$/, '');
+    if (!chatUrl.endsWith('/chat/completions')) {
+      chatUrl = `${chatUrl}/chat/completions`;
+    }
+
+    try {
+      const resp = await fetch(chatUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: model || 'deepseek-chat',
+          messages: [{ role: 'user', content: '你好' }],
+          max_tokens: 10,
+        }),
+      });
+      return { success: resp.ok, status: resp.status };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
   // Embedding 计算
   async function computeEmbedding(text: string, config: any): Promise<number[] | null> {
     if (!config.embedApiUrl || !config.embedApiKey || !config.embedModel) return null;
@@ -1822,6 +1845,74 @@ ${referenceContext ? `## 参考资料\n${referenceContext}` : ''}
 
     event.sender.send(IPC.RAG_ESSAY_STREAM_END);
     return { review };
+  });
+
+  // ==================== PDF 文本提取 ====================
+  ipcMain.handle(IPC.RAG_PARSE_PDF, async (_event, buffer: ArrayBuffer) => {
+    try {
+      const pdfParser = new PDFParse(new Uint8Array(buffer));
+      const pdfData = await pdfParser.getText();
+      pdfParser.destroy();
+      return { text: pdfData.text?.trim() || '' };
+    } catch (err: any) {
+      console.error('[PDF Parse] Error:', err);
+      return { text: '', error: err.message };
+    }
+  });
+
+  // ==================== AI 提取题目 ====================
+  ipcMain.handle(IPC.RAG_PARSE_PDF_AI, async (_event, text: string) => {
+    const config = getRagConfig();
+    if (!config.llmApiUrl || !config.llmApiKey) {
+      return { sections: [], error: '请先在设置中配置 AI 模型 API' };
+    }
+
+    // 截取前 8000 字符给 AI 分析
+    const truncated = text.slice(0, 8000);
+
+    const prompt = `你是一个公务员考试试卷解析专家。请仔细阅读以下从 PDF 提取的试卷文本，按照文档中的章节/部分结构提取所有题目。
+
+要求：
+1. 保持原文中的章节划分（如"第一部分 言语理解与表达"、"二、资料分析"等）
+2. 每道题目保留完整原文（包括题目、选项、要求说明等），不要截断
+3. 题号保持原文格式
+
+请直接输出 JSON，不要其他文字：
+{"sections":[{"title":"章节标题","questions":[{"number":"题号如1.或一、","content":"完整题目内容"}]}]}
+
+试卷文本：
+${truncated}`;
+
+    try {
+      const baseUrl = config.llmApiUrl.replace(/\/+$/, '');
+      const resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.llmApiKey}` },
+        body: JSON.stringify({
+          model: config.llmModel || 'deepseek-chat',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 4000,
+        }),
+      });
+
+      if (!resp.ok) {
+        return { sections: [], error: `AI 请求失败: HTTP ${resp.status}` };
+      }
+
+      const data = await resp.json() as any;
+      const content = data.choices?.[0]?.message?.content || '';
+
+      // 提取 JSON（可能包含 markdown 代码块）
+      let jsonStr = content;
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+      if (jsonMatch) jsonStr = jsonMatch[1];
+
+      const parsed = JSON.parse(jsonStr.trim());
+      return { sections: parsed.sections || [] };
+    } catch (err: any) {
+      console.error('[AI Parse PDF] Error:', err);
+      return { sections: [], error: `AI 解析失败: ${err.message}` };
+    }
   });
 
   // ==================== 知识图谱 ====================
