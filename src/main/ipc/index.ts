@@ -955,6 +955,48 @@ td{padding:7px 6px;border-bottom:1px solid #e7e5e4;word-break:break-all;font-siz
     }
   });
 
+  // ==================== AI OCR（图片文字识别） ====================
+  ipcMain.handle(IPC.AI_OCR_IMAGE, async (_event, base64Data: string) => {
+    const config = getRagConfig();
+    if (!config.llmApiUrl || !config.llmApiKey) {
+      return { text: '', error: '请先在设置中配置 AI 模型' };
+    }
+
+    let chatUrl = config.llmApiUrl.trim().replace(/\/+$/, '');
+    if (!chatUrl.endsWith('/chat/completions')) {
+      chatUrl = `${chatUrl}/chat/completions`;
+    }
+
+    try {
+      const resp = await fetch(chatUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.llmApiKey}` },
+        body: JSON.stringify({
+          model: config.llmModel || 'deepseek-chat',
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image_url', image_url: { url: `data:image/png;base64,${base64Data}` } },
+              { type: 'text', text: '请精确识别图片中的所有中文文字，保持原有格式和段落结构，直接输出识别结果，不要添加任何解释说明。' },
+            ],
+          }],
+          max_tokens: 2000,
+        }),
+      });
+
+      if (!resp.ok) {
+        return { text: '', error: `OCR 请求失败: HTTP ${resp.status}` };
+      }
+
+      const data = await resp.json() as any;
+      const text = data.choices?.[0]?.message?.content?.trim() || '';
+      return { text };
+    } catch (err: any) {
+      console.error('[AI OCR] Error:', err);
+      return { text: '', error: err.message };
+    }
+  });
+
   // Embedding 计算
   async function computeEmbedding(text: string, config: any): Promise<number[] | null> {
     if (!config.embedApiUrl || !config.embedApiKey || !config.embedModel) return null;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Key, Globe, Save, CheckCircle, AlertCircle, Eye, EyeOff, Settings as SettingsIcon, Brain, Database } from 'lucide-react';
+import { Key, Globe, Save, CheckCircle, AlertCircle, Eye, EyeOff, Brain, Database } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 const api = (window as any).api;

@@ -85,6 +85,7 @@ export const IPC = {
   RAG_CONFIG_GET: 'rag:config:get',
   RAG_CONFIG_SET: 'rag:config:set',
   RAG_CONFIG_TEST: 'rag:config:test',
+  AI_OCR_IMAGE: 'ai:ocr-image',
   RAG_SESSION_CREATE: 'rag:session:create',
   RAG_SESSION_GET_ALL: 'rag:session:get-all',
   RAG_SESSION_GET: 'rag:session:get',
@@ -231,6 +232,9 @@ export interface Api {
     onEssayStreamEnd: (cb: () => void) => Unsubscribe;
     parsePdf: (buffer: ArrayBuffer) => Promise<{ text: string; error?: string }>;
     parsePdfAi: (text: string) => Promise<{ sections: any[]; error?: string }>;
+  };
+  ai: {
+    ocrImage: (base64Data: string) => Promise<{ text: string; error?: string }>;
   };
   kg: {
     getGraph: () => Promise<{ nodes: any[]; edges: any[] }>;

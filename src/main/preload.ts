@@ -114,6 +114,9 @@ const api = {
     parsePdf: (buffer: ArrayBuffer) => ipcRenderer.invoke(IPC.RAG_PARSE_PDF, buffer),
     parsePdfAi: (text: string) => ipcRenderer.invoke(IPC.RAG_PARSE_PDF_AI, text),
   },
+  ai: {
+    ocrImage: (base64Data: string) => ipcRenderer.invoke(IPC.AI_OCR_IMAGE, base64Data),
+  },
   kg: {
     getGraph: () => ipcRenderer.invoke(IPC.KG_GET_GRAPH),
     build: () => ipcRenderer.invoke(IPC.KG_BUILD),
