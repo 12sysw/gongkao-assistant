@@ -189,7 +189,7 @@ const StatTile: React.FC<{
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs text-surface-400">{label}</p>
-          <p className="mt-2 text-2xl font-bold text-surface-900 font-display">{value}</p>
+          <p className="mt-2 text-2xl font-bold text-surface-900 dark:text-surface-0 font-display">{value}</p>
         </div>
         <div className={cn('rounded-xl p-2.5', toneMap[tone])}>
           <Icon className="h-4 w-4" />
@@ -207,7 +207,7 @@ const SectionHeader: React.FC<{
 }> = ({ title, subtitle, to, cta }) => (
   <div className="flex items-end justify-between gap-3">
     <div>
-      <h2 className="text-base font-semibold text-surface-900 font-display">{title}</h2>
+      <h2 className="text-base font-semibold text-surface-900 dark:text-surface-0 font-display">{title}</h2>
       <p className="mt-1 text-sm text-surface-500">{subtitle}</p>
     </div>
     {to && cta ? (
@@ -236,52 +236,52 @@ const LogStudyModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="m-4 w-full max-w-sm rounded-2xl bg-white p-6">
+      <div className="m-4 w-full max-w-sm rounded-2xl bg-white dark:bg-surface-800 p-6">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-surface-900 font-display">记录今天学习</h2>
+          <h2 className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">记录今天学习</h2>
           <button onClick={onClose} className="text-surface-400 hover:text-surface-600">
             <X className="h-5 w-5" />
           </button>
         </div>
         <div className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-surface-600">学习时长（分钟）</label>
+            <label className="mb-1 block text-sm font-medium text-surface-600 dark:text-surface-400">学习时长（分钟）</label>
             <input
               type="number"
               value={form.study_minutes}
               onChange={(e) => update('study_minutes', parseInt(e.target.value, 10) || 0)}
-              className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+              className="w-full rounded-lg border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               min={1}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-surface-600">做题数量</label>
+              <label className="mb-1 block text-sm font-medium text-surface-600 dark:text-surface-400">做题数量</label>
               <input
                 type="number"
                 value={form.questions_done}
                 onChange={(e) => update('questions_done', parseInt(e.target.value, 10) || 0)}
-                className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                className="w-full rounded-lg border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 min={0}
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-surface-600">新增错题</label>
+              <label className="mb-1 block text-sm font-medium text-surface-600 dark:text-surface-400">新增错题</label>
               <input
                 type="number"
                 value={form.wrong_count}
                 onChange={(e) => update('wrong_count', parseInt(e.target.value, 10) || 0)}
-                className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+                className="w-full rounded-lg border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 min={0}
               />
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-surface-600">学习笔记</label>
+            <label className="mb-1 block text-sm font-medium text-surface-600 dark:text-surface-400">学习笔记</label>
             <textarea
               value={form.note}
               onChange={(e) => update('note', e.target.value)}
-              className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+              className="w-full rounded-lg border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
               rows={3}
               placeholder="今天主要复习了什么，哪些地方卡住了？"
             />
@@ -677,7 +677,7 @@ const ReviewHub: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-surface-900">
+                  <p className="text-sm font-medium text-surface-900 dark:text-surface-0">
                     已完成 {reviewSession.completed_wrong_ids.length + reviewSession.completed_flashcard_ids.length} / {totalReviewItems || 0}
                   </p>
                   <p className="mt-1 text-sm text-surface-500">
@@ -699,25 +699,25 @@ const ReviewHub: React.FC = () => {
                   </Button>
                 </div>
               </div>
-              <div className="h-3 overflow-hidden rounded-full bg-surface-100">
+              <div className="h-3 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-700">
                 <div
                   className="h-full rounded-full bg-brand-500 transition-all duration-300"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
               {reviewSession.started ? (
-                <div className="rounded-xl border border-brand-100 bg-brand-50 p-4">
+                <div className="rounded-xl border border-brand-100 dark:border-brand-900/50 bg-brand-50 dark:bg-brand-900/20 p-4">
                   {!currentTask ? (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-brand-700">今天的串行复习已经完成。</p>
-                      <p className="text-sm text-brand-600">
+                      <p className="text-sm font-medium text-brand-700 dark:text-brand-400">今天的串行复习已经完成。</p>
+                      <p className="text-sm text-brand-600 dark:text-brand-300">
                         即使刷新页面，今天已完成的进度也会保留下来。接下来可以推进学习计划，或者记录学习成果。
                       </p>
                     </div>
                   ) : currentTask.kind === 'wrong' ? (
                     <div className="space-y-3">
                       <p className="text-xs text-brand-500">当前任务 · 错题</p>
-                      <p className="text-sm font-medium leading-6 text-surface-900">{currentTask.title}</p>
+                      <p className="text-sm font-medium leading-6 text-surface-900 dark:text-surface-0">{currentTask.title}</p>
                       <p className="text-xs text-surface-500">
                         {currentTask.subtitle} · 下次复习 {formatReviewTime(currentTask.record.next_review_at)}
                       </p>
@@ -763,7 +763,7 @@ const ReviewHub: React.FC = () => {
                             setFlashcardFlipped((value) => !value);
                           }
                         }}
-                        className="cursor-pointer rounded-xl border border-white/70 bg-white p-4"
+                        className="cursor-pointer rounded-xl border border-white/70 dark:border-surface-600 bg-white dark:bg-surface-800 p-4"
                       >
                         <p className="text-xs text-surface-400">
                           {flashcardFlipped ? '答案面' : '题面'}
@@ -830,9 +830,9 @@ const ReviewHub: React.FC = () => {
                       href: item.href,
                     });
                   }}
-                  className="rounded-xl border border-surface-100 bg-surface-0 p-4 transition hover:border-brand-200 hover:bg-brand-50"
+                  className="rounded-xl border border-surface-100 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 p-4 transition hover:border-brand-200 dark:hover:border-brand-700 hover:bg-brand-50 dark:hover:bg-brand-900/20"
                 >
-                  <p className="text-sm font-medium text-surface-900">{item.title}</p>
+                  <p className="text-sm font-medium text-surface-900 dark:text-surface-0">{item.title}</p>
                   <p className="mt-2 text-sm text-surface-500 leading-6">{item.body}</p>
                 </Link>
               ))}
@@ -849,20 +849,20 @@ const ReviewHub: React.FC = () => {
                   cta="去错题本"
                 />
                 {dueReviews.length === 0 ? (
-                  <div className="rounded-xl bg-success-light/60 p-4 text-sm text-success-dark">
+                  <div className="rounded-xl bg-success-light/60 dark:bg-success/20 p-4 text-sm text-success-dark dark:text-success">
                     今天没有到期错题，状态不错，继续保持。
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {dueReviews.slice(0, 4).map((record) => (
-                      <div key={record.id} className="rounded-xl border border-surface-100 bg-white p-4">
+                      <div key={record.id} className="rounded-xl border border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800 p-4">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="rounded-lg bg-surface-50 px-2 py-1 text-xs text-surface-500">
+                          <span className="rounded-lg bg-surface-50 dark:bg-surface-700 px-2 py-1 text-xs text-surface-500 dark:text-surface-400">
                             {getTypeLabel(record.type)}
                           </span>
                           <span className="text-xs text-surface-400">错 {Number(record.wrong_count ?? 0)} 次</span>
                         </div>
-                        <p className="mt-3 text-sm font-medium leading-6 text-surface-900">
+                        <p className="mt-3 text-sm font-medium leading-6 text-surface-900 dark:text-surface-0">
                           {truncate(record.content, 90)}
                         </p>
                         <p className="mt-2 text-xs text-surface-400">
@@ -912,7 +912,7 @@ const ReviewHub: React.FC = () => {
                   cta="去卡片页"
                 />
                 {!currentFlashcard ? (
-                  <div className="rounded-xl bg-success-light/60 p-4 text-sm text-success-dark">
+                  <div className="rounded-xl bg-success-light/60 dark:bg-success/20 p-4 text-sm text-success-dark dark:text-success">
                     今天没有到期卡片，可以把精力放到新题和计划上。
                   </div>
                 ) : (
@@ -928,12 +928,12 @@ const ReviewHub: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setFlashcardFlipped((value) => !value)}
-                      className="w-full rounded-2xl border border-surface-100 bg-gradient-to-br from-brand-50 via-white to-brand-100 p-6 text-left transition hover:border-brand-200"
+                      className="w-full rounded-2xl border border-surface-100 dark:border-surface-700 bg-gradient-to-br from-brand-50 via-white to-brand-100 dark:from-brand-900/20 dark:via-surface-800 dark:to-brand-900/30 p-6 text-left transition hover:border-brand-200 dark:hover:border-brand-700"
                     >
                       <p className="text-xs text-surface-400">
                         {flashcardFlipped ? '答案面' : '题面'}
                       </p>
-                      <p className="mt-3 text-lg font-semibold leading-8 text-surface-900">
+                      <p className="mt-3 text-lg font-semibold leading-8 text-surface-900 dark:text-surface-0">
                         {flashcardFlipped
                           ? truncate(currentFlashcard.back, 140)
                           : truncate(currentFlashcard.front, 140)}
@@ -1008,13 +1008,13 @@ const ReviewHub: React.FC = () => {
                   cta="去计划页"
                 />
                 {priorityPlans.length === 0 ? (
-                  <div className="rounded-xl bg-surface-50 p-4 text-sm text-surface-500">
+                  <div className="rounded-xl bg-surface-50 dark:bg-surface-800 p-4 text-sm font-medium text-surface-500 dark:text-surface-400">
                     还没有进行中的计划，可以去学习计划页建一个。
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {priorityPlans.map((plan) => (
-                      <div key={plan.id} className="rounded-xl border border-surface-100 bg-white p-4">
+                      <div key={plan.id} className="rounded-xl border border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800 p-4">
                         <div className="flex items-center justify-between gap-3">
                           <span className={cn('rounded-lg px-2 py-1 text-xs', getPriorityClass(plan.priority ?? 'medium'))}>
                             {getPriorityLabel(plan.priority ?? 'medium')}
@@ -1023,7 +1023,7 @@ const ReviewHub: React.FC = () => {
                             {(plan.status ?? 'pending') === 'in_progress' ? '进行中' : '待开始'}
                           </span>
                         </div>
-                        <p className="mt-3 text-sm font-medium text-surface-900">
+                        <p className="mt-3 text-sm font-medium text-surface-900 dark:text-surface-0">
                           {safeText(plan.title, '未命名计划')}
                         </p>
                         <p className="mt-2 text-xs text-surface-400">
@@ -1047,23 +1047,23 @@ const ReviewHub: React.FC = () => {
             <CardContent className="grid gap-3 md:grid-cols-3">
               <Link
                 to="/wrong-book"
-                className="rounded-xl border border-surface-100 bg-surface-0 p-4 transition hover:border-brand-200 hover:bg-brand-50"
+                className="rounded-xl border border-surface-100 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 p-4 transition hover:border-brand-200 dark:hover:border-brand-700 hover:bg-brand-50 dark:hover:bg-brand-900/20"
               >
-                <p className="text-sm font-medium text-surface-900">错题复盘</p>
+                <p className="text-sm font-medium text-surface-900 dark:text-surface-0">错题复盘</p>
                 <p className="mt-1 text-sm text-surface-500">优先处理到期错题和高频失误。</p>
               </Link>
               <Link
                 to="/flashcards"
-                className="rounded-xl border border-surface-100 bg-surface-0 p-4 transition hover:border-brand-200 hover:bg-brand-50"
+                className="rounded-xl border border-surface-100 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 p-4 transition hover:border-brand-200 dark:hover:border-brand-700 hover:bg-brand-50 dark:hover:bg-brand-900/20"
               >
-                <p className="text-sm font-medium text-surface-900">卡片速刷</p>
+                <p className="text-sm font-medium text-surface-900 dark:text-surface-0">卡片速刷</p>
                 <p className="mt-1 text-sm text-surface-500">快速过一轮记忆卡片，适合零碎时间。</p>
               </Link>
               <Link
                 to="/mock-exam"
-                className="rounded-xl border border-surface-100 bg-surface-0 p-4 transition hover:border-brand-200 hover:bg-brand-50"
+                className="rounded-xl border border-surface-100 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 p-4 transition hover:border-brand-200 dark:hover:border-brand-700 hover:bg-brand-50 dark:hover:bg-brand-900/20"
               >
-                <p className="text-sm font-medium text-surface-900">模考闭环</p>
+                <p className="text-sm font-medium text-surface-900 dark:text-surface-0">模考闭环</p>
                 <p className="mt-1 text-sm text-surface-500">用一组训练检查今天复习有没有转成输出。</p>
               </Link>
             </CardContent>
@@ -1075,26 +1075,26 @@ const ReviewHub: React.FC = () => {
             </CardHeader>
             <CardContent>
               {recentReviewSummary.length === 0 ? (
-                <div className="rounded-xl bg-surface-50 p-4 text-sm text-surface-500">
+                <div className="rounded-xl bg-surface-50 dark:bg-surface-800 p-4 text-sm font-medium text-surface-500 dark:text-surface-400">
                   这几天还没有留下统一复习记录，开始一次今日复习后这里就会慢慢长出来。
                 </div>
               ) : (
                 <div className="space-y-3">
                   {recentReviewSummary.map((session) => (
-                    <div key={session.date} className="rounded-xl border border-surface-100 bg-white p-4">
+                    <div key={session.date} className="rounded-xl border border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium text-surface-900">{session.date}</p>
+                          <p className="text-sm font-medium text-surface-900 dark:text-surface-0">{session.date}</p>
                           <p className="mt-1 text-xs text-surface-500">
                             {session.started ? '已启动今日复习' : '未启动'} · 完成 {session.completedCount} / {session.initialTotal || 0}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-lg font-semibold text-surface-900 font-display">{session.percent}%</p>
+                          <p className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">{session.percent}%</p>
                           <p className="text-xs text-surface-400">完成率</p>
                         </div>
                       </div>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-100">
+                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-700">
                         <div
                           className="h-full rounded-full bg-brand-500 transition-all duration-300"
                           style={{ width: `${session.percent}%` }}

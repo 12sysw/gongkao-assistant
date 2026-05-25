@@ -40,9 +40,9 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     <div className={cn('w-full', className)}>
       {(showLabel || label) && (
         <div className="flex items-center justify-between mb-1.5">
-          {label && <span className="text-sm text-surface-500">{label}</span>}
+          {label && <span className="text-sm font-medium text-surface-500 dark:text-surface-400">{label}</span>}
           {showLabel && (
-            <span className="text-sm font-semibold text-surface-900">
+            <span className="text-sm font-semibold text-surface-900 dark:text-surface-0">
               {Math.round(percentage)}%
             </span>
           )}
@@ -50,7 +50,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       )}
       <div
         className={cn(
-          'w-full bg-surface-200 rounded-full overflow-hidden',
+          'w-full bg-surface-200 dark:bg-surface-700 rounded-full overflow-hidden',
           sizeMap[size]
         )}
       >

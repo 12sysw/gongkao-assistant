@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/renderer/index.html', './src/renderer/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
@@ -59,6 +60,15 @@ export default {
           text: '#1e40af',
           border: '#bfdbfe',
         },
+      },
+      textColor: {
+        'primary': '#1c1917',
+        'secondary': '#57534e',
+        'muted': '#a8a29e',
+      },
+      backgroundColor: {
+        'base': '#faf8f5',
+        'surface': '#ffffff',
       },
       boxShadow: {
         soft: '0 1px 3px rgba(28, 25, 23, 0.04)',

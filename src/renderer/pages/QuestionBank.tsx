@@ -177,27 +177,27 @@ const QuestionBank: React.FC = () => {
 
   const getSourceColor = (source: string) => {
     const colors: Record<string, string> = {
-      manual: 'bg-gray-100 text-gray-700',
-      question_bank: 'bg-blue-100 text-blue-700',
-      pdf_exam: 'bg-green-100 text-green-700',
-      pdf_answer: 'bg-purple-100 text-purple-700',
+      manual: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+      question_bank: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
+      pdf_exam: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
+      pdf_answer: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300',
     };
-    return colors[source] || 'bg-gray-100 text-gray-700';
+    return colors[source] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
   };
 
   return (
-    <div className="h-full flex flex-col bg-surface-0">
+    <div className="h-full flex flex-col bg-surface-0 dark:bg-surface-900">
       {/* 顶部栏 */}
-      <div className="shrink-0 px-6 py-4 border-b border-surface-200 bg-white">
+      <div className="shrink-0 px-6 py-4 border-b border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-surface-900 font-display flex items-center gap-2">
+          <h1 className="text-xl font-bold text-surface-900 dark:text-surface-0 font-display flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-brand-500" />
             题库管理
           </h1>
           <div className="flex items-center gap-2">
             <button
               onClick={handleSyncQuestions}
-              className="flex items-center gap-2 px-3 py-2 text-sm border border-surface-200 rounded-lg hover:bg-surface-50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-surface-200 dark:border-surface-700 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
               同步题库
@@ -221,13 +221,13 @@ const QuestionBank: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="搜索题库内容..."
-              className="w-full pl-10 pr-4 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+              className="w-full pl-10 pr-4 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+            className="px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
           >
             <option value="all">所有分类</option>
             {categories.filter((c): c is string => c !== 'all').map((cat: string) => (
@@ -237,7 +237,7 @@ const QuestionBank: React.FC = () => {
           <select
             value={selectedSource}
             onChange={(e) => setSelectedSource(e.target.value)}
-            className="px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+            className="px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
           >
             <option value="all">所有来源</option>
             {sources.filter((s): s is string => s !== 'all').map((src: string) => (
@@ -246,7 +246,7 @@ const QuestionBank: React.FC = () => {
           </select>
         </div>
 
-        <div className="mt-3 flex items-center gap-4 text-sm text-surface-500">
+        <div className="mt-3 flex items-center gap-4 text-sm font-medium text-surface-500 dark:text-surface-400">
           <span>共 {(docs as RagDoc[]).length} 条知识文档</span>
           <span>显示 {groups.length} 篇</span>
         </div>
@@ -268,7 +268,7 @@ const QuestionBank: React.FC = () => {
           <div className="space-y-6">
             {[...categoryGroups.entries()].map(([category, catGroups]) => (
               <div key={category} className="space-y-2">
-                <h2 className="text-lg font-bold text-surface-800 font-display flex items-center gap-2 sticky top-0 bg-surface-0 py-2">
+                <h2 className="text-lg font-bold text-surface-800 dark:text-surface-0 font-display flex items-center gap-2 sticky top-0 bg-surface-0 dark:bg-surface-900 py-2">
                   <Tag className="w-5 h-5 text-brand-500" />
                   {category}
                   <span className="text-sm font-normal text-surface-400">({catGroups.length})</span>
@@ -277,10 +277,10 @@ const QuestionBank: React.FC = () => {
                   {catGroups.map((group) => (
                     <div
                       key={group.key}
-                      className="bg-white rounded-lg border border-surface-200 overflow-hidden hover:shadow-soft transition-shadow"
+                      className="bg-white dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700 overflow-hidden hover:shadow-soft transition-shadow"
                     >
                       <div
-                        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-50"
+                        className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-surface-50 dark:hover:bg-surface-700"
                         onClick={() => setExpandedKey(expandedKey === group.key ? null : group.key)}
                       >
                         <div className="flex-1 min-w-0">
@@ -297,12 +297,12 @@ const QuestionBank: React.FC = () => {
                               {new Date(group.created_at).toLocaleDateString('zh-CN')}
                             </span>
                           </div>
-                          <h3 className="text-sm font-medium text-surface-800 truncate">{group.displayTitle}</h3>
+                          <h3 className="text-sm font-medium text-surface-800 dark:text-surface-400 truncate">{group.displayTitle}</h3>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group); }}
-                            className="p-1.5 text-surface-400 hover:text-danger-500 rounded-lg hover:bg-danger-50 transition-colors"
+                            className="p-1.5 text-surface-400 hover:text-danger-500 rounded-lg hover:bg-danger-50 dark:hover:bg-danger-500/10 transition-colors"
                             title="删除"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -315,8 +315,8 @@ const QuestionBank: React.FC = () => {
                         </div>
                       </div>
                       {expandedKey === group.key && (
-                        <div className="px-4 py-3 bg-surface-50 border-t border-surface-200">
-                          <div className="text-sm text-surface-700 whitespace-pre-wrap max-h-[32rem] overflow-y-auto leading-relaxed">
+                        <div className="px-4 py-3 bg-surface-50 dark:bg-surface-700/50 border-t border-surface-200 dark:border-surface-700">
+                          <div className="text-sm font-medium text-surface-700 dark:text-surface-400 whitespace-pre-wrap max-h-[32rem] overflow-y-auto leading-relaxed">
                             {group.fullContent}
                           </div>
                         </div>
@@ -333,22 +333,22 @@ const QuestionBank: React.FC = () => {
       {/* 导入对话框 */}
       {showImportDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-elevated w-full max-w-md p-6 space-y-4">
-            <h3 className="text-lg font-bold text-surface-900">导入PDF题库</h3>
+          <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-elevated w-full max-w-md p-6 space-y-4">
+            <h3 className="text-lg font-bold text-surface-900 dark:text-surface-0">导入PDF题库</h3>
             <div>
-              <label className="block text-sm text-surface-600 mb-2">PDF 文件目录路径：</label>
+              <label className="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-2">PDF 文件目录路径：</label>
               <input
                 value={importPath}
                 onChange={(e) => setImportPath(e.target.value)}
                 placeholder="例如：E:\国考真题\公务员"
-                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
-              <p className="text-xs text-surface-400 mt-1">支持递归扫描子目录中的所有 PDF 文件</p>
+              <p className="text-xs text-surface-400 dark:text-surface-400 mt-1">支持递归扫描子目录中的所有 PDF 文件</p>
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowImportDialog(false)}
-                className="px-4 py-2 text-sm text-surface-500 hover:text-surface-700"
+                className="px-4 py-2 text-sm font-medium text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200"
               >
                 取消
               </button>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Check, X, Save, Trash2, Layers } from 'lucide-react';
+import { Plus, Check, X, Save, Trash2, Layers, Download } from 'lucide-react';
+import { exportFlashcards } from '../lib/export-utils';
 
 const CATEGORIES = ['常识-政治', '常识-法律', '常识-经济', '常识-人文', '常识-科技', '行测-公式', '申论-金句'];
 
@@ -64,22 +65,61 @@ const PageHeader: React.FC<{
   dueCount: number;
   totalCount: number;
   onAdd: () => void;
-}> = ({ dueCount, totalCount, onAdd }) => (
-  <div className="flex items-center justify-between">
-    <div>
-      <h1 className="text-xl font-bold text-surface-900 font-display">记忆卡片</h1>
-      <p className="text-sm text-surface-500 mt-1">
-        今日待复习 <span className="text-brand-500 font-semibold">{dueCount}</span> 张 · 共 {totalCount} 张
-      </p>
+  cards: Flashcard[];
+}> = ({ dueCount, totalCount, onAdd, cards }) => {
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExport = (format: 'xlsx' | 'pdf') => {
+    exportFlashcards(cards, format);
+    setShowExportMenu(false);
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-xl font-bold text-surface-900 font-display">记忆卡片</h1>
+        <p className="text-sm text-surface-500 mt-1">
+          今日待复习 <span className="text-brand-500 font-semibold">{dueCount}</span> 张 · 共 {totalCount} 张
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <div className="relative">
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className="flex items-center px-4 py-2 border border-surface-200 dark:border-surface-600 rounded-lg text-sm hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+          >
+            <Download className="w-4 h-4 mr-1" /> 导出
+          </button>
+          {showExportMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
+              <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-surface-800 rounded-lg shadow-lg border border-surface-200 dark:border-surface-700 py-1 z-20">
+                <button
+                  onClick={() => handleExport('xlsx')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                >
+                  导出为 Excel
+                </button>
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                >
+                  导出为 PDF
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+        <button
+          onClick={onAdd}
+          className="flex items-center px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm transition-colors"
+        >
+          <Plus className="w-4 h-4 mr-1" /> 新建卡片
+        </button>
+      </div>
     </div>
-    <button
-      onClick={onAdd}
-      className="flex items-center px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm transition-colors"
-    >
-      <Plus className="w-4 h-4 mr-1" /> 新建卡片
-    </button>
-  </div>
-);
+  );
+};
 
 const FilterBar: React.FC<{
   filterMode: FilterMode;
@@ -451,7 +491,7 @@ const Flashcards: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader dueCount={dueCount} totalCount={cards.length} onAdd={() => setShowForm(true)} />
+      <PageHeader dueCount={dueCount} totalCount={cards.length} onAdd={() => setShowForm(true)} cards={filteredCards} />
 
       <FilterBar
         filterMode={filterMode}

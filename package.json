@@ -1,6 +1,6 @@
 {
   "name": "gongkao-assistant",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "公考小助手 - 桌面端公考学习工具",
   "author": "12sysw",
   "repository": {
@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:main": "tsc -p tsconfig.main.json",
+    "build:main": "tsc -p tsconfig.main.json && npm run copy:font",
+    "copy:font": "node -e \"require('fs').mkdirSync('dist/main/fonts', {recursive:true}); require('fs').copyFileSync('src/main/fonts/simhei.ttf', 'dist/main/fonts/simhei.ttf')\"",
     "build:all": "npm run build && npm run build:main",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "npm run build:all && electron-builder",
@@ -31,6 +32,7 @@
     "electron-updater": "^6.8.3",
     "lucide-react": "^0.460.0",
     "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.18.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.73.1",
@@ -39,6 +41,7 @@
     "tailwind-merge": "^3.5.0",
     "tesseract.js": "^7.0.0",
     "tim-upload-plugin": "^1.4.3",
+    "xlsx": "^0.18.5",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },

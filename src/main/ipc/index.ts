@@ -820,6 +820,61 @@ export function registerIpcHandlers() {
     return { success: true };
   });
 
+  // ==================== PDF 导出 ====================
+  ipcMain.handle(IPC.EXPORT_PDF, async (_event, params: { title: string; columns: { key: string; label: string }[]; data: any[] }) => {
+    try {
+      const { BrowserWindow } = require('electron');
+
+      const result = await dialog.showSaveDialog({
+        title: '导出 PDF',
+        defaultPath: `${params.title}_${new Date().toISOString().split('T')[0]}.pdf`,
+        filters: [{ name: 'PDF', extensions: ['pdf'] }],
+      });
+
+      if (result.canceled) return { success: false };
+
+      const dateStr = new Date().toLocaleDateString('zh-CN');
+
+      const headerCells = params.columns.map((col) => `<th>${col.label}</th>`).join('');
+      const bodyRows = (params.data || []).map((row, idx) => {
+        const cells = params.columns.map((col) => `<td>${String(row[col.key] ?? '')}</td>`).join('');
+        return `<tr class="${idx % 2 === 1 ? 'alt' : ''}">${cells}</tr>`;
+      }).join('');
+
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","SimHei","PingFang SC",sans-serif;padding:40px;color:#1c1917;font-size:12px}
+h1{font-size:20px;text-align:center;margin-bottom:6px}
+.date{font-size:11px;color:#888;text-align:right;margin-bottom:20px}
+table{width:100%;border-collapse:collapse}
+th{background:#c2410c;color:#fff;padding:8px 6px;text-align:left;font-weight:600;font-size:11px}
+td{padding:7px 6px;border-bottom:1px solid #e7e5e4;word-break:break-all;font-size:11px}
+.alt td{background:#f9f9f9}
+</style></head><body>
+<h1>${params.title}</h1>
+<p class="date">导出日期: ${dateStr}</p>
+<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows || '<tr><td colspan="100" style="text-align:center;padding:20px">暂无数据</td></tr>'}</tbody></table>
+</body></html>`;
+
+      const tempPath = path.join(app.getPath('temp'), `export_${Date.now()}.html`);
+      fs.writeFileSync(tempPath, html, 'utf-8');
+
+      const win = new BrowserWindow({ show: false });
+      await win.loadFile(tempPath);
+      await new Promise((r) => setTimeout(r, 500));
+      const pdfBuffer = await win.webContents.printToPDF({ printBackground: true, pageSize: 'A4' });
+      win.close();
+
+      fs.writeFileSync(result.filePath!, Buffer.from(pdfBuffer));
+      try { fs.unlinkSync(tempPath); } catch (_) { /* ignore */ }
+
+      return { success: true, path: result.filePath };
+    } catch (err: any) {
+      console.error('[Export] PDF error:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
   // 聊天室 - 通过云函数生成 UserSig（SecretKey 仅存储在云函数环境变量中）
   ipcMain.handle(IPC.CHAT_GENERATE_USER_SIG, async (_event, userID: string) => {
     const url = 'https://1427868409-96ux8dbho1.ap-guangzhou.tencentscf.com';

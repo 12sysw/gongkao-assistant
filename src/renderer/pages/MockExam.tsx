@@ -474,7 +474,7 @@ export default function MockExam() {
 // ==================== 选择页面 ====================
 function SelectPage({ startExam, startChallenge, challengeCountdown, challengeResult, challengeMessage, resetChallenge, questions, answers, challengeTimer }: any) {
   return (
-    <div className="min-h-screen bg-surface-0 p-6 space-y-6">
+    <div className="min-h-screen bg-surface-0 dark:bg-surface-900 p-6 space-y-6">
       {/* 主标题 */}
       <div className="bg-brand-gradient text-white text-center py-6 px-4 rounded-2xl shadow-card relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.08] rounded-full -translate-y-1/3 translate-x-1/4" />
@@ -485,11 +485,11 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
       {/* 考试模式选择 */}
       <div className="max-w-2xl mx-auto space-y-4">
         {/* 正式考试 */}
-        <button onClick={startExam} className="w-full bg-white border border-surface-200 rounded-xl p-6 hover:border-brand-300 hover:shadow-card-hover transition-all text-left group">
+        <button onClick={startExam} className="w-full bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-6 hover:border-brand-300 dark:hover:border-brand-500 hover:shadow-card-hover transition-all text-left group">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-surface-900 font-display">行政职业能力测验</h3>
-              <p className="text-sm text-surface-500 mt-1">135题 | 120分钟 | 言语+数量+判断+资料+常识</p>
+              <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">行政职业能力测验</h3>
+              <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">135题 | 120分钟 | 言语+数量+判断+资料+常识</p>
             </div>
             <div className="flex items-center gap-2 text-brand-500 group-hover:translate-x-1 transition-transform">
               <Clock className="w-5 h-5" />
@@ -499,14 +499,14 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
         </button>
 
         {/* 挑战模式 */}
-        <button onClick={startChallenge} className="w-full bg-gradient-to-r from-brand-50 to-brand-100 border-2 border-brand-200 rounded-xl p-6 hover:border-brand-400 hover:shadow-card-hover transition-all text-left group">
+        <button onClick={startChallenge} className="w-full bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-500/10 dark:to-brand-500/20 border-2 border-brand-200 dark:border-brand-500/30 rounded-xl p-6 hover:border-brand-400 dark:hover:border-brand-500 hover:shadow-card-hover transition-all text-left group">
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold text-brand-700 font-display">挑战模式</span>
+                <span className="text-lg font-semibold text-brand-700 dark:text-brand-400 font-display">挑战模式</span>
                 <span className="px-2 py-0.5 text-[10px] font-bold bg-brand-500 text-white rounded-full uppercase tracking-wider">限时</span>
               </div>
-              <p className="text-sm text-brand-600/70 mt-1">25题 | 20分钟倒计时 | 60%正确率通关</p>
+              <p className="text-sm text-brand-600/70 dark:text-brand-400/70 mt-1">25题 | 20分钟倒计时 | 60%正确率通关</p>
             </div>
             <div className="flex items-center gap-2 text-brand-500 group-hover:translate-x-1 transition-transform">
               <Target className="w-5 h-5" />
@@ -516,14 +516,14 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
         </button>
 
         {/* 申论（即将上线） */}
-        <div className="bg-white border border-surface-200 rounded-xl p-6 opacity-60">
-          <h3 className="text-lg font-semibold text-surface-900 font-display">申论</h3>
-          <p className="text-sm text-surface-500 mt-1">即将上线</p>
+        <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-6 opacity-60">
+          <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">申论</h3>
+          <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">即将上线</p>
         </div>
       </div>
 
-      <div className="bg-brand-50 border border-brand-200 rounded-xl p-4">
-        <p className="text-sm text-brand-700">提示：请先在错题本中导入题目，或系统将使用模拟题目进行测评</p>
+      <div className="bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 rounded-xl p-4">
+        <p className="text-sm text-brand-700 dark:text-brand-400">提示：请先在错题本中导入题目，或系统将使用模拟题目进行测评</p>
       </div>
 
       {/* 倒计时弹窗 */}
@@ -539,13 +539,13 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
       {/* 挑战结果弹窗 */}
       {challengeResult && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9999]">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-elevated">
+          <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-elevated">
             <div className="text-5xl mb-4">{challengeResult === 'win' ? '🎉' : '😅'}</div>
             <h2 className={`text-xl font-bold mb-2 font-display ${challengeResult === 'win' ? 'text-success-dark' : 'text-danger-dark'}`}>
               {challengeResult === 'win' ? '挑战成功！' : '挑战失败'}
             </h2>
-            <p className="text-surface-600 mb-2">正确率：{Math.round((Array.from(answers.values()).filter((a: any) => a.correct).length / questions.length) * 100)}%</p>
-            <p className="text-sm text-surface-500 mb-2">用时：{challengeTimer}秒</p>
+            <p className="text-surface-600 dark:text-surface-400 mb-2">正确率：{Math.round((Array.from(answers.values()).filter((a: any) => a.correct).length / questions.length) * 100)}%</p>
+            <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mb-2">用时：{challengeTimer}秒</p>
             <p className={`text-base font-medium mt-4 ${challengeResult === 'win' ? 'text-success-dark' : 'text-danger-dark'}`}>{challengeMessage}</p>
             <button onClick={resetChallenge} className="mt-6 w-full px-4 py-2.5 bg-brand-500 text-white rounded-xl hover:bg-brand-600 transition-colors font-medium">再来一次</button>
           </div>
@@ -563,24 +563,24 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
   // 挑战模式全屏
   if (challengeMode) {
     return (
-      <div className="fixed inset-0 z-[9999] flex flex-col bg-surface-0">
+      <div className="fixed inset-0 z-[9999] flex flex-col bg-surface-0 dark:bg-surface-900">
         {/* 顶部状态栏 */}
-        <div className="bg-white border-b border-surface-200 px-6 py-4">
+        <div className="bg-white dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700 px-6 py-4">
           <div className="flex items-center justify-between max-w-4xl mx-auto">
             <div className="flex items-center gap-4">
-              <span className="text-xl font-semibold text-surface-900 font-display">挑战模式</span>
-              <span className="text-surface-500">第 {currentIndex + 1} / {questions.length} 题</span>
+              <span className="text-xl font-semibold text-surface-900 dark:text-surface-0 font-display">挑战模式</span>
+              <span className="text-surface-500 dark:text-surface-400">第 {currentIndex + 1} / {questions.length} 题</span>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-surface-500">已答 {answers.size} 题</span>
-              <div className={`flex items-center gap-2 font-mono text-lg px-3 py-1 rounded-full border-2 ${challengeTimeLeft < 60 ? 'border-danger bg-danger-light text-danger-dark' : 'border-surface-200 bg-surface-0 text-surface-900'}`}>
+              <span className="text-surface-500 dark:text-surface-400">已答 {answers.size} 题</span>
+              <div className={`flex items-center gap-2 font-mono text-lg px-3 py-1 rounded-full border-2 ${challengeTimeLeft < 60 ? 'border-danger bg-danger-light dark:bg-danger/20 text-danger-dark dark:text-danger' : 'border-surface-200 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 text-surface-900 dark:text-surface-0'}`}>
                 <Clock className="w-5 h-5" />
                 {formatTime(challengeTimeLeft)}
               </div>
             </div>
           </div>
           <div className="max-w-4xl mx-auto mt-3">
-            <div className="w-full h-2 bg-surface-100 rounded-full">
+            <div className="w-full h-2 bg-surface-100 dark:bg-surface-700 rounded-full">
               <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
             </div>
           </div>
@@ -590,13 +590,13 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-4xl mx-auto">
             {q && (
-              <div className="bg-white border border-surface-200 rounded-xl p-8">
-                <p className="text-xl text-surface-900 leading-relaxed mb-8">{q.content}</p>
+              <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-8">
+                <p className="text-xl text-surface-900 dark:text-surface-0 leading-relaxed mb-8">{q.content}</p>
                 <div className="space-y-4">
                   {q.options.map((opt: string, i: number) => {
                     const isSelected = answers.get(q.id)?.myAnswer === opt[0];
                     return (
-                      <button key={i} onClick={() => handleAnswer(opt[0])} className={`w-full text-left p-4 rounded-xl border-2 transition-all text-base ${isSelected ? 'border-brand-500 bg-brand-50 text-surface-900' : 'border-surface-200 hover:border-surface-300 hover:bg-surface-0 text-surface-900'}`}>
+                      <button key={i} onClick={() => handleAnswer(opt[0])} className={`w-full text-left p-4 rounded-xl border-2 transition-all text-base ${isSelected ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-surface-900 dark:text-surface-0' : 'border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600 hover:bg-surface-0 dark:hover:bg-surface-700 text-surface-900 dark:text-surface-0'}`}>
                         <span className="font-medium">{opt}</span>
                       </button>
                     );
@@ -608,31 +608,31 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
         </div>
 
         {/* 底部提示 */}
-        <div className="p-4 text-center text-surface-500 text-sm border-t border-surface-200 bg-white">选择答案后自动跳转下一题 · 剩余时间 {formatTime(challengeTimeLeft)} · 共 {questions.length} 题</div>
+        <div className="p-4 text-center text-surface-500 dark:text-surface-400 text-sm border-t border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800">选择答案后自动跳转下一题 · 剩余时间 {formatTime(challengeTimeLeft)} · 共 {questions.length} 题</div>
       </div>
     );
   }
 
   // 正式考试模式
   return (
-    <div className="h-screen flex flex-col bg-surface-0">
+    <div className="h-screen flex flex-col bg-surface-0 dark:bg-surface-900">
       {/* 顶部状态栏 */}
-      <div className="bg-white border-b border-surface-200 px-4 py-3">
+      <div className="bg-white dark:bg-surface-800 border-b border-surface-200 dark:border-surface-700 px-4 py-3">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-surface-600">{q?.type}</span>
-            <span className="text-sm text-surface-500">第 {currentIndex + 1} / {questions.length} 题</span>
+            <span className="text-sm font-medium text-surface-600 dark:text-surface-400">{q?.type}</span>
+            <span className="text-sm font-medium text-surface-500 dark:text-surface-400">第 {currentIndex + 1} / {questions.length} 题</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-surface-500">已答 {answers.size} 题</span>
-            <div className={`flex items-center gap-1 font-mono text-lg ${timeLeft < 600 ? 'text-danger' : 'text-surface-900'}`}>
+            <span className="text-sm font-medium text-surface-500 dark:text-surface-400">已答 {answers.size} 题</span>
+            <div className={`flex items-center gap-1 font-mono text-lg ${timeLeft < 600 ? 'text-danger' : 'text-surface-900 dark:text-surface-0'}`}>
               <Clock className="w-4 h-4" />
               {formatTime(timeLeft)}
             </div>
           </div>
         </div>
         <div className="max-w-4xl mx-auto mt-2">
-          <div className="w-full h-2 bg-surface-100 rounded-full">
+          <div className="w-full h-2 bg-surface-100 dark:bg-surface-700 rounded-full">
             <div className="h-full bg-brand-500 rounded-full transition-all" style={{ width: `${progress}%` }} />
           </div>
         </div>
@@ -642,13 +642,13 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto p-6">
           {q && (
-            <div className="bg-white border border-surface-200 rounded-xl p-6">
-              <p className="text-lg text-surface-900 leading-relaxed mb-6">{q.content}</p>
+            <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-6">
+              <p className="text-lg text-surface-900 dark:text-surface-0 leading-relaxed mb-6">{q.content}</p>
               <div className="space-y-3">
                 {q.options.map((opt: string, i: number) => {
                   const isSelected = answers.get(q.id)?.myAnswer === opt[0];
                   return (
-                    <button key={i} onClick={() => handleAnswer(opt[0])} className={`w-full text-left p-4 rounded-xl border-2 transition-all text-base ${isSelected ? 'border-brand-500 bg-brand-50 text-surface-900' : 'border-surface-200 hover:border-surface-300 hover:bg-surface-0 text-surface-900'}`}>
+                    <button key={i} onClick={() => handleAnswer(opt[0])} className={`w-full text-left p-4 rounded-xl border-2 transition-all text-base ${isSelected ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10 text-surface-900 dark:text-surface-0' : 'border-surface-200 dark:border-surface-700 hover:border-surface-300 dark:hover:border-surface-600 hover:bg-surface-0 dark:hover:bg-surface-700 text-surface-900 dark:text-surface-0'}`}>
                       <span className="font-medium">{opt}</span>
                     </button>
                   );
@@ -660,16 +660,16 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
       </div>
 
       {/* 底部导航 */}
-      <div className="bg-white border-t border-surface-200 px-4 py-3">
+      <div className="bg-white dark:bg-surface-800 border-t border-surface-200 dark:border-surface-700 px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <button onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0} className="px-4 py-2 text-sm text-surface-600 hover:text-surface-900 disabled:opacity-30 hover:bg-surface-50 rounded-lg transition-all">上一题</button>
+          <button onClick={() => setCurrentIndex(Math.max(0, currentIndex - 1))} disabled={currentIndex === 0} className="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-0 disabled:opacity-30 hover:bg-surface-50 dark:hover:bg-surface-700 rounded-lg transition-all">上一题</button>
           <button onClick={handleSubmit} className="px-6 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-all">交卷</button>
-          <button onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))} disabled={currentIndex === questions.length - 1} className="px-4 py-2 text-sm text-surface-600 hover:text-surface-900 disabled:opacity-30 hover:bg-surface-50 rounded-lg transition-all">下一题</button>
+          <button onClick={() => setCurrentIndex(Math.min(questions.length - 1, currentIndex + 1))} disabled={currentIndex === questions.length - 1} className="px-4 py-2 text-sm font-medium text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-surface-0 disabled:opacity-30 hover:bg-surface-50 dark:hover:bg-surface-700 rounded-lg transition-all">下一题</button>
         </div>
       </div>
 
       {/* 题号导航 */}
-      <div className="bg-surface-0 border-t border-surface-200 px-4 py-2 overflow-x-auto">
+      <div className="bg-surface-0 dark:bg-surface-900 border-t border-surface-200 dark:border-surface-700 px-4 py-2 overflow-x-auto">
         <div className="max-w-4xl mx-auto flex gap-1 flex-wrap">
           {questions.slice(0, 50).map((_q: any, i: number) => {
             const isSelected = currentIndex === i;
@@ -680,30 +680,30 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
                 onClick={() => setCurrentIndex(i)}
                 className={`w-7 h-7 text-xs rounded border-2 transition-all ${
                   isSelected ? 'border-brand-500 bg-brand-500 text-white' :
-                  hasAnswer ? 'border-surface-200 bg-brand-50 text-surface-900' :
-                  'border-surface-200 bg-white text-surface-500 hover:border-surface-300'
+                  hasAnswer ? 'border-surface-200 dark:border-surface-700 bg-brand-50 dark:bg-brand-500/10 text-surface-900 dark:text-surface-0' :
+                  'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-600'
                 }`}
               >
                 {i + 1}
               </button>
             );
           })}
-          {questions.length > 50 && <span className="w-7 h-7 flex items-center justify-center text-xs text-surface-400">...</span>}
+          {questions.length > 50 && <span className="w-7 h-7 flex items-center justify-center text-xs text-surface-400 dark:text-surface-400">...</span>}
         </div>
       </div>
 
       {/* 交卷确认 */}
       {showConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-elevated">
-            <h3 className="text-lg font-semibold text-surface-900 mb-3 font-display">确认交卷？</h3>
-            <div className="text-sm text-surface-600 mb-4 space-y-1">
+          <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-elevated">
+            <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-0 mb-3 font-display">确认交卷？</h3>
+            <div className="text-sm font-medium text-surface-600 dark:text-surface-400 mb-4 space-y-1">
               <p>已答题数：{answers.size} / {questions.length}</p>
               <p>未答题数：{questions.length - answers.size}</p>
               {questions.length - answers.size > 0 && <p className="text-danger">还有 {questions.length - answers.size} 题未作答</p>}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowConfirm(false)} className="flex-1 px-4 py-2 border border-surface-200 rounded-xl text-surface-600 hover:bg-surface-50 transition-all">继续答题</button>
+              <button onClick={() => setShowConfirm(false)} className="flex-1 px-4 py-2 border border-surface-200 dark:border-surface-700 rounded-xl text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-700 transition-all">继续答题</button>
               <button onClick={confirmSubmit} className="flex-1 px-4 py-2 bg-brand-500 text-white rounded-xl hover:bg-brand-600 transition-all">确认交卷</button>
             </div>
           </div>
@@ -716,35 +716,35 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
 // ==================== 结果页面 ====================
 function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
   return (
-    <div className="min-h-screen bg-surface-0 p-6 space-y-6">
+    <div className="min-h-screen bg-surface-0 dark:bg-surface-900 p-6 space-y-6">
       {/* 主标题 */}
       <div className="text-center py-6">
-        <h1 className="text-xl font-semibold text-surface-900 font-display">测评报告</h1>
+        <h1 className="text-xl font-semibold text-surface-900 dark:text-surface-0 font-display">测评报告</h1>
       </div>
 
       {/* 核心数据 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border border-surface-200 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
-          <p className="text-3xl font-bold text-surface-900 font-display">{report.correctCount}</p>
-          <p className="text-sm text-surface-500 mt-1">正确题数</p>
+        <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
+          <p className="text-3xl font-bold text-surface-900 dark:text-surface-0 font-display">{report.correctCount}</p>
+          <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">正确题数</p>
         </div>
-        <div className="bg-white border border-surface-200 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
-          <p className="text-3xl font-bold text-surface-900 font-display">{report.unansweredCount}</p>
-          <p className="text-sm text-surface-500 mt-1">未作答</p>
+        <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
+          <p className="text-3xl font-bold text-surface-900 dark:text-surface-0 font-display">{report.unansweredCount}</p>
+          <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">未作答</p>
         </div>
-        <div className="bg-white border border-surface-200 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
+        <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
           <p className="text-3xl font-bold text-brand-600 font-display">{report.accuracy}%</p>
-          <p className="text-sm text-surface-500 mt-1">正确率</p>
+          <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">正确率</p>
         </div>
-        <div className="bg-white border border-surface-200 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
-          <p className="text-3xl font-bold text-surface-900 font-display">{formatTime(report.timeUsed)}</p>
-          <p className="text-sm text-surface-500 mt-1">用时</p>
+        <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
+          <p className="text-3xl font-bold text-surface-900 dark:text-surface-0 font-display">{formatTime(report.timeUsed)}</p>
+          <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">用时</p>
         </div>
       </div>
 
       {/* 各题型正确率 */}
-      <div className="bg-white border border-surface-200 rounded-xl p-6">
-        <h2 className="text-base font-semibold text-surface-900 mb-4 flex items-center gap-2 font-display">
+      <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-6">
+        <h2 className="text-base font-semibold text-surface-900 dark:text-surface-0 mb-4 flex items-center gap-2 font-display">
           <BarChart3 className="w-5 h-5 text-brand-500" />各题型正确率
         </h2>
         <div className="space-y-4">
@@ -757,10 +757,10 @@ function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
             return (
               <div key={w.type}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-surface-600">{w.type.split('-')[1]}</span>
-                  <span className="text-sm text-surface-500">{w.correct}/{w.total} | {pct.toFixed(0)}%</span>
+                  <span className="text-sm font-medium text-surface-600 dark:text-surface-400">{w.type.split('-')[1]}</span>
+                  <span className="text-sm font-medium text-surface-500 dark:text-surface-400">{w.correct}/{w.total} | {pct.toFixed(0)}%</span>
                 </div>
-                <div className="w-full h-3 bg-surface-100 rounded-full overflow-hidden">
+                <div className="w-full h-3 bg-surface-100 dark:bg-surface-700 rounded-full overflow-hidden">
                   <div className={`h-full ${colorClass} rounded-full transition-all`} style={{ width: `${pct}%` }} />
                 </div>
               </div>
@@ -771,40 +771,40 @@ function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
 
       {/* AI分析 */}
       {(aiAnalyzing || aiAnalysisText || report.aiAnalysis) ? (
-        <div className="bg-white border border-surface-200 rounded-xl p-6">
-          <h2 className="text-base font-semibold text-surface-900 mb-4 flex items-center gap-2 font-display">
+        <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-6">
+          <h2 className="text-base font-semibold text-surface-900 dark:text-surface-0 mb-4 flex items-center gap-2 font-display">
             <Target className="w-5 h-5 text-brand-500" />
             AI深度分析
-            {aiAnalyzing && <span className="text-xs text-surface-400 ml-2">分析中...</span>}
+            {aiAnalyzing && <span className="text-xs text-surface-400 dark:text-surface-400 ml-2">分析中...</span>}
           </h2>
-          <div className="prose prose-sm max-w-none whitespace-pre-wrap text-surface-600">
+          <div className="prose prose-sm max-w-none whitespace-pre-wrap text-surface-600 dark:text-surface-400">
             {(aiAnalysisText || report.aiAnalysis || '').split('\n').map((line: string, i: number) => (
               <p key={i} className="mb-2">{line}</p>
             ))}
           </div>
         </div>
       ) : (
-        <div className="bg-white border border-surface-200 rounded-xl p-6">
-          <h2 className="text-base font-semibold text-surface-900 mb-4 flex items-center gap-2 font-display">
+        <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-6">
+          <h2 className="text-base font-semibold text-surface-900 dark:text-surface-0 mb-4 flex items-center gap-2 font-display">
             <Target className="w-5 h-5 text-brand-500" />智能分析建议
           </h2>
           <div className="space-y-3">
             {report.suggestions.map((s: string, i: number) => (
-              <div key={i} className="bg-surface-0 rounded-lg p-3 text-sm text-surface-600">{s}</div>
+              <div key={i} className="bg-surface-0 dark:bg-surface-700 rounded-lg p-3 text-sm font-medium text-surface-600 dark:text-surface-400">{s}</div>
             ))}
           </div>
-          <div className="mt-4 p-3 bg-surface-0 rounded-lg text-xs text-surface-500">配置AI接口后可获得更详细的深度分析，<a href="#/settings" className="text-brand-500 hover:text-brand-600 underline">去设置</a></div>
+          <div className="mt-4 p-3 bg-surface-0 dark:bg-surface-700 rounded-lg text-xs text-surface-500 dark:text-surface-400">配置AI接口后可获得更详细的深度分析，<a href="#/settings" className="text-brand-500 hover:text-brand-600 underline">去设置</a></div>
         </div>
       )}
 
       {/* 薄弱提示 */}
       {report.weaknesses.filter((w: any) => w.accuracy < 60).length > 0 && (
-        <div className="bg-danger-light border border-danger/20 rounded-xl p-4">
+        <div className="bg-danger-light dark:bg-danger/10 border border-danger/20 dark:border-danger/30 rounded-xl p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-danger mt-0.5" />
             <div>
-              <p className="font-medium text-surface-900">需要重点突破</p>
-              <p className="text-sm text-surface-600 mt-1">{report.weaknesses.filter((w: any) => w.accuracy < 60).map((w: any) => w.type.split('-')[1]).join('、')} 正确率较低</p>
+              <p className="font-medium text-surface-900 dark:text-surface-0">需要重点突破</p>
+              <p className="text-sm font-medium text-surface-600 dark:text-surface-400 mt-1">{report.weaknesses.filter((w: any) => w.accuracy < 60).map((w: any) => w.type.split('-')[1]).join('、')} 正确率较低</p>
             </div>
           </div>
         </div>
@@ -812,7 +812,7 @@ function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
 
       {/* 操作按钮 */}
       <div className="flex justify-center gap-4">
-        <button onClick={resetExam} className="flex items-center gap-2 px-6 py-3 bg-white border border-surface-200 text-surface-600 rounded-xl hover:bg-surface-50 hover:border-surface-300 transition-all">
+        <button onClick={resetExam} className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-400 rounded-xl hover:bg-surface-50 dark:hover:bg-surface-700 hover:border-surface-300 dark:hover:border-surface-600 transition-all">
           <RefreshCw className="w-4 h-4" />
           再测一次
         </button>

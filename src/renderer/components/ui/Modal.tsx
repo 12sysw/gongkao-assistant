@@ -49,12 +49,12 @@ export const Modal: React.FC<ModalProps> = ({
       onClick={onClose}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-surface-950/60 backdrop-blur-sm transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-surface-950/60 dark:bg-surface-950/80 backdrop-blur-sm transition-opacity duration-300" />
 
       {/* Modal */}
       <div
         className={cn(
-          'relative surface shadow-card-hover w-full',
+          'relative surface dark:bg-surface-800 shadow-card-hover w-full',
           'animate-slide-up',
           sizeMap[size],
           className
@@ -67,15 +67,15 @@ export const Modal: React.FC<ModalProps> = ({
             <div className="flex items-start justify-between">
               <div>
                 {title && (
-                  <h3 className="text-xl font-bold text-surface-900 font-display tracking-tight">{title}</h3>
+                  <h3 className="text-xl font-bold text-surface-900 dark:text-surface-0 font-display tracking-tight">{title}</h3>
                 )}
                 {description && (
-                  <p className="mt-1.5 text-sm text-surface-500">{description}</p>
+                  <p className="mt-1.5 text-sm font-medium text-surface-500 dark:text-surface-400">{description}</p>
                 )}
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-xl text-surface-400 hover:text-surface-900 hover:bg-surface-50 transition-colors duration-200"
+                className="p-2 rounded-xl text-surface-400 hover:text-surface-900 dark:hover:text-surface-0 hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors duration-200"
               >
                 <X className="w-5 h-5" />
               </button>

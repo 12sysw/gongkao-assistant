@@ -11,13 +11,13 @@ const variantMap = {
   primary:
     'bg-brand-500 text-white hover:bg-brand-600 shadow-card hover:shadow-card-hover active:scale-[0.98] transition-all duration-200',
   secondary:
-    'bg-white border border-surface-200 text-surface-700 hover:bg-surface-50 hover:border-surface-300 transition-all duration-200',
+    'bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-0 hover:bg-surface-50 dark:hover:bg-surface-700 hover:border-surface-300 dark:hover:border-surface-600 transition-all duration-200',
   ghost:
-    'bg-transparent text-surface-600 hover:bg-surface-100 transition-colors duration-200',
+    'bg-transparent text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors duration-200',
   danger:
-    'bg-transparent text-danger hover:bg-danger-light transition-colors duration-200',
+    'bg-transparent text-danger hover:bg-danger-light dark:hover:bg-danger/20 transition-colors duration-200',
   outline:
-    'bg-transparent border border-surface-200 text-surface-700 hover:bg-surface-50 hover:border-surface-300 transition-all duration-200',
+    'bg-transparent border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-0 hover:bg-surface-50 dark:hover:bg-surface-800 hover:border-surface-300 dark:hover:border-surface-600 transition-all duration-200',
 };
 
 const sizeMap = {

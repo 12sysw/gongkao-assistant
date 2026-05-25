@@ -9,8 +9,10 @@ import {
   Circle,
   X,
   Play,
+  Download,
 } from 'lucide-react';
 import dayjs from 'dayjs';
+import { exportStudyPlans } from '../lib/export-utils';
 
 interface StudyPlanItem {
   id: number;
@@ -81,30 +83,68 @@ function getNextStatus(current: StudyPlanItem['status']): StudyPlanItem['status'
 const PageHeader: React.FC<{
   onLogStudy: () => void;
   onAddPlan: () => void;
-}> = ({ onLogStudy, onAddPlan }) => (
-  <div className="flex items-center justify-between">
-    <div>
-      <h1 className="text-xl font-bold text-surface-900 font-display">学习计划</h1>
-      <p className="text-sm text-surface-500 mt-1">规划目标，追踪进度，养成习惯</p>
+  plans: StudyPlanItem[];
+}> = ({ onLogStudy, onAddPlan, plans }) => {
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExport = (format: 'xlsx' | 'pdf') => {
+    exportStudyPlans(plans, format);
+    setShowExportMenu(false);
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-xl font-bold text-surface-900 font-display">学习计划</h1>
+        <p className="text-sm text-surface-500 mt-1">规划目标，追踪进度，养成习惯</p>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="relative">
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className="flex items-center px-3 py-2 border border-surface-200 text-surface-700 rounded-lg hover:bg-surface-50 text-sm transition-colors"
+          >
+            <Download className="w-4 h-4 mr-1" />
+            导出
+          </button>
+          {showExportMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
+              <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-surface-200 py-1 z-20">
+                <button
+                  onClick={() => handleExport('xlsx')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-surface-50 transition-colors"
+                >
+                  导出为 Excel
+                </button>
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-surface-50 transition-colors"
+                >
+                  导出为 PDF
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+        <button
+          onClick={onLogStudy}
+          className="flex items-center px-3 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm transition-colors"
+        >
+          <Clock className="w-4 h-4 mr-1" />
+          记录学习
+        </button>
+        <button
+          onClick={onAddPlan}
+          className="flex items-center px-3 py-2 border border-surface-200 text-surface-700 rounded-lg hover:bg-surface-50 text-sm transition-colors"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          新建计划
+        </button>
+      </div>
     </div>
-    <div className="flex items-center gap-2">
-      <button
-        onClick={onLogStudy}
-        className="flex items-center px-3 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 text-sm transition-colors"
-      >
-        <Clock className="w-4 h-4 mr-1" />
-        记录学习
-      </button>
-      <button
-        onClick={onAddPlan}
-        className="flex items-center px-3 py-2 border border-surface-200 text-surface-700 rounded-lg hover:bg-surface-50 text-sm transition-colors"
-      >
-        <Plus className="w-4 h-4 mr-1" />
-        新建计划
-      </button>
-    </div>
-  </div>
-);
+  );
+};
 
 const StatsCards: React.FC<{
   todayMinutes: number;
@@ -549,7 +589,7 @@ const StudyPlan: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader onLogStudy={() => setShowLogStudy(true)} onAddPlan={() => setShowAddPlan(true)} />
+      <PageHeader onLogStudy={() => setShowLogStudy(true)} onAddPlan={() => setShowAddPlan(true)} plans={plans} />
 
       <StatsCards
         todayMinutes={todayMinutes}

@@ -11,8 +11,10 @@ import {
   ImageIcon,
   Loader2,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { exportWrongRecords } from '../lib/export-utils';
 
 const QUESTION_TYPES = [
   '行测-言语理解',
@@ -136,18 +138,54 @@ async function recognizeQuestionImage(
 
 /* ─── Sub-components ─── */
 
-const PageHeader: React.FC<{ onAdd: () => void }> = ({ onAdd }) => (
-  <div className="flex items-center justify-between">
-    <div>
-      <h1 className="text-2xl font-bold text-surface-900 font-display tracking-tight">错题本</h1>
-      <p className="text-sm text-surface-400 mt-1">记录错题，反复复习，查漏补缺</p>
+const PageHeader: React.FC<{ onAdd: () => void; records: WrongRecordWithQuestion[] }> = ({ onAdd, records }) => {
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExport = (format: 'xlsx' | 'pdf') => {
+    exportWrongRecords(records, format);
+    setShowExportMenu(false);
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <div>
+        <h1 className="text-2xl font-bold text-surface-900 font-display tracking-tight">错题本</h1>
+        <p className="text-sm text-surface-400 mt-1">记录错题，反复复习，查漏补缺</p>
+      </div>
+      <div className="flex gap-2">
+        <div className="relative">
+          <Button variant="outline" onClick={() => setShowExportMenu(!showExportMenu)}>
+            <Download className="w-4 h-4" />
+            导出
+          </Button>
+          {showExportMenu && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
+              <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-surface-800 rounded-lg shadow-lg border border-surface-200 dark:border-surface-700 py-1 z-20">
+                <button
+                  onClick={() => handleExport('xlsx')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                >
+                  导出为 Excel
+                </button>
+                <button
+                  onClick={() => handleExport('pdf')}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                >
+                  导出为 PDF
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+        <Button onClick={onAdd}>
+          <Plus className="w-4 h-4" />
+          添加错题
+        </Button>
+      </div>
     </div>
-    <Button onClick={onAdd}>
-      <Plus className="w-4 h-4" />
-      添加错题
-    </Button>
-  </div>
-);
+  );
+};
 
 const TypeStats: React.FC<{
   filterType: string;
@@ -957,7 +995,7 @@ const WrongBook: React.FC = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <PageHeader onAdd={() => setShowAddForm(true)} />
+      <PageHeader onAdd={() => setShowAddForm(true)} records={filteredRecords} />
 
       <TypeStats filterType={filterType} typeCounts={typeCounts} onToggle={handleTypeToggle} />
 

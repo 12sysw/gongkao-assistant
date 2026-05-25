@@ -58,19 +58,19 @@ const EssayReview: React.FC = () => {
     setShowResult(false);
   };
 
-  const inputClass = 'w-full px-3 py-2.5 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none placeholder:text-surface-400';
+  const inputClass = 'w-full px-3 py-2.5 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none placeholder:text-surface-400 dark:placeholder:text-surface-500';
 
   if (showResult) {
     return (
-      <div className="flex flex-col h-full bg-surface-0">
-        <div className="h-14 shrink-0 flex items-center justify-between px-6 border-b border-surface-200">
-          <h1 className="text-base font-bold text-surface-900 font-display flex items-center gap-2">
+      <div className="flex flex-col h-full bg-surface-0 dark:bg-surface-900">
+        <div className="h-14 shrink-0 flex items-center justify-between px-6 border-b border-surface-200 dark:border-surface-700">
+          <h1 className="text-base font-bold text-surface-900 dark:text-surface-0 font-display flex items-center gap-2">
             <PenTool className="w-5 h-5 text-brand-500" />
             申论批改结果
           </h1>
           <button
             onClick={handleReset}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-surface-500 hover:text-surface-700 hover:bg-surface-100 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200 hover:bg-surface-100 dark:hover:bg-surface-800 rounded-lg transition-colors"
           >
             <RotateCcw className="w-4 h-4" />
             重新批改
@@ -79,17 +79,17 @@ const EssayReview: React.FC = () => {
 
         <div className="flex-1 overflow-y-auto p-6" ref={resultRef}>
           <div className="max-w-3xl mx-auto space-y-4">
-            <div className="p-4 bg-surface-50 rounded-xl border border-surface-200">
+            <div className="p-4 bg-surface-50 dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700">
               <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-4 h-4 text-surface-400" />
-                <span className="text-xs font-medium text-surface-500">
+                <FileText className="w-4 h-4 text-surface-400 dark:text-surface-400" />
+                <span className="text-xs font-medium text-surface-500 dark:text-surface-400">
                   {ESSAY_TYPES.find((t) => t.value === type)?.label} · 题目要求
                 </span>
               </div>
-              <p className="text-sm text-surface-700 line-clamp-3">{topic}</p>
+              <p className="text-sm font-medium text-surface-700 dark:text-surface-400 line-clamp-3">{topic}</p>
             </div>
 
-            <div className="p-6 bg-white rounded-xl border border-surface-200 shadow-soft">
+            <div className="p-6 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 shadow-soft">
               {streaming && !reviewContent && (
                 <div className="flex items-center gap-2 text-sm text-surface-400">
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -97,7 +97,7 @@ const EssayReview: React.FC = () => {
                 </div>
               )}
               {reviewContent && (
-                <div className="text-sm text-surface-700 whitespace-pre-wrap leading-relaxed">
+                <div className="text-sm font-medium text-surface-700 dark:text-surface-400 whitespace-pre-wrap leading-relaxed">
                   {reviewContent}
                   {streaming && <span className="inline-block w-1.5 h-4 bg-brand-500 animate-pulse ml-0.5 align-middle" />}
                 </div>
@@ -110,9 +110,9 @@ const EssayReview: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-surface-0">
-      <div className="h-14 shrink-0 flex items-center px-6 border-b border-surface-200">
-        <h1 className="text-base font-bold text-surface-900 font-display flex items-center gap-2">
+    <div className="flex flex-col h-full bg-surface-0 dark:bg-surface-900">
+      <div className="h-14 shrink-0 flex items-center px-6 border-b border-surface-200 dark:border-surface-700">
+        <h1 className="text-base font-bold text-surface-900 dark:text-surface-0 font-display flex items-center gap-2">
           <PenTool className="w-5 h-5 text-brand-500" />
           申论 AI 批改
         </h1>
@@ -120,14 +120,14 @@ const EssayReview: React.FC = () => {
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-5">
-          <div className="p-4 bg-brand-50 border border-brand-200 rounded-xl">
-            <p className="text-sm text-brand-700">
+          <div className="p-4 bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/20 rounded-xl">
+            <p className="text-sm text-brand-700 dark:text-brand-400">
               输入申论题目和你的答案，AI 将从立意、内容、结构、语言等维度进行专业批改，并给出修改建议。
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-surface-900 mb-2">题目类型</label>
+            <label className="block text-sm font-medium text-surface-900 dark:text-surface-0 mb-2">题目类型</label>
             <div className="flex flex-wrap gap-2">
               {ESSAY_TYPES.map((t) => (
                 <button
@@ -135,8 +135,8 @@ const EssayReview: React.FC = () => {
                   onClick={() => setType(t.value)}
                   className={`px-3.5 py-1.5 rounded-lg text-sm border-2 transition-colors ${
                     type === t.value
-                      ? 'border-brand-500 bg-brand-50 text-brand-700 font-medium'
-                      : 'border-surface-200 text-surface-600 hover:border-surface-300'
+                      ? 'border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-400 font-medium'
+                      : 'border-surface-200 dark:border-surface-600 text-surface-600 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-500'
                   }`}
                 >
                   {t.label}
@@ -146,7 +146,7 @@ const EssayReview: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-surface-900 mb-2">
+            <label className="block text-sm font-medium text-surface-900 dark:text-surface-0 mb-2">
               题目要求 <span className="text-danger">*</span>
             </label>
             <textarea
@@ -159,8 +159,8 @@ const EssayReview: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-surface-900 mb-2">
-              给定材料 <span className="text-surface-400 font-normal">（可选，粘贴材料摘要）</span>
+            <label className="block text-sm font-medium text-surface-900 dark:text-surface-0 mb-2">
+              给定材料 <span className="text-surface-400 dark:text-surface-400 font-normal">（可选，粘贴材料摘要）</span>
             </label>
             <textarea
               value={material}
@@ -172,7 +172,7 @@ const EssayReview: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-surface-900 mb-2">
+            <label className="block text-sm font-medium text-surface-900 dark:text-surface-0 mb-2">
               你的答案 <span className="text-danger">*</span>
             </label>
             <textarea
@@ -200,7 +200,7 @@ const EssayReview: React.FC = () => {
             </button>
             <button
               onClick={handleReset}
-              className="px-5 py-3 border border-surface-200 text-surface-600 rounded-xl hover:bg-surface-50 transition-colors"
+              className="px-5 py-3 border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-400 rounded-xl hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
             >
               清空
             </button>

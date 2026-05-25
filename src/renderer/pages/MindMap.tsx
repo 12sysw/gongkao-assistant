@@ -234,9 +234,9 @@ const MapList: React.FC<{
   onDelete: (id: number) => void;
 }> = ({ maps, currentMapId, onLoad, onDelete }) => (
   <div className="w-56 shrink-0 space-y-2">
-    <h3 className="text-sm font-medium text-surface-500 mb-2">我的导图</h3>
+    <h3 className="text-sm font-medium text-surface-500 dark:text-surface-400 mb-2">我的导图</h3>
     {maps.length === 0 ? (
-      <p className="text-xs text-surface-400 py-4 text-center">暂无导图</p>
+      <p className="text-xs text-surface-400 dark:text-surface-400 py-4 text-center">暂无导图</p>
     ) : (
       maps.map((map) => (
         <div
@@ -244,24 +244,24 @@ const MapList: React.FC<{
           onClick={() => onLoad(map)}
           className={`p-3 rounded-lg cursor-pointer border transition-colors ${
             currentMapId === map.id
-              ? 'border-brand-300 bg-brand-50'
-              : 'border-surface-200 bg-white hover:border-surface-300'
+              ? 'border-brand-300 bg-brand-50 dark:border-brand-500 dark:bg-brand-500/10'
+              : 'border-surface-200 bg-white hover:border-surface-300 dark:border-surface-700 dark:bg-surface-800 dark:hover:border-surface-600'
           }`}
         >
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-surface-700 truncate flex-1">{map.title}</span>
+            <span className="text-sm font-medium text-surface-700 dark:text-surface-0 truncate flex-1">{map.title}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(map.id);
               }}
-              className="text-surface-400 hover:text-danger ml-1"
+              className="text-surface-400 dark:text-surface-400 hover:text-danger ml-1"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="flex items-center mt-1 text-xs text-surface-400">
-            <span className="px-1.5 py-0.5 bg-surface-100 text-surface-500 rounded">{map.subject}</span>
+          <div className="flex items-center mt-1 text-xs text-surface-400 dark:text-surface-400">
+            <span className="px-1.5 py-0.5 bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded">{map.subject}</span>
           </div>
         </div>
       ))
@@ -288,16 +288,16 @@ const Toolbar: React.FC<{
   onAddChild,
   onDeleteNode,
 }) => (
-  <div className="flex items-center gap-3 px-4 py-2 border-b border-surface-100 bg-surface-0">
+  <div className="flex items-center gap-3 px-4 py-2 border-b border-surface-100 bg-surface-0 dark:border-surface-700 dark:bg-surface-800">
     <input
       value={title}
       onChange={(e) => onTitleChange(e.target.value)}
-      className="text-sm font-medium text-surface-900 bg-transparent border-none focus:outline-none focus:border-b focus:border-brand-500 px-1"
+      className="text-sm font-medium text-surface-900 dark:text-surface-0 bg-transparent border-none focus:outline-none focus:border-b focus:border-brand-500 px-1"
     />
     <select
       value={subject}
       onChange={(e) => onSubjectChange(e.target.value)}
-      className="text-xs px-2 py-1 border border-surface-200 rounded-lg bg-white"
+      className="text-xs px-2 py-1 border border-surface-200 dark:border-surface-600 rounded-lg bg-white dark:bg-surface-800 dark:text-surface-0"
     >
       <option value="行测">行测</option>
       <option value="申论">申论</option>
@@ -308,14 +308,14 @@ const Toolbar: React.FC<{
       <button
         onClick={onAddChild}
         disabled={!selectedNode}
-        className="text-xs px-2 py-1 bg-brand-100 text-brand-600 rounded-lg hover:bg-brand-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="text-xs px-2 py-1 bg-brand-100 text-brand-600 rounded-lg hover:bg-brand-200 dark:bg-brand-500/20 dark:text-brand-400 dark:hover:bg-brand-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         + 子节点
       </button>
       <button
         onClick={onDeleteNode}
         disabled={!selectedNode || isRootSelected}
-        className="text-xs px-2 py-1 bg-danger-light text-danger-dark rounded-lg hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="text-xs px-2 py-1 bg-danger-light text-danger-dark rounded-lg hover:bg-red-100 dark:bg-danger/20 dark:text-danger dark:hover:bg-danger/30 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         删除
       </button>
@@ -324,8 +324,8 @@ const Toolbar: React.FC<{
 );
 
 const EmptyCanvas: React.FC = () => (
-  <div className="flex flex-col items-center justify-center py-24 text-surface-400">
-    <FolderOpen className="w-16 h-16 mb-3 text-surface-300" />
+  <div className="flex flex-col items-center justify-center py-24 text-surface-400 dark:text-surface-400">
+    <FolderOpen className="w-16 h-16 mb-3 text-surface-300 dark:text-surface-600" />
     <p className="text-lg">选择或新建一个思维导图</p>
     <p className="text-sm mt-1">点击"新建"开始构建知识体系</p>
   </div>
@@ -358,7 +358,7 @@ const MindMapCanvas: React.FC<{
   const svgHeight = Math.max(500, layout.height + 80);
 
   return (
-    <div className="overflow-auto p-4" style={{ maxHeight: 'calc(100vh - 260px)' }}>
+    <div className="overflow-auto p-4 dark:bg-surface-800" style={{ maxHeight: 'calc(100vh - 260px)' }}>
       <svg width={svgWidth} height={svgHeight} className="min-w-full">
         {/* Edges */}
         {allEdges.map((edge, i) => (
@@ -387,10 +387,10 @@ const MindMapCanvas: React.FC<{
               width={NODE_WIDTH}
               height={NODE_HEIGHT}
               rx={8}
-              fill={selectedNode === node.id ? '#f9ebd8' : '#ffffff'}
+              className="fill-white dark:fill-surface-700"
+              style={{ fill: selectedNode === node.id ? '#f9ebd8' : undefined }}
               stroke={LEVEL_COLORS[level % LEVEL_COLORS.length]}
               strokeWidth={selectedNode === node.id ? 2.5 : 1.5}
-              className="mind-node"
             />
             {editingNode === node.id ? (
               <foreignObject x={x + 4} y={y + 4} width={NODE_WIDTH - 8} height={NODE_HEIGHT - 8}>
@@ -411,6 +411,7 @@ const MindMapCanvas: React.FC<{
                     textAlign: 'center',
                     background: 'transparent',
                   }}
+                  className="text-surface-900 dark:text-surface-0"
                 />
               </foreignObject>
             ) : (
@@ -420,7 +421,7 @@ const MindMapCanvas: React.FC<{
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fontSize="13"
-                fill="#1c1917"                className="pointer-events-none select-none"
+                className="fill-surface-900 dark:fill-surface-0 pointer-events-none select-none"
               >
                 {node.topic.length > 10 ? node.topic.slice(0, 10) + '...' : node.topic}
               </text>
@@ -641,8 +642,8 @@ const MindMap: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-surface-900 font-display">思维导图</h1>
-          <p className="text-sm text-surface-500 mt-1">构建知识体系，梳理考点脉络</p>
+          <h1 className="text-xl font-bold text-surface-900 dark:text-surface-0 font-display">思维导图</h1>
+          <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">构建知识体系，梳理考点脉络</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -668,7 +669,7 @@ const MindMap: React.FC = () => {
           onDelete={handleDeleteMap}
         />
 
-        <div className="flex-1 bg-white rounded-xl border border-surface-200 overflow-hidden">
+        <div className="flex-1 bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 overflow-hidden">
           {currentMap ? (
             <>
               <Toolbar

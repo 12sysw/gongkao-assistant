@@ -93,94 +93,94 @@ const RagSettingsPanel: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-elevated w-full max-w-lg p-6 space-y-4">
-        <h2 className="text-lg font-bold text-surface-900 font-display">RAG 配置</h2>
+      <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-elevated w-full max-w-lg p-6 space-y-4">
+        <h2 className="text-lg font-bold text-surface-900 dark:text-surface-0 font-display">RAG 配置</h2>
 
         <div className="space-y-4">
           {/* 向量模型配置 */}
-          <div className="p-3 bg-surface-50 rounded-lg space-y-3">
-            <h3 className="text-sm font-medium text-surface-700 flex items-center gap-2">
+          <div className="p-3 bg-surface-50 dark:bg-surface-900 rounded-lg space-y-3">
+            <h3 className="text-sm font-medium text-surface-700 dark:text-surface-400 flex items-center gap-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
               向量检索模型
             </h3>
             <label className="block">
-              <span className="text-xs text-surface-500">Embedding API 地址</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">Embedding API 地址</span>
               <input
                 value={form.embedApiUrl}
                 onChange={(e) => setForm({ ...form, embedApiUrl: e.target.value })}
                 placeholder="https://router.tumuer.me/v1"
-                className="w-full mt-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full mt-1 px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
             </label>
             <label className="block">
-              <span className="text-xs text-surface-500">Embedding API Key</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">Embedding API Key</span>
               <input
                 type="password"
                 value={form.embedApiKey}
                 onChange={(e) => setForm({ ...form, embedApiKey: e.target.value })}
                 placeholder="sk-..."
-                className="w-full mt-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full mt-1 px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
             </label>
             <label className="block">
-              <span className="text-xs text-surface-500">Embedding 模型</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">Embedding 模型</span>
               <input
                 value={form.embedModel}
                 onChange={(e) => setForm({ ...form, embedModel: e.target.value })}
                 placeholder="Qwen3-VL-Embedding-8B"
-                className="w-full mt-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full mt-1 px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
             </label>
             <label className="block">
-              <span className="text-xs text-surface-500">Reranker 模型 (可选)</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">Reranker 模型 (可选)</span>
               <input
                 value={form.rerankerModel}
                 onChange={(e) => setForm({ ...form, rerankerModel: e.target.value })}
                 placeholder="Qwen3-VL-Reranker-8B"
-                className="w-full mt-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full mt-1 px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
             </label>
           </div>
 
           {/* 对话模型配置 */}
-          <div className="p-3 bg-surface-50 rounded-lg space-y-3">
-            <h3 className="text-sm font-medium text-surface-700 flex items-center gap-2">
+          <div className="p-3 bg-surface-50 dark:bg-surface-900 rounded-lg space-y-3">
+            <h3 className="text-sm font-medium text-surface-700 dark:text-surface-400 flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500 rounded-full"></span>
               对话生成模型
             </h3>
             <label className="block">
-              <span className="text-xs text-surface-500">LLM API 地址</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">LLM API 地址</span>
               <input
                 value={form.llmApiUrl}
                 onChange={(e) => setForm({ ...form, llmApiUrl: e.target.value })}
                 placeholder="https://api.deepseek.com/v1"
-                className="w-full mt-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full mt-1 px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
             </label>
             <label className="block">
-              <span className="text-xs text-surface-500">LLM API Key</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">LLM API Key</span>
               <input
                 type="password"
                 value={form.llmApiKey}
                 onChange={(e) => setForm({ ...form, llmApiKey: e.target.value })}
                 placeholder="sk-..."
-                className="w-full mt-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full mt-1 px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
             </label>
             <label className="block">
-              <span className="text-xs text-surface-500">LLM 对话模型</span>
+              <span className="text-xs text-surface-500 dark:text-surface-400">LLM 对话模型</span>
               <input
                 value={form.llmModel}
                 onChange={(e) => setForm({ ...form, llmModel: e.target.value })}
                 placeholder="deepseek-chat"
-                className="w-full mt-1 px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full mt-1 px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
             </label>
           </div>
 
           {/* ChromaDB 向量数据库状态 */}
-          <div className="p-3 bg-surface-50 rounded-lg space-y-2">
-            <h3 className="text-sm font-medium text-surface-700 flex items-center gap-2">
+          <div className="p-3 bg-surface-50 dark:bg-surface-900 rounded-lg space-y-2">
+            <h3 className="text-sm font-medium text-surface-700 dark:text-surface-400 flex items-center gap-2">
               <span className={`w-2 h-2 rounded-full ${chromaStatus?.running ? 'bg-green-500' : 'bg-surface-300'}`}></span>
               ChromaDB 向量数据库
             </h3>
@@ -195,7 +195,7 @@ const RagSettingsPanel: React.FC<{
               <button
                 onClick={handleChromaMigrate}
                 disabled={migrating}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-surface-200 rounded-lg text-xs hover:bg-surface-50 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 border border-surface-200 dark:border-surface-600 rounded-lg text-xs hover:bg-surface-50 dark:hover:bg-surface-800 disabled:opacity-50"
               >
                 {migrating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Database className="w-3 h-3" />}
                 {migrating ? '迁移中...' : '迁移已有向量到 ChromaDB'}
@@ -209,7 +209,7 @@ const RagSettingsPanel: React.FC<{
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-surface-200 rounded-lg text-sm hover:bg-surface-50 disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-surface-200 dark:border-surface-600 rounded-lg text-sm hover:bg-surface-50 dark:hover:bg-surface-800 disabled:opacity-50"
             >
               {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
               {syncing ? '同步中...' : '同步题库到知识库'}
@@ -217,7 +217,7 @@ const RagSettingsPanel: React.FC<{
             <button
               onClick={() => setShowImportDialog(true)}
               disabled={importing}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-surface-200 rounded-lg text-sm hover:bg-surface-50 disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-surface-200 dark:border-surface-600 rounded-lg text-sm hover:bg-surface-50 dark:hover:bg-surface-800 disabled:opacity-50"
             >
               {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
               {importing ? '导入中...' : '导入PDF题库'}
@@ -226,7 +226,7 @@ const RagSettingsPanel: React.FC<{
           <p className="text-xs text-surface-400">「导入PDF题库」会扫描目录下所有 PDF 文件并提取文本到知识库</p>
         </div>
 
-        <div className="flex justify-end gap-3 pt-2 border-t border-surface-100">
+        <div className="flex justify-end gap-3 pt-2 border-t border-surface-100 dark:border-surface-700">
           <button onClick={onClose} className="px-4 py-2 text-sm text-surface-500 hover:text-surface-700">
             取消
           </button>
@@ -242,15 +242,15 @@ const RagSettingsPanel: React.FC<{
       {/* PDF 导入对话框 */}
       {showImportDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-2xl shadow-elevated w-full max-w-md p-6 space-y-4">
-            <h3 className="text-lg font-bold text-surface-900">导入PDF题库</h3>
+          <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-elevated w-full max-w-md p-6 space-y-4">
+            <h3 className="text-lg font-bold text-surface-900 dark:text-surface-0">导入PDF题库</h3>
             <div>
               <label className="block text-sm text-surface-600 mb-2">PDF 文件目录路径：</label>
               <input
                 value={importPath}
                 onChange={(e) => setImportPath(e.target.value)}
                 placeholder="例如：E:\国考真题\公务员"
-                className="w-full px-3 py-2 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
               />
               <p className="text-xs text-surface-400 mt-1">支持递归扫描子目录中的所有 PDF 文件</p>
             </div>
@@ -294,7 +294,7 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
           'inline-block px-4 py-2.5 rounded-2xl text-sm leading-relaxed max-w-2xl',
           isUser
             ? 'bg-brand-500 text-white rounded-br-md'
-            : 'bg-surface-100 text-surface-800 rounded-bl-md'
+            : 'bg-surface-100 dark:bg-surface-800 text-surface-800 dark:text-surface-400 rounded-bl-md'
         )}>
           <p className="whitespace-pre-wrap">{message.content}</p>
         </div>
@@ -302,13 +302,13 @@ const MessageBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
           <div className="text-left">
             <button
               onClick={() => setShowSources(!showSources)}
-              className="text-xs text-surface-400 hover:text-surface-600 flex items-center gap-1"
+              className="text-xs text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 flex items-center gap-1"
             >
               {showSources ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
               引用 {message.sources.length} 条资料
             </button>
             {showSources && (
-              <div className="mt-1 p-2 bg-surface-50 rounded-lg text-xs text-surface-500 space-y-1">
+              <div className="mt-1 p-2 bg-surface-50 dark:bg-surface-800 rounded-lg text-xs text-surface-500 dark:text-surface-400 space-y-1">
                 {message.sources.map((s, i) => (
                   <div key={i} className="flex items-start gap-1">
                     <span className="text-surface-400 shrink-0">[{i + 1}]</span>
@@ -433,11 +433,11 @@ const RagChat: React.FC = () => {
   const isConfigured = ragConfig?.llmApiUrl && ragConfig?.llmApiKey;
 
   return (
-    <div className="flex h-full bg-surface-0">
+    <div className="flex h-full bg-surface-0 dark:bg-surface-900">
       {/* 会话列表侧栏 */}
       {sidebarOpen && (
-        <div className="w-64 shrink-0 bg-surface-50 border-r border-surface-200 flex flex-col">
-          <div className="p-3 border-b border-surface-200">
+        <div className="w-64 shrink-0 bg-surface-50 dark:bg-surface-800 border-r border-surface-200 dark:border-surface-700 flex flex-col">
+          <div className="p-3 border-b border-surface-200 dark:border-surface-700">
             <button
               onClick={handleNewSession}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-brand-500 text-white rounded-lg text-sm hover:bg-brand-600 transition-colors"
@@ -453,8 +453,8 @@ const RagChat: React.FC = () => {
                 className={cn(
                   'flex items-center gap-2 px-3 py-2.5 rounded-lg cursor-pointer text-sm transition-colors group',
                   activeSessionId === session.id
-                    ? 'bg-brand-500/10 text-brand-700'
-                    : 'text-surface-600 hover:bg-surface-100'
+                    ? 'bg-brand-500/10 text-brand-700 dark:text-brand-400'
+                    : 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-700'
                 )}
               >
                 <MessageSquare className="w-4 h-4 shrink-0" />
@@ -477,7 +477,7 @@ const RagChat: React.FC = () => {
       {/* 主对话区 */}
       <div className="flex-1 flex flex-col">
         {/* 顶部栏 */}
-        <div className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-surface-200">
+        <div className="h-14 shrink-0 flex items-center justify-between px-4 border-b border-surface-200 dark:border-surface-700">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -485,14 +485,14 @@ const RagChat: React.FC = () => {
             >
               <MessageSquare className="w-5 h-5" />
             </button>
-            <h1 className="text-base font-bold text-surface-900 font-display flex items-center gap-2">
+            <h1 className="text-base font-bold text-surface-900 dark:text-surface-0 font-display flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-brand-500" />
               智能问答
             </h1>
           </div>
           <button
             onClick={() => setShowSettings(true)}
-            className="p-2 text-surface-400 hover:text-surface-600 rounded-lg hover:bg-surface-100"
+            className="p-2 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700"
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -542,7 +542,7 @@ const RagChat: React.FC = () => {
                 onKeyDown={handleKeyDown}
                 placeholder="输入你的问题..."
                 rows={1}
-                className="flex-1 px-4 py-3 border border-surface-200 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none placeholder:text-surface-400"
+                className="flex-1 px-4 py-3 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-xl text-sm focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none placeholder:text-surface-400"
                 style={{ maxHeight: 120 }}
               />
               <button

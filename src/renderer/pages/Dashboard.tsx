@@ -14,12 +14,14 @@ import {
   Quote,
   Sparkles,
   Target,
+  Download,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { StatCard } from '../components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { cn } from '../lib/utils';
 import { buildReviewRecommendations } from '../lib/review-recommendations';
+import { exportDailyStats } from '../lib/export-utils';
 import {
   useRecentReviewSessions,
   useRecentRecommendationEvents,
@@ -370,10 +372,10 @@ function RecommendationCard({ items }: { items: Array<{ title: string; body: str
                   href: item.href,
                 });
               }}
-              className="rounded-xl border border-surface-100 bg-surface-0 p-4 transition hover:border-brand-200 hover:bg-brand-50"
+              className="rounded-xl border border-surface-100 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 p-4 transition hover:border-brand-200 hover:bg-brand-50 dark:hover:bg-surface-700"
             >
-              <p className="text-sm font-medium text-surface-900">{item.title}</p>
-              <p className="mt-2 text-sm text-surface-500 leading-6">{item.body}</p>
+              <p className="text-sm font-medium text-surface-900 dark:text-surface-0">{item.title}</p>
+              <p className="mt-2 text-base text-surface-600 dark:text-surface-400 leading-7">{item.body}</p>
             </Link>
           ))}
         </div>
@@ -404,7 +406,7 @@ function AiRecommendCard() {
       <CardContent>
         {!hasRequested && !text ? (
           <div className="text-center py-4">
-            <p className="text-sm text-surface-500 mb-3">基于你的学习数据，AI 为你生成今日专属学习计划</p>
+            <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mb-3">基于你的学习数据，AI 为你生成今日专属学习计划</p>
             <button
               onClick={handleGenerate}
               disabled={isFetching}
@@ -421,7 +423,7 @@ function AiRecommendCard() {
           </div>
         ) : text ? (
           <div className="space-y-2">
-            <div className="text-sm text-surface-700 whitespace-pre-wrap leading-relaxed">{text}</div>
+            <div className="text-sm font-medium text-surface-700 dark:text-surface-400 whitespace-pre-wrap leading-relaxed">{text}</div>
             <button
               onClick={handleGenerate}
               disabled={isFetching}
@@ -563,7 +565,7 @@ function ReviewHeatmapCard({
                       ? 'border-brand-200 bg-brand-400/70'
                       : day.started
                       ? 'border-brand-100 bg-brand-200/80'
-                      : 'border-surface-100 bg-surface-50'
+                      : 'border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-800'
                   )}
                   title={`${day.date} · 完成 ${day.completedCount}/${day.initialTotal || 0}`}
                 />
@@ -580,9 +582,9 @@ function ReviewHeatmapCard({
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-surface-0 p-4">
-      <p className="text-xs text-surface-400">{label}</p>
-      <p className="mt-2 text-lg font-semibold text-surface-900 font-display">{value}</p>
+    <div className="rounded-xl bg-surface-0 dark:bg-surface-800 p-4">
+      <p className="text-xs text-surface-400 dark:text-surface-400">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">{value}</p>
     </div>
   );
 }
@@ -623,12 +625,12 @@ function QuickLinks() {
               key={i}
               to={link.href}
               className={cn(
-                'flex items-center gap-3 p-4 rounded-xl border border-surface-100 transition-all duration-200',
-                'bg-surface-0 hover:bg-brand-50 hover:border-brand-200 hover:shadow-soft'
+                'flex items-center gap-3 p-4 rounded-xl border border-surface-100 dark:border-surface-700 transition-all duration-200',
+                'bg-surface-0 dark:bg-surface-800 hover:bg-brand-50 dark:hover:bg-surface-700 hover:border-brand-200 hover:shadow-soft'
               )}
             >
               <link.icon className={cn('w-5 h-5 text-brand-500')} />
-              <span className="text-sm font-medium text-surface-800">{link.text}</span>
+              <span className="text-sm font-medium text-surface-800 dark:text-surface-400">{link.text}</span>
             </Link>
           ))}
         </div>
@@ -659,26 +661,26 @@ function ReviewHistoryCard({
             正在加载复习记录...
           </div>
         ) : sessions.length === 0 ? (
-          <div className="rounded-xl bg-surface-0 p-4 text-sm text-surface-500">
+          <div className="rounded-xl bg-surface-0 dark:bg-surface-800 p-4 text-sm font-medium text-surface-500 dark:text-surface-400">
             还没有统一复习记录，去完成一次今日复习，这里就会开始积累趋势。
           </div>
         ) : (
           <div className="space-y-3">
             {sessions.map((session) => (
-              <div key={session.date} className="rounded-xl border border-surface-100 bg-surface-0 p-4">
+              <div key={session.date} className="rounded-xl border border-surface-100 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-medium text-surface-900">{session.date}</p>
-                    <p className="mt-1 text-xs text-surface-500">
+                    <p className="text-sm font-medium text-surface-900 dark:text-surface-0">{session.date}</p>
+                    <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">
                       {session.started ? '已启动统一复习' : '未启动'} · 完成 {session.completedCount} / {session.initialTotal || 0}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-semibold text-surface-900 font-display">{session.percent}%</p>
+                    <p className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">{session.percent}%</p>
                     <p className="text-xs text-surface-400">完成率</p>
                   </div>
                 </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-100">
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-surface-100 dark:bg-surface-700">
                   <div
                     className="h-full rounded-full bg-brand-500 transition-all duration-300"
                     style={{ width: `${session.percent}%` }}
@@ -696,9 +698,9 @@ function ReviewHistoryCard({
 function WeatherBanner({ weather, loading }: { weather: WeatherData | null; loading: boolean }) {
   if (loading) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white border border-surface-100">
-        <Loader2 className="w-5 h-5 text-surface-400 animate-spin" />
-        <span className="text-sm text-surface-400">加载天气中...</span>
+      <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
+        <Loader2 className="w-5 h-5 text-surface-400 dark:text-surface-400 animate-spin" />
+        <span className="text-sm font-medium text-surface-400 dark:text-surface-400">加载天气中...</span>
       </div>
     );
   }
@@ -714,14 +716,14 @@ function WeatherBanner({ weather, loading }: { weather: WeatherData | null; load
   const Icon = getWeatherIcon(weather.weather);
 
   return (
-    <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-white border border-surface-100">
+    <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700">
       <Icon className="w-8 h-8 text-brand-500" />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <span className="text-lg font-semibold text-surface-900 font-display">{weather.temperature}°C</span>
-          <span className="text-sm text-surface-500">{weather.weather}</span>
+          <span className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">{weather.temperature}°C</span>
+          <span className="text-sm font-medium text-surface-500 dark:text-surface-400">{weather.weather}</span>
         </div>
-        <p className="text-xs text-surface-400 truncate">
+        <p className="text-xs text-surface-400 dark:text-surface-400 truncate">
           {weather.city} · {weather.wind_direction}
           {weather.wind_power} · 湿度{weather.humidity}%
         </p>
@@ -732,9 +734,9 @@ function WeatherBanner({ weather, loading }: { weather: WeatherData | null; load
 
 function SayingBanner({ text }: { text: string }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-50 border border-brand-100">
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-brand-50 dark:bg-surface-800 border border-brand-100 dark:border-surface-700">
       <Quote className="w-5 h-5 text-brand-500 shrink-0" />
-      <p className="text-sm text-brand-700 italic">{text}</p>
+      <p className="text-sm text-brand-700 dark:text-surface-400 italic">{text}</p>
     </div>
   );
 }
@@ -749,7 +751,7 @@ function AnswerCard({ text }: { text: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-surface-600 leading-relaxed">{text}</p>
+        <p className="text-sm font-medium text-surface-600 dark:text-surface-400 leading-relaxed">{text}</p>
       </CardContent>
     </Card>
   );
@@ -759,29 +761,79 @@ function StudyStats({ stats }: { stats: DashboardStats }) {
   const activeDays = stats.active_days || 0;
   const avgDailyMinutes = activeDays > 0 ? Math.round(stats.total_minutes / activeDays) : 0;
   const avgDailyHours = (avgDailyMinutes / 60).toFixed(1);
+  const [exporting, setExporting] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const handleExport = async (format: 'xlsx' | 'pdf') => {
+    setExporting(true);
+    try {
+      const api = getApi();
+      if (!api) return;
+      const endDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const dailyRecords = await api.dailyRecord.getRange(startDate, endDate);
+      exportDailyStats(dailyRecords || [], format);
+    } catch (e) {
+      console.error('Export failed:', e);
+    } finally {
+      setExporting(false);
+      setShowExportMenu(false);
+    }
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>学习统计</CardTitle>
+        <div className="flex items-center justify-between w-full">
+          <CardTitle>学习统计</CardTitle>
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={exporting}
+              className="p-1.5 rounded-lg text-surface-400 hover:text-surface-600 hover:bg-surface-50 transition-colors disabled:opacity-50"
+              title="导出学习统计"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            {showExportMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)} />
+                <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-surface-800 rounded-lg shadow-lg border border-surface-200 dark:border-surface-700 py-1 z-20">
+                  <button
+                    onClick={() => handleExport('xlsx')}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                  >
+                    导出为 Excel
+                  </button>
+                  <button
+                    onClick={() => handleExport('pdf')}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
+                  >
+                    导出为 PDF
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-surface-500">累计学习天数</span>
-            <span className="text-lg font-semibold text-surface-900 font-display">{activeDays}天</span>
+            <span className="text-sm font-medium text-surface-500 dark:text-surface-400">累计学习天数</span>
+            <span className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">{activeDays}天</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-surface-500">平均每日时长</span>
-            <span className="text-lg font-semibold text-surface-900 font-display">{avgDailyHours}小时</span>
+            <span className="text-sm font-medium text-surface-500 dark:text-surface-400">平均每日时长</span>
+            <span className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">{avgDailyHours}小时</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-surface-500">累计刷题数量</span>
-            <span className="text-lg font-semibold text-surface-900 font-display">{stats.total_questions.toLocaleString()}道</span>
+            <span className="text-sm font-medium text-surface-500 dark:text-surface-400">累计刷题数量</span>
+            <span className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">{stats.total_questions.toLocaleString()}道</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-surface-500">已掌握错题</span>
-            <span className="text-lg font-semibold text-surface-900 font-display">{stats.mastered_count}道</span>
+            <span className="text-sm font-medium text-surface-500 dark:text-surface-400">已掌握错题</span>
+            <span className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">{stats.mastered_count}道</span>
           </div>
         </div>
       </CardContent>

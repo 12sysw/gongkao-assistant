@@ -81,7 +81,7 @@ const SearchBar: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder="搜索知识点..."
-      className="w-full pl-9 pr-4 py-2.5 border border-surface-200 rounded-lg text-sm focus:outline-none focus:border-brand-500"
+      className="w-full pl-9 pr-4 py-2.5 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
     />
   </div>
 );
@@ -102,8 +102,8 @@ const CategoryGrid: React.FC<{
           onClick={() => onToggle(cat.key)}
           className={`p-3 rounded-xl border transition-colors text-left ${
             isActive
-              ? 'border-brand-300 bg-brand-50'
-              : 'border-surface-200 bg-white hover:border-surface-300'
+              ? 'border-brand-300 bg-brand-50 dark:bg-brand-900/30 dark:border-brand-700'
+              : 'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 hover:border-surface-300 dark:hover:border-surface-600'
           }`}
         >
           <div
@@ -111,7 +111,7 @@ const CategoryGrid: React.FC<{
           >
             <Icon className="w-4 h-4" />
           </div>
-          <p className="text-sm font-medium text-surface-900">{cat.label}</p>
+          <p className="text-sm font-medium text-surface-900 dark:text-surface-0">{cat.label}</p>
           <p className="text-xs text-surface-400">{count} 条</p>
         </button>
       );
@@ -127,9 +127,9 @@ const KnowledgeCard: React.FC<{
   const category = CATEGORIES.find((c) => c.key === item.category);
 
   return (
-    <div className="bg-white rounded-xl border border-surface-200 overflow-hidden">
+    <div className="bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 overflow-hidden">
       <div
-        className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-0 transition-colors"
+        className="flex items-center justify-between p-4 cursor-pointer hover:bg-surface-0 dark:hover:bg-surface-700 transition-colors"
         onClick={onToggle}
       >
         <div className="flex-1 min-w-0">
@@ -141,7 +141,7 @@ const KnowledgeCard: React.FC<{
             >
               {category?.label || item.category}
             </span>
-            <h3 className="text-sm font-medium text-surface-900">{item.title}</h3>
+            <h3 className="text-sm font-medium text-surface-900 dark:text-surface-0">{item.title}</h3>
           </div>
           <div className="flex gap-1 flex-wrap">
             {item.tags.map((tag) => (
@@ -158,8 +158,8 @@ const KnowledgeCard: React.FC<{
         )}
       </div>
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-surface-100">
-          <pre className="text-sm text-surface-700 whitespace-pre-wrap leading-relaxed font-sans">
+        <div className="px-4 pb-4 pt-2 border-t border-surface-100 dark:border-surface-700">
+          <pre className="text-sm text-surface-700 dark:text-surface-400 whitespace-pre-wrap leading-relaxed font-sans">
             {item.content}
           </pre>
         </div>
@@ -169,8 +169,8 @@ const KnowledgeCard: React.FC<{
 };
 
 const EmptyState: React.FC = () => (
-  <div className="text-center py-12 text-surface-400">
-    <BookOpen className="w-12 h-12 mx-auto mb-2 text-surface-300" />
+  <div className="text-center py-12 text-surface-400 dark:text-surface-400">
+    <BookOpen className="w-12 h-12 mx-auto mb-2 text-surface-300 dark:text-surface-600" />
     <p>没有找到相关知识点</p>
   </div>
 );
@@ -206,7 +206,7 @@ const KnowledgeBase: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-surface-900 font-display">知识点速查</h1>
+        <h1 className="text-xl font-bold text-surface-900 dark:text-surface-0 font-display">知识点速查</h1>
         <p className="text-sm text-surface-500 mt-1">
           行测公式、常识考点、申论金句，一键速查
         </p>

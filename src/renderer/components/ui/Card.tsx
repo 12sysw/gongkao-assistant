@@ -24,8 +24,8 @@ export const Card: React.FC<CardProps> = ({
   ...props
 }) => {
   const variantStyles = {
-    default: 'bg-white border border-surface-100',
-    elevated: 'bg-white shadow-elevated border border-transparent',
+    default: 'bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700',
+    elevated: 'bg-white dark:bg-surface-800 shadow-elevated border border-transparent',
   };
 
   return (
@@ -33,7 +33,7 @@ export const Card: React.FC<CardProps> = ({
       className={cn(
         variantStyles[variant],
         'rounded-xl',
-        hover && 'hover:shadow-card-hover hover:border-surface-200 transition-all duration-200',
+        hover && 'hover:shadow-card-hover hover:border-surface-200 dark:hover:border-surface-600 transition-all duration-200',
         paddingMap[padding],
         className
       )}
@@ -49,7 +49,7 @@ export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   className,
   ...props
 }) => (
-  <div className={cn('flex items-center justify-between mb-4 border-b border-surface-100 pb-3', className)} {...props}>
+  <div className={cn('flex items-center justify-between mb-4 border-b border-surface-100 dark:border-surface-700 pb-3', className)} {...props}>
     {children}
   </div>
 );
@@ -59,7 +59,7 @@ export const CardTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({
   className,
   ...props
 }) => (
-  <h3 className={cn('text-base font-semibold text-surface-900 flex items-center gap-2 font-display', className)} {...props}>
+  <h3 className={cn('text-base font-semibold text-surface-900 dark:text-surface-0 flex items-center gap-2 font-display', className)} {...props}>
     {children}
   </h3>
 );

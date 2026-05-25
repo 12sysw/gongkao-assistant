@@ -119,11 +119,11 @@ const UnlockModal: React.FC<{
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-8 text-center max-w-sm mx-4 animate-bounce-in"
+        className="bg-white dark:bg-surface-800 rounded-2xl p-8 text-center max-w-sm mx-4 animate-bounce-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-7xl mb-4 animate-bounce">{achievement.icon}</div>
-        <h2 className="text-xl font-bold text-surface-900 mb-2 font-display">成就解锁！</h2>
+        <h2 className="text-xl font-bold text-surface-900 dark:text-surface-0 mb-2 font-display">成就解锁！</h2>
         <p className="text-lg font-semibold text-brand-500 mb-1">{achievement.title}</p>
         <p className="text-sm text-surface-400 mb-4">{achievement.description}</p>
         <button
@@ -172,11 +172,11 @@ const DailyQuotes: React.FC<{
   quotes: Quote[];
   onRefresh: () => void;
 }> = ({ quotes, onRefresh }) => (
-  <div className="bg-white rounded-xl border border-surface-200 p-6">
+  <div className="bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 p-6">
     <div className="flex items-center justify-between mb-4">
       <div className="flex items-center gap-3">
         <Star className="w-5 h-5 text-brand-500" />
-        <h2 className="text-base font-semibold text-surface-900 font-display">今日寄语</h2>
+        <h2 className="text-base font-semibold text-surface-900 dark:text-surface-0 font-display">今日寄语</h2>
       </div>
       <button
         onClick={onRefresh}
@@ -189,10 +189,10 @@ const DailyQuotes: React.FC<{
       {quotes.map((q, i) => (
         <div
           key={i}
-          className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-warning-light to-brand-100"
+          className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-warning-light to-brand-100 dark:from-surface-700 dark:to-surface-800"
         >
           <span className="text-brand-500 text-lg mt-0.5">💡</span>
-          <p className="text-sm text-surface-600 leading-relaxed">{q.text}</p>
+          <p className="text-sm font-medium text-surface-600 dark:text-surface-400 leading-relaxed">{q.text}</p>
         </div>
       ))}
     </div>
@@ -208,8 +208,8 @@ const AchievementCard: React.FC<{
     <div
       className={`rounded-xl p-4 border-2 transition-all duration-300 relative overflow-hidden ${
         isUnlocked
-          ? 'border-brand-300 bg-gradient-to-br from-brand-100 to-brand-50 shadow-card'
-          : 'bg-surface-0 hover:border-surface-300'
+          ? 'border-brand-300 bg-gradient-to-br from-brand-100 to-brand-50 dark:from-surface-700 dark:to-surface-800 shadow-card'
+          : 'bg-surface-0 dark:bg-surface-800 hover:border-surface-300 dark:hover:border-surface-600'
       }`}
     >
       <div
@@ -221,15 +221,15 @@ const AchievementCard: React.FC<{
       </div>
       <p
         className={`text-sm font-medium text-center ${
-          isUnlocked ? 'text-surface-900' : 'text-surface-400'
+          isUnlocked ? 'text-surface-900 dark:text-surface-0' : 'text-surface-400 dark:text-surface-400'
         }`}
       >
         {achievement.title}
       </p>
-      <p className="text-xs text-center text-surface-400 mt-1">{achievement.description}</p>
+      <p className="text-xs text-center text-surface-400 dark:text-surface-400 mt-1">{achievement.description}</p>
       {!isUnlocked && (
         <div className="mt-3">
-          <div className="w-full h-2 bg-surface-100 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-surface-100 dark:bg-surface-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-brand-200 to-brand-500 rounded-full transition-all duration-500"
               style={{ width: `${(achievement.progress ?? 0) / achievement.threshold * 100}%` }}
@@ -242,7 +242,7 @@ const AchievementCard: React.FC<{
       )}
       {isUnlocked && (
         <div className="mt-2 text-center">
-          <span className="inline-flex items-center text-xs text-brand-600 bg-brand-100 px-2 py-0.5 rounded-full">
+          <span className="inline-flex items-center text-xs text-brand-600 dark:text-brand-400 bg-brand-100 dark:bg-surface-700 px-2 py-0.5 rounded-full">
             已解锁
           </span>
         </div>
@@ -261,7 +261,7 @@ const AchievementGroup: React.FC<{
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           {typeIcons[type] || <Star className="w-5 h-5 text-surface-400" />}
-          <h3 className="text-sm font-medium text-surface-600">{typeLabels[type] || type}</h3>
+          <h3 className="text-sm font-medium text-surface-600 dark:text-surface-400">{typeLabels[type] || type}</h3>
         </div>
         <span className="text-xs text-surface-400">
           {typeUnlocked}/{items.length}
@@ -305,19 +305,19 @@ const AchievementWall: React.FC<{
   }, [grouped]);
 
   return (
-    <div className="bg-white rounded-xl border border-surface-200 p-6">
+    <div className="bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <Trophy className="w-5 h-5 text-brand-500" />
-          <h2 className="text-base font-semibold text-surface-900 font-display">成就墙</h2>
+          <h2 className="text-base font-semibold text-surface-900 dark:text-surface-0 font-display">成就墙</h2>
         </div>
         {!loading && !error && (
           <div className="flex items-center gap-3">
-            <span className="text-sm text-surface-400">
+            <span className="text-sm font-medium text-surface-400 dark:text-surface-400">
               已解锁 <span className="text-brand-500 font-semibold">{unlockedCount}</span> /{' '}
               {achievements.length}
             </span>
-            <span className="text-xs px-2 py-1 rounded-full bg-brand-100 text-brand-600">
+            <span className="text-xs px-2 py-1 rounded-full bg-brand-100 dark:bg-surface-700 text-brand-600 dark:text-brand-400">
               解锁率 {achievements.length ? Math.round((unlockedCount / achievements.length) * 100) : 0}%
             </span>
           </div>
@@ -345,7 +345,7 @@ const AchievementWall: React.FC<{
 
       {!loading && !error && achievements.length > 0 && (
         <>
-          <div className="w-full h-3 bg-surface-50 rounded-full mb-6 overflow-hidden">
+          <div className="w-full h-3 bg-surface-50 dark:bg-surface-700 rounded-full mb-6 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-brand-200 via-brand-400 to-brand-500 rounded-full transition-all duration-700 relative"
               style={{
@@ -357,13 +357,13 @@ const AchievementWall: React.FC<{
           </div>
 
           <div className="flex gap-2 mb-4">
-            <span className="px-3 py-1.5 text-xs rounded-full bg-brand-100 text-brand-600 font-medium">
+            <span className="px-3 py-1.5 text-xs rounded-full bg-brand-100 dark:bg-surface-700 text-brand-600 dark:text-brand-400 font-medium">
               全部 ({achievements.length})
             </span>
-            <span className="px-3 py-1.5 text-xs rounded-full bg-success-light text-success-dark font-medium">
+            <span className="px-3 py-1.5 text-xs rounded-full bg-success-light dark:bg-surface-700 text-success-dark dark:text-success font-medium">
               已解锁 ({unlockedCount})
             </span>
-            <span className="px-3 py-1.5 text-xs rounded-full bg-surface-50 text-surface-500 font-medium">
+            <span className="px-3 py-1.5 text-xs rounded-full bg-surface-50 dark:bg-surface-700 text-surface-500 dark:text-surface-400">
               未解锁 ({achievements.length - unlockedCount})
             </span>
           </div>
@@ -392,18 +392,18 @@ const TipsSection: React.FC = () => {
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-surface-200 p-6">
-      <h2 className="text-base font-semibold text-surface-900 mb-4 font-display">学习小贴士</h2>
+    <div className="bg-white dark:bg-surface-800 rounded-xl border border-surface-200 dark:border-surface-700 p-6">
+      <h2 className="text-base font-semibold text-surface-900 dark:text-surface-0 mb-4 font-display">学习小贴士</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {tips.map((tip, i) => (
           <div
             key={i}
-            className="flex gap-3 p-3 rounded-lg bg-surface-0 hover:bg-surface-50 transition-colors"
+            className="flex gap-3 p-3 rounded-lg bg-surface-0 dark:bg-surface-900 hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
           >
             <span className="text-2xl">{tip.icon}</span>
             <div>
-              <p className="text-sm font-medium text-surface-900">{tip.title}</p>
-              <p className="text-xs text-surface-400 mt-0.5">{tip.desc}</p>
+              <p className="text-sm font-medium text-surface-900 dark:text-surface-0">{tip.title}</p>
+              <p className="text-xs text-surface-400 dark:text-surface-400 mt-0.5">{tip.desc}</p>
             </div>
           </div>
         ))}

@@ -20,8 +20,11 @@ import {
   Library,
   PenTool,
   Network,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useTheme } from '../contexts/ThemeContext';
 
 const navItems = [
   { path: '/', label: '仪表盘', icon: LayoutDashboard },
@@ -45,12 +48,13 @@ const navItems = [
 
 const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <aside
       className={cn(
         'flex flex-col h-full shrink-0 transition-all duration-300',
-        'bg-surface-900 shadow-sidebar',
+        'bg-surface-900 dark:bg-surface-950 shadow-sidebar',
         collapsed ? 'w-16' : 'w-[220px]'
       )}
     >
@@ -108,7 +112,24 @@ const Sidebar: React.FC = () => {
         ))}
       </nav>
 
-      <div className="p-3 border-t border-white/[0.06] shrink-0">
+      <div className="p-3 border-t border-white/[0.06] shrink-0 space-y-1.5">
+        <button
+          onClick={toggleTheme}
+          className={cn(
+            'w-full flex items-center rounded-lg',
+            'text-surface-500 hover:text-surface-300 hover:bg-white/[0.04]',
+            'transition-colors duration-200',
+            collapsed ? 'justify-center py-2' : 'px-3 py-2 gap-2 text-[11px] font-medium tracking-wide'
+          )}
+          title={theme === 'light' ? '深色模式' : '浅色模式'}
+        >
+          {theme === 'light' ? (
+            <Moon className="w-3.5 h-3.5" />
+          ) : (
+            <Sun className="w-3.5 h-3.5" />
+          )}
+          {!collapsed && <span>{theme === 'light' ? '深色模式' : '浅色模式'}</span>}
+        </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(

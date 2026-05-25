@@ -27,7 +27,7 @@ export const StatCard: React.FC<StatCardProps> = ({
   return (
     <div
       className={cn(
-        'bg-white border border-surface-100 rounded-xl shadow-card hover:shadow-card-hover hover:border-surface-200 transition-all duration-200',
+        'bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 rounded-xl shadow-card hover:shadow-card-hover hover:border-surface-200 dark:hover:border-surface-600 transition-all duration-200',
         className
       )}
     >
@@ -42,8 +42,8 @@ export const StatCard: React.FC<StatCardProps> = ({
             <Icon className={cn('w-5 h-5', iconColor)} />
           </div>
           <div>
-            <p className="text-xs font-medium text-surface-500 tracking-wide">{label}</p>
-            <p className="text-xl font-bold text-surface-900 mt-0.5 font-display">{value}</p>
+            <p className="text-xs font-medium text-surface-500 dark:text-surface-400 tracking-wide">{label}</p>
+            <p className="text-xl font-bold text-surface-900 dark:text-surface-0 mt-0.5 font-display">{value}</p>
           </div>
         </div>
         {trend && (

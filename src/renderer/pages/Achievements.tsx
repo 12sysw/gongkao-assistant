@@ -86,23 +86,23 @@ const SummaryBar: React.FC<{
   const pct = total > 0 ? Math.round((unlocked / total) * 100) : 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-surface-200 p-5">
+    <div className="bg-white dark:bg-surface-800 rounded-2xl border border-surface-200 dark:border-surface-700 p-5">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-brand-500" />
-          <span className="text-sm font-semibold text-surface-900">成就进度</span>
+          <span className="text-sm font-semibold text-surface-900 dark:text-surface-0">成就进度</span>
         </div>
         <span className="text-sm text-surface-500">
           <span className="text-brand-500 font-bold">{unlocked}</span> / {total}
         </span>
       </div>
-      <div className="h-3 bg-surface-100 rounded-full overflow-hidden">
+      <div className="h-3 bg-surface-100 dark:bg-surface-700 rounded-full overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-brand-400 to-brand-600 rounded-full transition-all duration-700"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-xs text-surface-400 mt-2">已解锁 {pct}% 的成就</p>
+      <p className="text-xs text-surface-400 dark:text-surface-400 mt-2">已解锁 {pct}% 的成就</p>
     </div>
   );
 };
@@ -117,7 +117,7 @@ const AchievementCard: React.FC<{
   return (
     <div
       className={`relative p-4 rounded-xl border-2 transition-all duration-300 ${
-        isUnlocked ? 'bg-white border-brand-300 shadow-md' : 'bg-surface-0 border-surface-200'
+        isUnlocked ? 'bg-white dark:bg-surface-800 border-brand-300 shadow-md' : 'bg-surface-0 dark:bg-surface-800 border-surface-200 dark:border-surface-700'
       }`}
     >
       {!isUnlocked && (
@@ -130,25 +130,25 @@ const AchievementCard: React.FC<{
       <div className="flex items-start gap-3">
         <div
           className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${
-            isUnlocked ? 'bg-brand-50' : 'bg-surface-100 grayscale'
+            isUnlocked ? 'bg-brand-50 dark:bg-surface-700' : 'bg-surface-100 dark:bg-surface-700 grayscale'
           }`}
         >
           <span className={isUnlocked ? '' : 'opacity-70'}>{achievement.icon}</span>
         </div>
         <div className="flex-1 min-w-0 pr-16">
           <div className="flex items-center gap-2">
-            <h4 className={`text-sm font-semibold ${isUnlocked ? 'text-surface-900' : 'text-surface-700'}`}>
+            <h4 className={`text-sm font-semibold ${isUnlocked ? 'text-surface-900 dark:text-surface-0' : 'text-surface-700 dark:text-surface-400'}`}>
               {achievement.title}
             </h4>
             {isUnlocked && <Star className="w-3.5 h-3.5 text-brand-500 fill-brand-500 shrink-0" />}
           </div>
-          <p className="text-xs mt-0.5 text-surface-500">{achievement.description}</p>
+          <p className="text-xs mt-0.5 text-surface-500 dark:text-surface-400">{achievement.description}</p>
         </div>
       </div>
 
       {!isUnlocked && (
         <div className="mt-3">
-          <div className="flex items-center justify-between text-[11px] text-surface-500 mb-1">
+          <div className="flex items-center justify-between text-[11px] text-surface-500 dark:text-surface-400 mb-1">
             <span>{progress} / {achievement.threshold}</span>
             <span>{pct}%</span>
           </div>
@@ -162,7 +162,7 @@ const AchievementCard: React.FC<{
       )}
 
       {isUnlocked && achievement.unlocked_at && (
-        <p className="text-[11px] text-surface-400 mt-2">
+        <p className="text-[11px] text-surface-400 dark:text-surface-400 mt-2">
           解锁于 {new Date(achievement.unlocked_at).toLocaleDateString('zh-CN')}
         </p>
       )}
@@ -185,8 +185,8 @@ const GroupSection: React.FC<{
       >
         <div className="flex items-center gap-3">
           <div className={`h-1 w-6 rounded-full bg-gradient-to-r ${meta.gradient}`} />
-          <span className="text-sm font-semibold text-surface-900">{meta.label}</span>
-          <span className="text-xs text-surface-400">
+          <span className="text-sm font-semibold text-surface-900 dark:text-surface-0">{meta.label}</span>
+          <span className="text-xs text-surface-400 dark:text-surface-400">
             {unlockedCount}/{group.items.length}
           </span>
         </div>
@@ -262,7 +262,7 @@ const Achievements: React.FC = () => {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center h-64">
-        <div className="text-surface-400 text-sm">加载中...</div>
+        <div className="text-surface-400 dark:text-surface-400 text-sm">加载中...</div>
       </div>
     );
   }
@@ -270,8 +270,8 @@ const Achievements: React.FC = () => {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-surface-900 font-display">成就系统</h1>
-        <p className="text-sm text-surface-500 mt-1">所有成就都会显示出来，方便你提前看到完整目标</p>
+        <h1 className="text-xl font-bold text-surface-900 dark:text-surface-0 font-display">成就系统</h1>
+        <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">所有成就都会显示出来，方便你提前看到完整目标</p>
       </div>
 
       {usingFallback && (

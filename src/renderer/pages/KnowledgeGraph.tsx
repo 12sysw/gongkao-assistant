@@ -595,9 +595,9 @@ const KnowledgeGraph: React.FC = () => {
   const categories = [...new Set(nodes.map((n) => n.category))];
 
   return (
-    <div className="flex flex-col h-full bg-surface-0">
-      <div className="h-14 shrink-0 flex items-center justify-between px-6 border-b border-surface-200">
-        <h1 className="text-base font-bold text-surface-900 font-display flex items-center gap-2">
+    <div className="flex flex-col h-full bg-surface-0 dark:bg-surface-900">
+      <div className="h-14 shrink-0 flex items-center justify-between px-6 border-b border-surface-200 dark:border-surface-700">
+        <h1 className="text-base font-bold text-surface-900 dark:text-surface-0 font-display flex items-center gap-2">
           <Network className="w-5 h-5 text-brand-500" />
           知识图谱
           {nodes.length > 0 && <span className="text-xs font-normal text-surface-400 ml-2">{nodes.length} 个知识点 · {edges.length} 条关系</span>}
@@ -612,19 +612,19 @@ const KnowledgeGraph: React.FC = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="搜索知识点..."
-                  className="w-36 pl-7 pr-2 py-1 text-xs border border-surface-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-300 focus:border-brand-300"
+                  className="w-36 pl-7 pr-2 py-1 text-xs border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-brand-300 focus:border-brand-300"
                 />
               </div>
-              <button onClick={fitView} className="px-2 py-1 text-xs text-surface-400 hover:text-surface-600 rounded hover:bg-surface-100" title="适应视图">
+              <button onClick={fitView} className="px-2 py-1 text-xs text-surface-400 dark:text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded hover:bg-surface-100 dark:hover:bg-surface-800" title="适应视图">
                 适应
               </button>
-              <button onClick={() => setZoom((z) => Math.min(3, z * 1.2))} className="p-1.5 text-surface-400 hover:text-surface-600 rounded hover:bg-surface-100" title="放大 (+)">
+              <button onClick={() => setZoom((z) => Math.min(3, z * 1.2))} className="p-1.5 text-surface-400 dark:text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded hover:bg-surface-100 dark:hover:bg-surface-800" title="放大 (+)">
                 <ZoomIn className="w-4 h-4" />
               </button>
-              <button onClick={() => setZoom((z) => Math.max(0.3, z * 0.8))} className="p-1.5 text-surface-400 hover:text-surface-600 rounded hover:bg-surface-100" title="缩小 (-)">
+              <button onClick={() => setZoom((z) => Math.max(0.3, z * 0.8))} className="p-1.5 text-surface-400 dark:text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded hover:bg-surface-100 dark:hover:bg-surface-800" title="缩小 (-)">
                 <ZoomOut className="w-4 h-4" />
               </button>
-              <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="px-2 py-1 text-xs text-surface-400 hover:text-surface-600 rounded hover:bg-surface-100">
+              <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} className="px-2 py-1 text-xs text-surface-400 dark:text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded hover:bg-surface-100 dark:hover:bg-surface-800">
                 重置
               </button>
             </>
@@ -640,7 +640,7 @@ const KnowledgeGraph: React.FC = () => {
           {nodes.length > 0 && (
             <button
               onClick={handleClear}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-surface-200 text-surface-600 rounded-lg hover:bg-surface-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-surface-200 dark:border-surface-700 text-surface-600 dark:text-surface-400 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
               清空
@@ -678,29 +678,29 @@ const KnowledgeGraph: React.FC = () => {
             const n = nodesRef.current.find((nd) => nd.id === hoveredRef.current);
             if (!n || selectedNode?.id === n.id) return null;
             return (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-sm rounded-lg border border-surface-200 shadow-card px-4 py-2.5 text-xs pointer-events-none z-10 max-w-xs">
+              <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 dark:bg-surface-800/95 backdrop-blur-sm rounded-lg border border-surface-200 dark:border-surface-700 shadow-card px-4 py-2.5 text-xs pointer-events-none z-10 max-w-xs">
                 <div className="flex items-center gap-2 mb-1">
                   <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: getColor(n.category) }} />
-                  <span className="font-semibold text-surface-800">{n.name}</span>
-                  <span className="text-surface-400">{n.category}</span>
+                  <span className="font-semibold text-surface-800 dark:text-surface-400">{n.name}</span>
+                  <span className="text-surface-400 dark:text-surface-400">{n.category}</span>
                 </div>
-                {n.description && <p className="text-surface-500 leading-relaxed">{n.description}</p>}
-                <p className="text-surface-400 mt-1">关联 {n.questionCount} 道题目</p>
+                {n.description && <p className="text-surface-500 dark:text-surface-400 leading-relaxed">{n.description}</p>}
+                <p className="text-surface-400 dark:text-surface-400 mt-1">关联 {n.questionCount} 道题目</p>
               </div>
             );
           })()}
 
           {/* Legend */}
           {nodes.length > 0 && (
-            <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur rounded-lg border border-surface-200 p-3 text-xs space-y-1.5 pointer-events-none">
+            <div className="absolute bottom-4 left-4 bg-white/90 dark:bg-surface-800/90 backdrop-blur rounded-lg border border-surface-200 dark:border-surface-700 p-3 text-xs space-y-1.5 pointer-events-none">
               {categories.map((cat) => (
                 <div key={cat} className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: getColor(cat) }} />
-                  <span className="text-surface-600">{cat}</span>
-                  <span className="text-surface-300 ml-auto">{nodes.filter((n) => n.category === cat).length}</span>
+                  <span className="text-surface-600 dark:text-surface-400">{cat}</span>
+                  <span className="text-surface-300 dark:text-surface-600 ml-auto">{nodes.filter((n) => n.category === cat).length}</span>
                 </div>
               ))}
-              <div className="pt-1.5 border-t border-surface-100 text-surface-400">
+              <div className="pt-1.5 border-t border-surface-100 dark:border-surface-700 text-surface-400 dark:text-surface-400">
                 滚轮缩放 · 拖拽平移 · Esc 取消
               </div>
             </div>
@@ -723,16 +723,16 @@ const KnowledgeGraph: React.FC = () => {
 
         {/* Detail panel */}
         {selectedNode && (
-          <div className="w-72 shrink-0 border-l border-surface-200 bg-white flex flex-col overflow-hidden">
-            <div className="p-5 pb-4 border-b border-surface-100">
+          <div className="w-72 shrink-0 border-l border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 flex flex-col overflow-hidden">
+            <div className="p-5 pb-4 border-b border-surface-100 dark:border-surface-700">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-5 h-5 rounded-full shadow-sm shrink-0" style={{ backgroundColor: getColor(selectedNode.category) }} />
-                  <h3 className="text-sm font-bold text-surface-900 truncate">{selectedNode.name}</h3>
+                  <h3 className="text-sm font-bold text-surface-900 dark:text-surface-0 truncate">{selectedNode.name}</h3>
                 </div>
                 <button
                   onClick={() => setSelectedNode(null)}
-                  className="p-1 text-surface-300 hover:text-surface-500 rounded hover:bg-surface-50 shrink-0"
+                  className="p-1 text-surface-300 dark:text-surface-400 hover:text-surface-500 dark:hover:text-surface-300 rounded hover:bg-surface-50 dark:hover:bg-surface-700 shrink-0"
                   title="关闭 (Esc)"
                 >
                   <X className="w-4 h-4" />
@@ -740,21 +740,21 @@ const KnowledgeGraph: React.FC = () => {
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-3">
-              <div className="space-y-2.5 text-xs text-surface-600">
+              <div className="space-y-2.5 text-xs text-surface-600 dark:text-surface-400">
                 <div className="flex justify-between items-center">
                   <span className="text-surface-400">分类</span>
-                  <span className="font-medium px-2 py-0.5 rounded bg-surface-50">{selectedNode.category}</span>
+                  <span className="font-medium px-2 py-0.5 rounded bg-surface-50 dark:bg-surface-700">{selectedNode.category}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-surface-400">关联题目</span>
                   <span className="font-medium">{selectedNode.questionCount} 道</span>
                 </div>
                 {selectedNode.description && (
-                  <div className="pt-2.5 border-t border-surface-100">
-                    <p className="text-surface-500 leading-relaxed">{selectedNode.description}</p>
+                  <div className="pt-2.5 border-t border-surface-100 dark:border-surface-700">
+                    <p className="text-surface-500 dark:text-surface-400 leading-relaxed">{selectedNode.description}</p>
                   </div>
                 )}
-                <div className="pt-2.5 border-t border-surface-100">
+                <div className="pt-2.5 border-t border-surface-100 dark:border-surface-700">
                   <p className="text-surface-400 font-medium mb-2">关联知识点</p>
                   <div className="space-y-1.5">
                     {edges
@@ -767,11 +767,11 @@ const KnowledgeGraph: React.FC = () => {
                           <button
                             key={e.id}
                             onClick={() => setSelectedNode(other)}
-                            className="w-full flex items-center gap-2 py-1.5 px-2 rounded hover:bg-surface-50 transition-colors text-left"
+                            className="w-full flex items-center gap-2 py-1.5 px-2 rounded hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors text-left"
                           >
                             <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: getColor(other.category) }} />
-                            <span className="text-surface-700 flex-1 truncate">{other.name}</span>
-                            <span className="text-surface-300 text-[10px]">{e.relation}</span>
+                            <span className="text-surface-700 dark:text-surface-400 flex-1 truncate">{other.name}</span>
+                            <span className="text-surface-300 dark:text-surface-600 text-[10px]">{e.relation}</span>
                           </button>
                         );
                       })}

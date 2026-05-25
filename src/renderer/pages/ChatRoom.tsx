@@ -226,24 +226,24 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
   };
 
   return (
-    <div className="flex items-center justify-center h-full bg-surface-0">
-      <form onSubmit={handleSubmit} className="w-full max-w-sm p-8 bg-white rounded-2xl shadow-card space-y-4">
+    <div className="flex items-center justify-center h-full bg-surface-0 dark:bg-surface-900">
+      <form onSubmit={handleSubmit} className="w-full max-w-sm p-8 bg-white dark:bg-surface-800 rounded-2xl shadow-card space-y-4">
         <div className="flex flex-col items-center gap-3 mb-1">
           <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center shadow-lg">
             <MessageSquare className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-xl font-bold font-display text-surface-900">公考学习交流</h1>
-          <p className="text-sm text-surface-500">{mode === 'login' ? '登录加入聊天室' : mode === 'register' ? '注册新账号' : '重置密码'}</p>
+          <h1 className="text-xl font-bold font-display text-surface-900 dark:text-surface-0">公考学习交流</h1>
+          <p className="text-sm font-medium text-surface-500 dark:text-surface-400">{mode === 'login' ? '登录加入聊天室' : mode === 'register' ? '注册新账号' : '重置密码'}</p>
         </div>
 
         {mode !== 'reset' && !hasRegisteredAccount && (
-          <div className="flex gap-1 p-1 bg-surface-100 rounded-xl">
+          <div className="flex gap-1 p-1 bg-surface-100 dark:bg-surface-700 rounded-xl">
             <button type="button" onClick={() => setMode('login')}
-              className={cn('flex-1 py-1.5 text-sm rounded-lg transition', mode === 'login' ? 'bg-white font-medium shadow-soft' : 'text-surface-500')}>
+              className={cn('flex-1 py-1.5 text-sm rounded-lg transition', mode === 'login' ? 'bg-white dark:bg-surface-600 font-medium shadow-soft' : 'text-surface-500 dark:text-surface-400')}>
               登录
             </button>
             <button type="button" onClick={() => setMode('register')}
-              className={cn('flex-1 py-1.5 text-sm rounded-lg transition', mode === 'register' ? 'bg-white font-medium shadow-soft' : 'text-surface-500')}>
+              className={cn('flex-1 py-1.5 text-sm rounded-lg transition', mode === 'register' ? 'bg-white dark:bg-surface-600 font-medium shadow-soft' : 'text-surface-500 dark:text-surface-400')}>
               注册
             </button>
           </div>
@@ -254,24 +254,24 @@ function LoginForm({ onLogin }: { onLogin: (userID: string, nick: string) => voi
 
         <div className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-surface-700 mb-1">用户名</label>
+            <label className="block text-sm font-medium text-surface-700 dark:text-surface-400 mb-1">用户名</label>
             <input type="text" value={username} onChange={e => setUsername(e.target.value)}
               placeholder="2–16 个字符" maxLength={16} autoFocus
-              className="w-full px-3 py-2 rounded-xl border border-surface-200 bg-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition" />
+              className="w-full px-3 py-2 rounded-xl border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 bg-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition" />
           </div>
           {mode === 'register' && (
             <div>
-              <label className="block text-sm font-medium text-surface-700 mb-1">昵称 <span className="text-surface-400 font-normal">(可选)</span></label>
+              <label className="block text-sm font-medium text-surface-700 dark:text-surface-400 mb-1">昵称 <span className="text-surface-400 font-normal">(可选)</span></label>
               <input type="text" value={nick} onChange={e => setNick(e.target.value)}
                 placeholder="显示名称，默认用用户名" maxLength={16}
-                className="w-full px-3 py-2 rounded-xl border border-surface-200 bg-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition" />
+                className="w-full px-3 py-2 rounded-xl border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 bg-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition" />
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-surface-700 mb-1">密码</label>
+            <label className="block text-sm font-medium text-surface-700 dark:text-surface-400 mb-1">密码</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               placeholder="至少 4 位"
-              className="w-full px-3 py-2 rounded-xl border border-surface-200 bg-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition" />
+              className="w-full px-3 py-2 rounded-xl border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 bg-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition" />
           </div>
         </div>
 
@@ -301,7 +301,7 @@ function MessageBubble({ msg, revoked, onContextMenu }: { msg: ChatMessage; revo
   if (msg.type === 'system') {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-[11px] px-3 py-1 rounded-full bg-surface-100 text-surface-400">
+        <span className="text-[11px] px-3 py-1 rounded-full bg-surface-100 dark:bg-surface-700 text-surface-400 dark:text-surface-400">
           {msg.content}
         </span>
       </div>
@@ -311,7 +311,7 @@ function MessageBubble({ msg, revoked, onContextMenu }: { msg: ChatMessage; revo
   if (revoked) {
     return (
       <div className="flex justify-center my-2">
-        <span className="text-[11px] px-3 py-1 rounded-full bg-surface-100 text-surface-400">
+        <span className="text-[11px] px-3 py-1 rounded-full bg-surface-100 dark:bg-surface-700 text-surface-400 dark:text-surface-400">
           {msg.isSelf ? '你撤回了一条消息' : `${msg.nick || msg.from} 撤回了一条消息`}
         </span>
       </div>
@@ -336,7 +336,7 @@ function MessageBubble({ msg, revoked, onContextMenu }: { msg: ChatMessage; revo
           'rounded-2xl text-sm leading-relaxed overflow-hidden',
           isSelf
             ? 'bg-brand-500 text-white rounded-br-md'
-            : 'bg-white border border-surface-100 text-surface-800 rounded-bl-md',
+            : 'bg-white dark:bg-surface-800 border border-surface-100 dark:border-surface-700 text-surface-800 dark:text-surface-0 rounded-bl-md',
         )}>
           {msg.type === 'text' && (
             <div className="px-3.5 py-2.5 whitespace-pre-wrap break-words">{msg.content}</div>
@@ -369,16 +369,16 @@ function MessageBubble({ msg, revoked, onContextMenu }: { msg: ChatMessage; revo
 
 function OnlinePanel({ members, selfID }: { members: ChatUser[]; selfID: string }) {
   return (
-    <div className="w-48 border-l border-surface-100 bg-surface-50 flex flex-col shrink-0">
-      <div className="px-3 py-2.5 border-b border-surface-100 flex items-center gap-1.5">
+    <div className="w-48 border-l border-surface-100 dark:border-surface-700 bg-surface-50 dark:bg-surface-900 flex flex-col shrink-0">
+      <div className="px-3 py-2.5 border-b border-surface-100 dark:border-surface-700 flex items-center gap-1.5">
         <Users className="w-3.5 h-3.5 text-surface-400" />
-        <span className="text-xs font-semibold text-surface-600">成员 ({members.length})</span>
+        <span className="text-xs font-semibold text-surface-600 dark:text-surface-400">成员 ({members.length})</span>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
         {members.map(m => (
           <div key={m.userID} className={cn(
             'flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs',
-            m.userID === selfID ? 'bg-brand-50 text-brand-700' : 'text-surface-600 hover:bg-surface-100',
+            m.userID === selfID ? 'bg-brand-50 dark:bg-surface-700 text-brand-700 dark:text-brand-400' : 'text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800',
           )}>
             <div className="w-6 h-6 rounded-md bg-brand-100 text-brand-600 flex items-center justify-center text-[10px] font-bold shrink-0">
               {(m.nick || m.userID).slice(0, 1)}
@@ -831,8 +831,8 @@ export default function ChatRoom() {
 
   if (store.connStatus === 'connecting') {
     return (
-      <div className="flex items-center justify-center h-full bg-surface-0">
-        <div className="flex flex-col items-center gap-3 text-surface-500">
+      <div className="flex items-center justify-center h-full bg-surface-0 dark:bg-surface-900">
+        <div className="flex flex-col items-center gap-3 text-surface-500 dark:text-surface-400">
           <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
           <p className="text-sm">正在连接...</p>
         </div>
@@ -841,11 +841,11 @@ export default function ChatRoom() {
   }
 
   return (
-    <div className="flex h-full bg-surface-0">
+    <div className="flex h-full bg-surface-0 dark:bg-surface-900">
       {/* left: room list */}
-      <div className="w-52 border-r border-surface-100 flex flex-col shrink-0 bg-white">
-        <div className="px-3.5 py-3 border-b border-surface-100">
-          <h2 className="text-sm font-bold text-surface-800 flex items-center gap-1.5">
+      <div className="w-52 border-r border-surface-100 dark:border-surface-700 flex flex-col shrink-0 bg-white dark:bg-surface-800">
+        <div className="px-3.5 py-3 border-b border-surface-100 dark:border-surface-700">
+          <h2 className="text-sm font-bold text-surface-800 dark:text-surface-0 flex items-center gap-1.5">
             <MessageSquare className="w-4 h-4 text-brand-500" />
             聊天室
           </h2>
@@ -859,8 +859,8 @@ export default function ChatRoom() {
                 className={cn(
                   'w-full text-left px-3 py-2.5 rounded-xl transition-all text-sm',
                   isActive
-                    ? 'bg-brand-50 text-brand-700 font-medium'
-                    : 'text-surface-600 hover:bg-surface-50',
+                    ? 'bg-brand-50 dark:bg-surface-700 text-brand-700 dark:text-brand-400 font-medium'
+                    : 'text-surface-600 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-700',
                 )}>
                 <div className="font-medium truncate">{room.name}</div>
                 <div className={cn('text-[11px] truncate mt-0.5', isActive ? 'text-brand-400' : 'text-surface-400')}>
@@ -870,7 +870,7 @@ export default function ChatRoom() {
             );
           })}
         </div>
-        <div className="p-2 border-t border-surface-100">
+        <div className="p-2 border-t border-surface-100 dark:border-surface-700">
           <button onClick={handleChangeNick}
             className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs text-surface-400 hover:text-brand-500 hover:bg-brand-50 transition">
             <Settings2 className="w-3.5 h-3.5" />
@@ -892,22 +892,22 @@ export default function ChatRoom() {
       {/* center: chat area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* header */}
-        <div className="h-14 px-4 flex items-center justify-between border-b border-surface-100 bg-white shrink-0">
+        <div className="h-14 px-4 flex items-center justify-between border-b border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800 shrink-0">
           <div>
-            <span className="text-sm font-bold text-surface-800">
+            <span className="text-sm font-bold text-surface-800 dark:text-surface-0">
               {PRESET_ROOMS.find(r => r.id === currentRoomId)?.name || ''}
             </span>
             <span className="text-xs text-surface-400 ml-2">{store.selfNick}</span>
           </div>
           <div className="flex items-center gap-1">
             <button onClick={() => { if (currentRoomId) loadMembers(currentRoomId); }}
-              className="p-2 rounded-lg hover:bg-surface-50 text-surface-400 hover:text-surface-600 transition"
+              className="p-2 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-700 text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 transition"
               title="刷新成员列表">
               <Users className="w-4 h-4" />
             </button>
             <button onClick={() => setShowMembers(!showMembers)}
               className={cn('p-2 rounded-lg transition',
-                showMembers ? 'bg-brand-50 text-brand-600' : 'text-surface-400 hover:bg-surface-50 hover:text-surface-600')}
+                showMembers ? 'bg-brand-50 dark:bg-surface-700 text-brand-600' : 'text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-700 hover:text-surface-600 dark:hover:text-surface-200')}
               title="显示/隐藏成员">
               <Settings2 className="w-4 h-4" />
             </button>
@@ -921,7 +921,7 @@ export default function ChatRoom() {
           {hasMore && messages.length > 0 && (
             <div className="flex justify-center mb-3">
               <button onClick={loadOlder} disabled={loadingHistory}
-                className="text-xs px-3 py-1 rounded-full bg-surface-100 text-surface-500 hover:bg-surface-200 transition disabled:opacity-50">
+                className="text-xs px-3 py-1 rounded-full bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-600 transition disabled:opacity-50">
                 {loadingHistory ? '加载中...' : '加载更早消息'}
               </button>
             </div>
@@ -946,25 +946,25 @@ export default function ChatRoom() {
         </div>
 
         {/* input */}
-        <div className="px-4 py-3 border-t border-surface-100 bg-white shrink-0">
+        <div className="px-4 py-3 border-t border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800 shrink-0">
           <div className="flex items-end gap-2">
             <input ref={imageRef} type="file" accept="image/*" className="hidden"
               onChange={e => handleFileUpload(e, 'image')} />
             <input ref={fileRef} type="file" className="hidden"
               onChange={e => handleFileUpload(e, 'file')} />
             <button onClick={() => imageRef.current?.click()}
-              className="p-2.5 rounded-xl text-surface-400 hover:text-brand-500 hover:bg-brand-50 transition shrink-0"
+              className="p-2.5 rounded-xl text-surface-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-surface-700 transition shrink-0"
               title="发送图片">
               <ImageIcon className="w-[18px] h-[18px]" />
             </button>
             <button onClick={() => fileRef.current?.click()}
-              className="p-2.5 rounded-xl text-surface-400 hover:text-brand-500 hover:bg-brand-50 transition shrink-0"
+              className="p-2.5 rounded-xl text-surface-400 hover:text-brand-500 hover:bg-brand-50 dark:hover:bg-surface-700 transition shrink-0"
               title="发送文件">
               <FileText className="w-[18px] h-[18px]" />
             </button>
             <textarea value={inputText} onChange={e => setInputText(e.target.value)}
               onKeyDown={handleKeyDown} rows={1} placeholder="输入消息..."
-              className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-surface-200 bg-surface-0 text-sm
+              className="flex-1 min-w-0 px-4 py-2.5 rounded-xl border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 bg-surface-0 text-sm
                          resize-none focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition
                          max-h-24 overflow-y-auto"
               style={{ fieldSizing: 'content' } as React.CSSProperties} />
@@ -981,10 +981,10 @@ export default function ChatRoom() {
 
       {/* context menu */}
       {contextMenu && (
-        <div className="fixed z-50 bg-white rounded-xl shadow-elevated border border-surface-100 py-1 min-w-[100px]"
+        <div className="fixed z-50 bg-white dark:bg-surface-800 rounded-xl shadow-elevated border border-surface-100 dark:border-surface-700 py-1 min-w-[100px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}>
           <button onClick={() => handleRecall(contextMenu.msg)}
-            className="w-full text-left px-4 py-2 text-sm text-surface-700 hover:bg-surface-50 transition">
+            className="w-full text-left px-4 py-2 text-sm font-medium text-surface-700 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-700 transition">
             撤回
           </button>
         </div>
@@ -993,29 +993,29 @@ export default function ChatRoom() {
       {/* password change dialog */}
       {showPwdEdit && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowPwdEdit(false)}>
-          <div className="bg-white rounded-2xl p-6 w-80 shadow-elevated" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-surface-800 mb-4">修改密码</h3>
+          <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 w-80 shadow-elevated" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-surface-800 dark:text-surface-0 mb-4">修改密码</h3>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-surface-500 mb-1">原密码</label>
+                <label className="block text-xs text-surface-500 dark:text-surface-400 mb-1">原密码</label>
                 <input type="password" value={oldPwd} onChange={e => setOldPwd(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+                  className="w-full px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
               </div>
               <div>
-                <label className="block text-xs text-surface-500 mb-1">新密码</label>
+                <label className="block text-xs text-surface-500 dark:text-surface-400 mb-1">新密码</label>
                 <input type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+                  className="w-full px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
               </div>
               <div>
-                <label className="block text-xs text-surface-500 mb-1">确认新密码</label>
+                <label className="block text-xs text-surface-500 dark:text-surface-400 mb-1">确认新密码</label>
                 <input type="password" value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSavePwd()}
-                  className="w-full px-3 py-2 rounded-lg border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+                  className="w-full px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
               </div>
             </div>
             <div className="flex gap-2 mt-4 justify-end">
               <button onClick={() => setShowPwdEdit(false)}
-                className="px-4 py-1.5 rounded-lg text-sm text-surface-500 hover:bg-surface-50">取消</button>
+                className="px-4 py-1.5 rounded-lg text-sm font-medium text-surface-500 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-700">取消</button>
               <button onClick={handleSavePwd}
                 className="px-4 py-1.5 rounded-lg text-sm bg-brand-500 text-white hover:bg-brand-600">确认</button>
             </div>
@@ -1026,15 +1026,15 @@ export default function ChatRoom() {
       {/* nickname edit dialog */}
       {showNickEdit && (
         <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={() => setShowNickEdit(false)}>
-          <div className="bg-white rounded-2xl p-6 w-80 shadow-elevated" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-surface-800 mb-3">修改昵称</h3>
+          <div className="bg-white dark:bg-surface-800 rounded-2xl p-6 w-80 shadow-elevated" onClick={e => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-surface-800 dark:text-surface-0 mb-3">修改昵称</h3>
             <input value={editNick} onChange={e => setEditNick(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSaveNick()}
               maxLength={16} autoFocus
-              className="w-full px-3 py-2 rounded-lg border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+              className="w-full px-3 py-2 rounded-lg border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
             <div className="flex gap-2 mt-4 justify-end">
               <button onClick={() => setShowNickEdit(false)}
-                className="px-4 py-1.5 rounded-lg text-sm text-surface-500 hover:bg-surface-50">取消</button>
+                className="px-4 py-1.5 rounded-lg text-sm font-medium text-surface-500 dark:text-surface-400 hover:bg-surface-50 dark:hover:bg-surface-700">取消</button>
               <button onClick={handleSaveNick}
                 className="px-4 py-1.5 rounded-lg text-sm bg-brand-500 text-white hover:bg-brand-600">保存</button>
             </div>

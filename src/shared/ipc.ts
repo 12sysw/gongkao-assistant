@@ -68,6 +68,7 @@ export const IPC = {
   // 数据导入导出
   DATA_EXPORT: 'data:export',
   DATA_IMPORT: 'data:import',
+  EXPORT_PDF: 'export:pdf',
 
   // 聊天室
   CHAT_GENERATE_USER_SIG: 'chat:generate-user-sig',
@@ -192,6 +193,7 @@ export interface Api {
   data: {
     export: () => Promise<any>;
     import: () => Promise<any>;
+    exportPdf: (params: { title: string; columns: { key: string; label: string }[]; data: any[] }) => Promise<{ success: boolean; error?: string }>;
   };
   chat: {
     generateUserSig: (userID: string) => Promise<string>;

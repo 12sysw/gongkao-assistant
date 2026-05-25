@@ -77,6 +77,7 @@ const api = {
   data: {
     export: () => ipcRenderer.invoke(IPC.DATA_EXPORT),
     import: () => ipcRenderer.invoke(IPC.DATA_IMPORT),
+    exportPdf: (params: { title: string; columns: { key: string; label: string }[]; data: any[] }) => ipcRenderer.invoke(IPC.EXPORT_PDF, params),
   },
   chat: {
     generateUserSig: (userID: string) => ipcRenderer.invoke(IPC.CHAT_GENERATE_USER_SIG, userID),
