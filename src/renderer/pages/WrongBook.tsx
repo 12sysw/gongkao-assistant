@@ -14,6 +14,7 @@ import {
   Download,
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { MotionItem, AnimateList } from '../components/ui/Motion';
 import { exportWrongRecords } from '../lib/export-utils';
 
 const QUESTION_TYPES = [
@@ -1007,10 +1008,10 @@ const WrongBook: React.FC = () => {
       {filteredRecords.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="space-y-3">
+        <AnimateList className="space-y-3">
           {filteredRecords.map((record) => (
-            <RecordItem
-              key={record.id}
+            <MotionItem key={record.id}>
+              <RecordItem
               record={record}
               isExpanded={expandedId === record.id}
               onToggle={() => setExpandedId(expandedId === record.id ? null : record.id)}
@@ -1021,8 +1022,9 @@ const WrongBook: React.FC = () => {
               isAnalyzing={analyzingId === record.id}
               streamContent={analyzingId === record.id ? aiStreamContent : ''}
             />
+            </MotionItem>
           ))}
-        </div>
+        </AnimateList>
       )}
 
       <AddFormModal

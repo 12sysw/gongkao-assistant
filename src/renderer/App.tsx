@@ -1,6 +1,8 @@
 import React, { Component, Suspense, lazy } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { SkeletonCard } from './components/ui/Skeleton';
 import Sidebar from './components/Sidebar';
 import UpdateNotification from './components/UpdateNotification';
 
@@ -24,10 +26,11 @@ const EssayReview = lazy(() => import('./pages/EssayReview'));
 const KnowledgeGraph = lazy(() => import('./pages/KnowledgeGraph'));
 
 const RouteFallback: React.FC = () => (
-  <div className="flex h-full items-center justify-center bg-surface-0 dark:bg-surface-950">
-    <div className="flex items-center gap-3 rounded-2xl border border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 px-5 py-4 text-sm font-medium text-surface-500 dark:text-surface-400 shadow-soft">
-      <Loader2 className="h-4 w-4 animate-spin text-brand-500" />
-      正在加载页面...
+  <div className="flex h-full items-center justify-center bg-surface-0 dark:bg-surface-950 p-6">
+    <div className="w-full max-w-3xl mx-auto space-y-4">
+      <SkeletonCard />
+      <SkeletonCard />
+      <SkeletonCard />
     </div>
   </div>
 );
@@ -80,35 +83,63 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 }
 
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+};
+
+const pageTransition: Parameters<typeof motion.div>[0]['transition'] = {
+  type: 'tween' as const,
+  ease: 'easeInOut',
+  duration: 0.15,
+};
+
+const AnimatedPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <motion.div
+    variants={pageVariants}
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    transition={pageTransition}
+    className="h-full"
+  >
+    {children}
+  </motion.div>
+);
+
 const App: React.FC = () => {
+  const location = useLocation();
   return (
     <div className="flex h-screen overflow-hidden bg-surface-0 dark:bg-surface-950">
       <Sidebar />
       <main className="flex-1 overflow-y-auto bg-surface-0 dark:bg-surface-950">
         <ErrorBoundary>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/review" element={<ReviewHub />} />
-              <Route path="/mock-exam" element={<MockExam />} />
-              <Route path="/wrong-book" element={<WrongBook />} />
-              <Route path="/mind-map" element={<MindMap />} />
-              <Route path="/study-plan" element={<StudyPlan />} />
-              <Route path="/encourage" element={<Encourage />} />
-              <Route path="/flashcards" element={<Flashcards />} />
-              <Route path="/checkin" element={<DailyCheckin />} />
-              <Route path="/pomodoro" element={<Pomodoro />} />
-              <Route path="/knowledge" element={<KnowledgeBase />} />
-              <Route path="/achievements" element={<Achievements />} />
-              <Route path="/chat" element={<ChatRoom />} />
-              <Route path="/rag-chat" element={<RagChat />} />
-              <Route path="/question-bank" element={<QuestionBank />} />
-              <Route path="/essay-review" element={<EssayReview />} />
-              <Route path="/knowledge-graph" element={<KnowledgeGraph />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
+          <AnimatePresence mode="wait">
+            <Suspense fallback={<RouteFallback />}>
+              <Routes location={location} key={location.pathname}>
+                <Route path="/" element={<AnimatedPage><Dashboard /></AnimatedPage>} />
+                <Route path="/review" element={<AnimatedPage><ReviewHub /></AnimatedPage>} />
+                <Route path="/mock-exam" element={<AnimatedPage><MockExam /></AnimatedPage>} />
+                <Route path="/wrong-book" element={<AnimatedPage><WrongBook /></AnimatedPage>} />
+                <Route path="/mind-map" element={<AnimatedPage><MindMap /></AnimatedPage>} />
+                <Route path="/study-plan" element={<AnimatedPage><StudyPlan /></AnimatedPage>} />
+                <Route path="/encourage" element={<AnimatedPage><Encourage /></AnimatedPage>} />
+                <Route path="/flashcards" element={<AnimatedPage><Flashcards /></AnimatedPage>} />
+                <Route path="/checkin" element={<AnimatedPage><DailyCheckin /></AnimatedPage>} />
+                <Route path="/pomodoro" element={<AnimatedPage><Pomodoro /></AnimatedPage>} />
+                <Route path="/knowledge" element={<AnimatedPage><KnowledgeBase /></AnimatedPage>} />
+                <Route path="/achievements" element={<AnimatedPage><Achievements /></AnimatedPage>} />
+                <Route path="/chat" element={<AnimatedPage><ChatRoom /></AnimatedPage>} />
+                <Route path="/rag-chat" element={<AnimatedPage><RagChat /></AnimatedPage>} />
+                <Route path="/question-bank" element={<AnimatedPage><QuestionBank /></AnimatedPage>} />
+                <Route path="/essay-review" element={<AnimatedPage><EssayReview /></AnimatedPage>} />
+                <Route path="/knowledge-graph" element={<AnimatedPage><KnowledgeGraph /></AnimatedPage>} />
+                <Route path="/settings" element={<AnimatedPage><Settings /></AnimatedPage>} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
+          </AnimatePresence>
         </ErrorBoundary>
       </main>
       <UpdateNotification />

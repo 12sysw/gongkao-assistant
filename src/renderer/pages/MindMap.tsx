@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Plus, Trash2, Save, FolderOpen } from 'lucide-react';
+import { MotionItem, AnimateList } from '../components/ui/Motion';
 
 /* ─── Types ─── */
 
@@ -238,33 +239,36 @@ const MapList: React.FC<{
     {maps.length === 0 ? (
       <p className="text-xs text-surface-400 dark:text-surface-400 py-4 text-center">暂无导图</p>
     ) : (
-      maps.map((map) => (
-        <div
-          key={map.id}
-          onClick={() => onLoad(map)}
-          className={`p-3 rounded-lg cursor-pointer border transition-colors ${
-            currentMapId === map.id
-              ? 'border-brand-300 bg-brand-50 dark:border-brand-500 dark:bg-brand-500/10'
-              : 'border-surface-200 bg-white hover:border-surface-300 dark:border-surface-700 dark:bg-surface-800 dark:hover:border-surface-600'
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-surface-700 dark:text-surface-0 truncate flex-1">{map.title}</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(map.id);
-              }}
-              className="text-surface-400 dark:text-surface-400 hover:text-danger ml-1"
+      <AnimateList className="space-y-2">
+        {maps.map((map) => (
+          <MotionItem key={map.id}>
+            <div
+              onClick={() => onLoad(map)}
+              className={`p-3 rounded-lg cursor-pointer border transition-colors ${
+                currentMapId === map.id
+                  ? 'border-brand-300 bg-brand-50 dark:border-brand-500 dark:bg-brand-500/10'
+                  : 'border-surface-200 bg-white hover:border-surface-300 dark:border-surface-700 dark:bg-surface-800 dark:hover:border-surface-600'
+              }`}
             >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          <div className="flex items-center mt-1 text-xs text-surface-400 dark:text-surface-400">
-            <span className="px-1.5 py-0.5 bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded">{map.subject}</span>
-          </div>
-        </div>
-      ))
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-surface-700 dark:text-surface-0 truncate flex-1">{map.title}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(map.id);
+                  }}
+                  className="text-surface-400 dark:text-surface-400 hover:text-danger ml-1"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center mt-1 text-xs text-surface-400 dark:text-surface-400">
+                <span className="px-1.5 py-0.5 bg-surface-100 dark:bg-surface-700 text-surface-500 dark:text-surface-400 rounded">{map.subject}</span>
+              </div>
+            </div>
+          </MotionItem>
+        ))}
+      </AnimateList>
     )}
   </div>
 );

@@ -1,15 +1,20 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
+import { motion } from 'framer-motion';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
   size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  disabled?: boolean;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
   children: React.ReactNode;
+  type?: 'button' | 'submit' | 'reset';
 }
 
 const variantMap = {
   primary:
-    'bg-brand-500 text-white hover:bg-brand-600 shadow-card hover:shadow-card-hover active:scale-[0.98] transition-all duration-200',
+    'bg-brand-500 text-white hover:bg-brand-600 shadow-card hover:shadow-card-hover transition-all duration-200',
   secondary:
     'bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 text-surface-700 dark:text-surface-0 hover:bg-surface-50 dark:hover:bg-surface-700 hover:border-surface-300 dark:hover:border-surface-600 transition-all duration-200',
   ghost:
@@ -32,10 +37,13 @@ export const Button: React.FC<ButtonProps> = ({
   className,
   children,
   disabled,
-  ...props
+  onClick,
+  type = 'button',
 }) => {
   return (
-    <button
+    <motion.button
+      whileTap={disabled ? undefined : { scale: 0.97 }}
+      transition={{ type: 'tween' as const, duration: 0.1 }}
       className={cn(
         'inline-flex items-center justify-center gap-2 transition-all duration-200',
         'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -44,9 +52,10 @@ export const Button: React.FC<ButtonProps> = ({
         className
       )}
       disabled={disabled}
-      {...props}
+      onClick={onClick}
+      type={type}
     >
       {children}
-    </button>
+    </motion.button>
   );
 };

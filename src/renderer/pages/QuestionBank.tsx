@@ -11,6 +11,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { MotionItem } from '../components/ui/Motion';
+import { SkeletonCard } from '../components/ui/Skeleton';
 import { useRagDocs, useDeleteRagDocBatch, useSyncQuestions } from '../hooks/use-api';
 
 const api = (window as any).api;
@@ -255,8 +257,8 @@ const QuestionBank: React.FC = () => {
       {/* 文档列表 */}
       <div className="flex-1 overflow-y-auto p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+          <div className="space-y-2">
+            {[1, 2, 3, 4, 5].map((i) => <SkeletonCard key={i} />)}
           </div>
         ) : groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-surface-400">
@@ -275,8 +277,8 @@ const QuestionBank: React.FC = () => {
                 </h2>
                 <div className="space-y-2">
                   {catGroups.map((group) => (
+                    <MotionItem key={group.key}>
                     <div
-                      key={group.key}
                       className="bg-white dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700 overflow-hidden hover:shadow-soft transition-shadow"
                     >
                       <div
@@ -322,6 +324,7 @@ const QuestionBank: React.FC = () => {
                         </div>
                       )}
                     </div>
+                    </MotionItem>
                   ))}
                 </div>
               </div>

@@ -26,6 +26,13 @@ export function useDailyStats(days: number = 30) {
   });
 }
 
+export function useDailyRecordRange(start: string, end: string) {
+  return useQuery({
+    queryKey: ['dailyRecords', start, end],
+    queryFn: () => api.dailyRecord.getRange(start, end),
+  });
+}
+
 export function useDueReviews() {
   return useQuery({
     queryKey: ['dueReviews'],

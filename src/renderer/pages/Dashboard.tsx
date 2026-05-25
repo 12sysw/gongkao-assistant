@@ -20,6 +20,7 @@ import { Link } from 'react-router-dom';
 import { StatCard } from '../components/ui/StatCard';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { cn } from '../lib/utils';
+import { StudyDurationChart, TypeAccuracyChart, MasteryRadarChart, ProgressTrendChart } from '../components/ui/Charts';
 import { buildReviewRecommendations } from '../lib/review-recommendations';
 import { exportDailyStats } from '../lib/export-utils';
 import {
@@ -29,6 +30,8 @@ import {
   useFlashcards,
   useStudyPlans,
   useAiRecommend,
+  useWrongBookRecords,
+  useDailyRecordRange,
 } from '../hooks/use-api';
 import { fetchWeather, fetchSaying, fetchAnswer, type WeatherData } from '../lib/uapi';
 
@@ -42,6 +45,24 @@ interface DashboardStats {
   total_minutes: number;
   mastered_count: number;
   active_days: number;
+}
+
+interface DailyRecord {
+  date: string;
+  study_minutes: number;
+  questions_done: number;
+  wrong_count: number;
+}
+
+interface WrongRecord {
+  type?: string | null;
+  mastered: number;
+  wrong_count: number;
+}
+
+interface FlashcardRecord {
+  category: string;
+  mastered: number;
 }
 
 interface RecentReviewSession {
@@ -159,6 +180,15 @@ export default function Dashboard() {
   const dueReviewsQuery = useDueReviews();
   const flashcardsQuery = useFlashcards();
   const studyPlansQuery = useStudyPlans();
+
+  const chartStart = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  }, []);
+  const chartEnd = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const dailyRangeQuery = useDailyRecordRange(chartStart, chartEnd);
+  const wrongBookQuery = useWrongBookRecords();
 
   const [city] = useState(() => {
     try {
@@ -310,6 +340,29 @@ export default function Dashboard() {
           iconBgColor="bg-brand-100"
           label="已掌握错题"
           value={`${stats.mastered_count}道`}
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <StudyDurationChart
+          records={(dailyRangeQuery.data ?? []) as DailyRecord[]}
+          loading={dailyRangeQuery.isLoading}
+        />
+        <ProgressTrendChart
+          records={(dailyRangeQuery.data ?? []) as DailyRecord[]}
+          loading={dailyRangeQuery.isLoading}
+        />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
+        <TypeAccuracyChart
+          records={(wrongBookQuery.data ?? []) as WrongRecord[]}
+          loading={wrongBookQuery.isLoading}
+        />
+        <MasteryRadarChart
+          wrongRecords={(wrongBookQuery.data ?? []) as WrongRecord[]}
+          flashcards={(flashcardsQuery.data ?? []) as FlashcardRecord[]}
+          loading={wrongBookQuery.isLoading || flashcardsQuery.isLoading}
         />
       </div>
 
