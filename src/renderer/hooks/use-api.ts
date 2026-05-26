@@ -292,7 +292,10 @@ export function useSyncQuestions() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api.rag.syncQuestions(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['ragDocs'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ragDocs'] });
+      qc.invalidateQueries({ queryKey: ['questions'] });
+    },
   });
 }
 
@@ -613,6 +616,9 @@ export function useImportPdfs() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (dirPath: string) => api.rag.importPdfs(dirPath),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['ragDocs'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ragDocs'] });
+      qc.invalidateQueries({ queryKey: ['questions'] });
+    },
   });
 }

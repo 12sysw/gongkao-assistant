@@ -431,7 +431,17 @@ export interface RagImportResult {
   imported: number;
   skipped: number;
   errors: number;
+  questionsImported?: number;
+  questionsSkipped?: number;
+  questionsUnanswered?: number;
   message?: string;
+}
+
+export interface RagSyncQuestionsResult {
+  synced: number;
+  questionsImported?: number;
+  questionsSkipped?: number;
+  questionsUnanswered?: number;
 }
 
 export interface ChromaStatus {
@@ -656,7 +666,7 @@ export interface Api {
     docGetById: (id: number) => Promise<RagDoc | null>;
     docUpdate: (doc: RagDocUpdate) => Promise<RagDoc | null>;
     docDelete: (id: number) => Promise<DeleteResult>;
-    syncQuestions: () => Promise<{ synced: number }>;
+    syncQuestions: () => Promise<RagSyncQuestionsResult>;
     search: (query: string, topK?: number) => Promise<RagDoc[]>;
     embedDoc: (id: number) => Promise<DeleteResult>;
     configGet: () => Promise<RagConfig>;

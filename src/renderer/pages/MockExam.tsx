@@ -26,6 +26,12 @@ interface ExamQuestion {
   explanation: string;
 }
 
+type AnswerLookup = {
+  scoped: Map<string, string>;
+  byNumber: Map<string, string>;
+  allowNumberFallback: boolean;
+};
+
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -62,7 +68,30 @@ function canonicalType(type: string): string {
 }
 
 function normalizeQuestionText(text: string): string {
-  return text.replace(/\r\n/g, '\n').replace(/\u00a0/g, ' ').trim();
+  return text
+    .replace(/\r\n/g, '\n')
+    .replace(/\u00a0/g, ' ')
+    .replace(/\u3000/g, ' ')
+    .trim();
+}
+
+function normalizeImportedTitle(title: string) {
+  return title
+    .replace(/\s*\(\d+\/\d+\)\s*$/, '')
+    .replace(/参考答案|参考解析|试题答案|真题答案|答案解析|答案|解析/g, '')
+    .replace(/真题|试题|题库|套题|模拟题|模拟卷/g, '')
+    .replace(/\s+/g, '')
+    .trim();
+}
+
+function isImportedQuestion(question: QuestionRecord): boolean {
+  return question.id >= IMPORTED_QUESTION_ID_OFFSET || /pdf_import|pdf_exam/.test(question.tags ?? '');
+}
+
+function prioritizeQuestionRecords(questions: QuestionRecord[]): QuestionRecord[] {
+  const imported = shuffle(questions.filter(isImportedQuestion));
+  const regular = shuffle(questions.filter((question) => !isImportedQuestion(question)));
+  return [...imported, ...regular];
 }
 
 function toExamQuestion(q: QuestionRecord): ExamQuestion {
@@ -77,27 +106,45 @@ function toExamQuestion(q: QuestionRecord): ExamQuestion {
   };
 }
 
-function buildAnswerMap(docs: RagDoc[]) {
-  const answerMap = new Map<string, string>();
+function buildAnswerMap(docs: RagDoc[]): AnswerLookup {
+  const scoped = new Map<string, string>();
+  const byNumber = new Map<string, string>();
   const answerDocs = docs.filter((doc) => doc.source === 'pdf_answer' || /答案|解析|参考答案/.test(`${doc.title} ${doc.content.slice(0, 100)}`));
+  const uniqueAnswerTitles = new Set(
+    answerDocs
+      .map((doc) => normalizeImportedTitle(doc.title))
+      .filter(Boolean),
+  );
+  const allowBroadFallback = uniqueAnswerTitles.size <= 1;
 
   for (const doc of answerDocs) {
     const text = normalizeQuestionText(doc.content);
-    const pattern = /(?:^|\n)\s*(?:第\s*)?(\d{1,3})\s*(?:题)?\s*[.．、)）:]?\s*(?:【?答案】?|正确答案|参考答案)?\s*[:：]?\s*([A-D])(?=\s|[。；;，,、.)）]|$)/g;
+    const titleKey = normalizeImportedTitle(doc.title);
+    const categoryKey = normalizeImportedTitle(doc.category);
+    const pattern = /(?:^|\n|\s)(?:第\s*)?(\d{1,3})\s*(?:题)?\s*[.．、)）:：]?\s*(?:【?答案】?|正确答案|参考答案)?\s*[:：]?\s*([A-D])(?=\s|[。；;，,、.)）]|$)/g;
     for (const match of text.matchAll(pattern)) {
       const number = match[1];
       const answer = match[2].toUpperCase();
-      answerMap.set(`${doc.category}:${number}`, answer);
-      answerMap.set(number, answer);
+      byNumber.set(number, answer);
+      if (categoryKey && titleKey) scoped.set(`${categoryKey}:${titleKey}:${number}`, answer);
+      if (titleKey) scoped.set(`${titleKey}:${number}`, answer);
+      if (allowBroadFallback && categoryKey) scoped.set(`${categoryKey}:${number}`, answer);
     }
   }
 
-  return answerMap;
+  return {
+    scoped,
+    byNumber,
+    allowNumberFallback: allowBroadFallback,
+  };
 }
 
 function splitImportedQuestionSegments(text: string) {
   const normalized = normalizeQuestionText(text);
-  const starts = [...normalized.matchAll(/^\s*(?:第\s*)?(\d{1,3})\s*(?:题)?[.．、)）]?\s+/gm)];
+  const strictStarts = [...normalized.matchAll(/^\s*(?:第\s*)?(\d{1,3})\s*(?:题|[.．、)）:：])\s*/gm)];
+  const starts = strictStarts.length > 0
+    ? strictStarts
+    : [...normalized.matchAll(/^\s*(\d{1,3})\s+/gm)];
 
   if (starts.length === 0) {
     return [{ number: '1', text: normalized }];
@@ -114,10 +161,14 @@ function splitImportedQuestionSegments(text: string) {
 }
 
 function parseImportedOptions(segmentText: string) {
-  const normalized = segmentText
-    .replace(/\s+([A-D])[.．、)）]\s*/g, '\n$1. ')
-    .replace(/([A-D])[.．、)）]\s*/g, '\n$1. ');
-  const optionMatches = [...normalized.matchAll(/^\s*([A-D])\.\s*([\s\S]*?)(?=^\s*[A-D]\.\s*|^\s*(?:【?答案】?|正确答案|参考答案|解析)\s*[:：]?|\s*$)/gm)];
+  const normalized = normalizeQuestionText(segmentText)
+    .replace(/\s+([A-D])\s*[.．、)）:：]\s*/g, '\n$1. ')
+    .replace(/([A-D])\s*[.．、)）:：]\s*/g, '\n$1. ');
+  let optionMatches = [...normalized.matchAll(/^\s*([A-D])\.\s*([\s\S]*?)(?=^\s*[A-D]\.\s*|^\s*(?:【?答案】?|正确答案|参考答案|解析)\s*[:：]?|\s*$)/gm)];
+
+  if (optionMatches.length < 2) {
+    optionMatches = [...normalized.matchAll(/(?:^|\n|\s)([A-D])\s+([\s\S]*?)(?=(?:^|\n|\s)[A-D]\s+|^\s*(?:【?答案】?|正确答案|参考答案|解析)\s*[:：]?|\s*$)/gm)];
+  }
 
   if (optionMatches.length < 2) {
     return { content: segmentText, options: [] as string[] };
@@ -126,7 +177,7 @@ function parseImportedOptions(segmentText: string) {
   const firstOptionIndex = optionMatches[0].index ?? segmentText.length;
   const content = normalized
     .slice(0, firstOptionIndex)
-    .replace(/^\s*(?:第\s*)?\d{1,3}\s*(?:题)?[.．、)）]?\s*/, '')
+    .replace(/^\s*(?:第\s*)?\d{1,3}\s*(?:题|[.．、)）:：])?\s*/, '')
     .trim();
   const options = optionMatches.slice(0, 4).map((match) => {
     const label = match[1].toUpperCase();
@@ -139,14 +190,20 @@ function parseImportedOptions(segmentText: string) {
   return { content: content || segmentText, options };
 }
 
-function extractAnswer(segmentText: string, doc: RagDoc, number: string, answerMap: Map<string, string>) {
+function extractAnswer(segmentText: string, doc: RagDoc, number: string, answerLookup: AnswerLookup) {
   const inline = segmentText.match(/(?:【?答案】?|正确答案|参考答案)\s*[:：]?\s*([A-D])/i);
   if (inline) return inline[1].toUpperCase();
-  return answerMap.get(`${doc.category}:${number}`) ?? answerMap.get(number) ?? '';
+  const categoryKey = normalizeImportedTitle(doc.category);
+  const titleKey = normalizeImportedTitle(doc.title);
+  return answerLookup.scoped.get(`${categoryKey}:${titleKey}:${number}`)
+    ?? answerLookup.scoped.get(`${titleKey}:${number}`)
+    ?? (answerLookup.allowNumberFallback ? answerLookup.scoped.get(`${categoryKey}:${number}`) : undefined)
+    ?? (answerLookup.allowNumberFallback ? answerLookup.byNumber.get(number) : undefined)
+    ?? '';
 }
 
 function extractQuestionsFromRagDocs(docs: RagDoc[]): QuestionRecord[] {
-  const answerMap = buildAnswerMap(docs);
+  const answerLookup = buildAnswerMap(docs);
   const records: QuestionRecord[] = [];
   const seenContent = new Set<string>();
   const examDocs = docs.filter((doc) => doc.source !== 'pdf_answer' && doc.content.trim().length >= 30);
@@ -161,7 +218,7 @@ function extractQuestionsFromRagDocs(docs: RagDoc[]): QuestionRecord[] {
       if (seenContent.has(dedupeKey)) return;
       seenContent.add(dedupeKey);
 
-      const answer = extractAnswer(segment.text, doc, segment.number, answerMap);
+      const answer = extractAnswer(segment.text, doc, segment.number, answerLookup);
       records.push({
         id: IMPORTED_QUESTION_ID_OFFSET + doc.id * 1000 + index,
         type: canonicalType(normalizeQuestionType(doc.category, parsed.content)),
@@ -169,13 +226,35 @@ function extractQuestionsFromRagDocs(docs: RagDoc[]): QuestionRecord[] {
         options: JSON.stringify(parsed.options),
         answer: answer || parsed.options[0]?.[0] || 'A',
         explanation: answer ? `来源：${doc.title}` : `来源：${doc.title}；未识别到答案，已使用默认选项。`,
-        tags: [doc.source, doc.category, doc.title].filter(Boolean).join(','),
+        tags: ['pdf_import', doc.source, doc.category, doc.title].filter(Boolean).join(','),
         created_at: doc.created_at,
       });
     });
   }
 
   return records;
+}
+
+function getQuestionDedupeKey(question: QuestionRecord): string {
+  return normalizeQuestionText(question.content).replace(/\s+/g, '').slice(0, 180);
+}
+
+function mergeQuestionSources(dbQuestions: QuestionRecord[], importedQuestions: QuestionRecord[]): QuestionRecord[] {
+  const merged: QuestionRecord[] = [];
+  const seen = new Set<string>();
+
+  for (const question of [
+    ...dbQuestions.filter(isImportedQuestion),
+    ...importedQuestions,
+    ...dbQuestions.filter((item) => !isImportedQuestion(item)),
+  ]) {
+    const key = getQuestionDedupeKey(question);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    merged.push(question);
+  }
+
+  return merged;
 }
 
 function makeRepeatedExamQuestion(question: ExamQuestion, index: number): ExamQuestion {
@@ -194,7 +273,7 @@ function appendFromPool(target: ExamQuestion[], pool: ExamQuestion[], count: num
 
 function groupQuestionsByType(questions: QuestionRecord[]) {
   const byType: Record<string, ExamQuestion[]> = {};
-  for (const q of questions) {
+  for (const q of prioritizeQuestionRecords(questions)) {
     const normalizedType = normalizeQuestionType(q.type, q.content);
     if (!byType[normalizedType]) byType[normalizedType] = [];
     byType[normalizedType].push(toExamQuestion(q));
@@ -204,13 +283,13 @@ function groupQuestionsByType(questions: QuestionRecord[]) {
 
 function buildRealQuestionSet(allQuestions: QuestionRecord[], perTypeCount: number | Record<string, number>, fallbackTotal: number): ExamQuestion[] {
   const byType = groupQuestionsByType(allQuestions);
-  const allRealQuestions = shuffle(allQuestions.map(toExamQuestion));
+  const allRealQuestions = prioritizeQuestionRecords(allQuestions).map(toExamQuestion);
   const usedIds = new Set<number>();
   const result: ExamQuestion[] = [];
 
   for (const type of QUESTION_TYPES) {
     const needed = typeof perTypeCount === 'number' ? perTypeCount : perTypeCount[type];
-    const pool = shuffle(byType[type] || []);
+    const pool = byType[type] || [];
     const picked = pool.slice(0, needed);
     picked.forEach((question) => usedIds.add(question.id));
     result.push(...picked);
@@ -424,11 +503,10 @@ export default function MockExam() {
   const loadQuestionData = useCallback(async (): Promise<QuestionRecord[]> => {
     const questionResult = await refetchQuestions();
     const dbQuestions = questionResult.data ?? questionData ?? [];
-    if (dbQuestions.length > 0) return dbQuestions;
-
     const ragResult = await refetchRagDocs();
     const importedDocs = ragResult.data ?? ragDocs;
-    return extractQuestionsFromRagDocs(importedDocs);
+    const importedQuestions = extractQuestionsFromRagDocs(importedDocs);
+    return mergeQuestionSources(dbQuestions, importedQuestions);
   }, [questionData, ragDocs, refetchQuestions, refetchRagDocs]);
 
   // 正式考试计时器

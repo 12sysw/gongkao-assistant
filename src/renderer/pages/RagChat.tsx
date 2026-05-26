@@ -21,6 +21,14 @@ import type { RagConfig, RagMessage } from '../../shared/ipc';
 type ChatMessage = RagMessage;
 type RagSettings = RagConfig;
 
+function formatQuestionSyncSummary(result: { questionsImported?: number; questionsSkipped?: number; questionsUnanswered?: number }) {
+  if (result.questionsImported === undefined) return '';
+  const unansweredText = result.questionsUnanswered
+    ? `，其中 ${result.questionsUnanswered} 题未识别答案`
+    : '';
+  return `\n同步可测评题目：新增 ${result.questionsImported} 题，跳过 ${result.questionsSkipped ?? 0} 题${unansweredText}`;
+}
+
 /* ─── RAG Settings Modal ─── */
 
 const RagSettingsPanel: React.FC<{
@@ -56,7 +64,7 @@ const RagSettingsPanel: React.FC<{
     setSyncing(true);
     try {
       const result = await syncMutation.mutateAsync();
-      alert(`同步完成: 新增 ${result.synced} 条知识文档`);
+      alert(`同步完成：新增 ${result.synced} 条知识文档${formatQuestionSyncSummary(result)}`);
     } catch {
       alert('同步失败');
     } finally {
@@ -70,7 +78,7 @@ const RagSettingsPanel: React.FC<{
     setShowImportDialog(false);
     try {
       const result = await importPdfs.mutateAsync(importPath);
-      alert(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条，失败 ${result.errors} 条`);
+      alert(`导入完成：知识文档新增 ${result.imported} 条，跳过 ${result.skipped} 条，失败 ${result.errors} 条${formatQuestionSyncSummary(result)}`);
     } catch (err) {
       alert(`导入失败: ${err}`);
     } finally {
@@ -199,7 +207,7 @@ const RagSettingsPanel: React.FC<{
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border border-surface-200 dark:border-surface-600 rounded-lg text-sm hover:bg-surface-50 dark:hover:bg-surface-800 disabled:opacity-50"
             >
               {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
-              {syncing ? '同步中...' : '同步题库到知识库'}
+              {syncing ? '同步中...' : '同步题库/可测评题'}
             </button>
             <button
               onClick={() => setShowImportDialog(true)}
@@ -210,7 +218,7 @@ const RagSettingsPanel: React.FC<{
               {importing ? '导入中...' : '导入PDF题库'}
             </button>
           </div>
-          <p className="text-xs text-surface-400">「导入PDF题库」会扫描目录下所有 PDF 文件并提取文本到知识库</p>
+          <p className="text-xs text-surface-400">「导入PDF题库」会扫描目录下所有 PDF 文件，写入知识库并同步为套题测评可用题目</p>
         </div>
 
         <div className="flex justify-end gap-3 pt-2 border-t border-surface-100 dark:border-surface-700">

@@ -26,6 +26,14 @@ interface DocGroup {
   fullContent: string;
 }
 
+function formatQuestionSyncSummary(result: { questionsImported?: number; questionsSkipped?: number; questionsUnanswered?: number }) {
+  if (result.questionsImported === undefined) return '';
+  const unansweredText = result.questionsUnanswered
+    ? `，其中 ${result.questionsUnanswered} 题未识别答案`
+    : '';
+  return `\n同步可测评题目：新增 ${result.questionsImported} 题，跳过 ${result.questionsSkipped ?? 0} 题${unansweredText}`;
+}
+
 // 解析标题中的分片编号 "文件名 (2/6)" → { base: "文件名", part: 2, total: 6 }
 function parsePartInfo(title: string): { base: string; part: number; total: number } {
   const m = title.match(/^(.+?)\s*\((\d+)\/(\d+)\)\s*$/);
@@ -127,7 +135,7 @@ const QuestionBank: React.FC = () => {
     setShowImportDialog(false);
     try {
       const result = await importPdfs.mutateAsync(importPath);
-      alert(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条，失败 ${result.errors} 条`);
+      alert(`导入完成：知识文档新增 ${result.imported} 条，跳过 ${result.skipped} 条，失败 ${result.errors} 条${formatQuestionSyncSummary(result)}`);
       setImportPath('');
     } catch (err) {
       alert(`导入失败: ${err}`);
@@ -137,7 +145,7 @@ const QuestionBank: React.FC = () => {
   const handleSyncQuestions = async () => {
     try {
       const result = await syncMutation.mutateAsync();
-      alert(`同步完成: 新增 ${result.synced} 条知识文档`);
+      alert(`同步完成：新增 ${result.synced} 条知识文档${formatQuestionSyncSummary(result)}`);
     } catch {
       alert('同步失败');
     }
@@ -187,7 +195,7 @@ const QuestionBank: React.FC = () => {
               className="flex items-center gap-2 px-3 py-2 text-sm border border-surface-200 dark:border-surface-700 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
-              同步题库
+              同步可测评题
             </button>
             <button
               onClick={() => setShowImportDialog(true)}
