@@ -1,11 +1,13 @@
 const assert = require('node:assert/strict');
 
 const {
+  buildExportPdfHtml,
   buildAchievementProgress,
   computeStreak,
   formatLocalDateTime,
   getUnlockableAchievementIds,
   isDueReview,
+  sanitizeExportFileName,
   sortStudyPlans,
   toLegacyFlashcard,
   toLegacyWrongRecord,
@@ -184,6 +186,25 @@ run('study plans sort active and high-priority items first', () => {
   ]);
 
   assert.deepEqual(sorted.map((item) => item.id), [3, 4, 2, 1]);
+});
+
+run('PDF export escapes HTML and sanitizes filenames', () => {
+  const html = buildExportPdfHtml(
+    {
+      title: '<img src=x onerror=alert(1)>错题&统计',
+      columns: [{ key: 'content', label: '题目<script>' }],
+      data: [{ content: '<script>alert("x")</script>&答案' }],
+    },
+    '2026/05/26'
+  );
+
+  assert.equal(html.includes('<img src=x'), false);
+  assert.equal(html.includes('<script>alert'), false);
+  assert.equal(html.includes('&lt;img src=x onerror=alert(1)&gt;错题&amp;统计'), true);
+  assert.equal(html.includes('题目&lt;script&gt;'), true);
+  assert.equal(html.includes('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;&amp;答案'), true);
+  assert.equal(sanitizeExportFileName('CON'), 'gongkao-export');
+  assert.equal(sanitizeExportFileName('错题<>:"/\\|?*统计. '), '错题_________统计');
 });
 
 run('review schedule uses one local-date interval policy', () => {

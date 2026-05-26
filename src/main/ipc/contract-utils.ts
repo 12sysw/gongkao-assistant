@@ -1,4 +1,14 @@
 type LegacyLikeRecord = Record<string, any>;
+type ExportPdfColumnLike = { key?: unknown; label?: unknown };
+type ExportPdfParamsLike = {
+  title?: unknown;
+  columns?: unknown;
+  data?: unknown;
+};
+
+const MAX_EXPORT_TITLE_LENGTH = 80;
+const MAX_EXPORT_CELL_LENGTH = 5000;
+const RESERVED_WINDOWS_FILENAMES = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 
 const statusOrder: Record<string, number> = {
   in_progress: 0,
@@ -18,6 +28,93 @@ function pad(value: number): string {
 
 function truthyNumber(value: unknown): number {
   return value ? 1 : 0;
+}
+
+export function escapeHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => {
+    switch (char) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      case "'":
+        return '&#39;';
+      default:
+        return char;
+    }
+  });
+}
+
+export function sanitizeExportFileName(value: unknown, fallback = 'gongkao-export'): string {
+  const raw = String(value ?? '').trim() || fallback;
+  const sanitized = raw
+    .replace(/[<>:"/\\|?*\x00-\x1f]/g, '_')
+    .replace(/[. ]+$/g, '')
+    .slice(0, MAX_EXPORT_TITLE_LENGTH)
+    .trim();
+
+  if (!sanitized || RESERVED_WINDOWS_FILENAMES.test(sanitized)) {
+    return fallback;
+  }
+
+  return sanitized;
+}
+
+export function normalizeExportPdfParams(params: ExportPdfParamsLike) {
+  const rawTitle = String(params?.title ?? '').trim();
+  const title = rawTitle || '导出数据';
+  const columns = Array.isArray(params?.columns)
+    ? (params.columns as ExportPdfColumnLike[])
+        .map((column) => ({
+          key: String(column?.key ?? '').trim(),
+          label: String(column?.label ?? '').trim(),
+        }))
+        .filter((column) => column.key && column.label)
+    : [];
+  const data = Array.isArray(params?.data)
+    ? (params.data as Record<string, unknown>[])
+        .filter((row) => row && typeof row === 'object' && !Array.isArray(row))
+    : [];
+
+  return { title, columns, data };
+}
+
+export function buildExportPdfHtml(params: ExportPdfParamsLike, dateStr: string) {
+  const normalized = normalizeExportPdfParams(params);
+  const safeTitle = escapeHtml(normalized.title);
+  const safeDate = escapeHtml(dateStr);
+  const headerCells = normalized.columns
+    .map((column) => `<th>${escapeHtml(column.label)}</th>`)
+    .join('');
+  const bodyRows = normalized.columns.length > 0
+    ? normalized.data.map((row, idx) => {
+        const cells = normalized.columns.map((column) => {
+          const value = String(row[column.key] ?? '').slice(0, MAX_EXPORT_CELL_LENGTH);
+          return `<td>${escapeHtml(value)}</td>`;
+        }).join('');
+        return `<tr class="${idx % 2 === 1 ? 'alt' : ''}">${cells}</tr>`;
+      }).join('')
+    : '';
+  const emptyRow = '<tr><td colspan="100" style="text-align:center;padding:20px">暂无数据</td></tr>';
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","SimHei","PingFang SC",sans-serif;padding:40px;color:#1c1917;font-size:12px}
+h1{font-size:20px;text-align:center;margin-bottom:6px}
+.date{font-size:11px;color:#888;text-align:right;margin-bottom:20px}
+table{width:100%;border-collapse:collapse}
+th{background:#c2410c;color:#fff;padding:8px 6px;text-align:left;font-weight:600;font-size:11px}
+td{padding:7px 6px;border-bottom:1px solid #e7e5e4;word-break:break-all;white-space:pre-wrap;font-size:11px}
+.alt td{background:#f9f9f9}
+</style></head><body>
+<h1>${safeTitle}</h1>
+<p class="date">导出日期: ${safeDate}</p>
+<table><thead><tr>${headerCells}</tr></thead><tbody>${bodyRows || emptyRow}</tbody></table>
+</body></html>`;
 }
 
 function getValue<T>(row: LegacyLikeRecord | null | undefined, camel: string, snake: string): T | undefined {
