@@ -487,6 +487,86 @@ export interface KnowledgeGraphBuildResult {
 }
 
 // API 类型定义（用于 preload 暴露）
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export type ExportRow = Record<string, JsonValue | undefined>;
+
+export interface DataExportResult {
+  success: boolean;
+  path?: string;
+  error?: string;
+}
+
+export interface DataImportResult {
+  success: boolean;
+  error?: string;
+}
+
+export interface ExportPdfColumn {
+  key: string;
+  label: string;
+}
+
+export interface ExportPdfParams {
+  title: string;
+  columns: ExportPdfColumn[];
+  data: ExportRow[];
+}
+
+export interface ExportPdfResult {
+  success: boolean;
+  path?: string;
+  error?: string;
+}
+
+export interface RagConfigTestParams {
+  apiUrl: string;
+  apiKey: string;
+  model: string;
+}
+
+export interface RagConfigTestResult {
+  success: boolean;
+  status?: number;
+  error?: string;
+}
+
+export interface RagParsedQuestion {
+  number: string;
+  content: string;
+}
+
+export interface RagParsedSection {
+  title: string;
+  questions: RagParsedQuestion[];
+}
+
+export interface RagParsePdfAiResult {
+  sections: RagParsedSection[];
+  error?: string;
+}
+
+export interface UpdateInfo {
+  version?: string;
+  releaseName?: string;
+  releaseNotes?: string | Array<{ version?: string; note?: string }>;
+  releaseDate?: string;
+}
+
+export interface UpdateDownloadProgress {
+  total?: number;
+  delta?: number;
+  transferred?: number;
+  percent?: number;
+  bytesPerSecond?: number;
+}
+
 export interface Api {
   question: {
     add: (q: QuestionInput) => Promise<QuestionRecord>;
@@ -557,9 +637,9 @@ export interface Api {
     getRecent: (days: number) => Promise<RecommendationEventRecord[]>;
   };
   data: {
-    export: () => Promise<any>;
-    import: () => Promise<any>;
-    exportPdf: (params: { title: string; columns: { key: string; label: string }[]; data: any[] }) => Promise<{ success: boolean; error?: string }>;
+    export: () => Promise<DataExportResult>;
+    import: () => Promise<DataImportResult>;
+    exportPdf: (params: ExportPdfParams) => Promise<ExportPdfResult>;
   };
   chat: {
     generateUserSig: (userID: string) => Promise<string>;
@@ -575,7 +655,7 @@ export interface Api {
     embedDoc: (id: number) => Promise<DeleteResult>;
     configGet: () => Promise<RagConfig>;
     configSet: (config: RagConfig) => Promise<DeleteResult>;
-    configTest: (params: { apiUrl: string; apiKey: string; model: string }) => Promise<any>;
+    configTest: (params: RagConfigTestParams) => Promise<RagConfigTestResult>;
     sessionCreate: (title?: string) => Promise<RagSession>;
     sessionGetAll: () => Promise<RagSession[]>;
     sessionGet: (id: number) => Promise<RagSession | null>;
@@ -594,7 +674,7 @@ export interface Api {
     onEssayStreamChunk: (cb: (chunk: string) => void) => Unsubscribe;
     onEssayStreamEnd: (cb: () => void) => Unsubscribe;
     parsePdf: (buffer: ArrayBuffer) => Promise<{ text: string; error?: string }>;
-    parsePdfAi: (text: string) => Promise<{ sections: any[]; error?: string }>;
+    parsePdfAi: (text: string) => Promise<RagParsePdfAiResult>;
   };
   ai: {
     ocrImage: (base64Data: string) => Promise<{ text: string; error?: string }>;
@@ -609,10 +689,10 @@ export interface Api {
     download: () => Promise<void>;
     install: () => void;
     onChecking: (cb: () => void) => Unsubscribe;
-    onAvailable: (cb: (info: any) => void) => Unsubscribe;
-    onNotAvailable: (cb: (info: any) => void) => Unsubscribe;
-    onProgress: (cb: (progress: any) => void) => Unsubscribe;
-    onDownloaded: (cb: (info: any) => void) => Unsubscribe;
+    onAvailable: (cb: (info: UpdateInfo) => void) => Unsubscribe;
+    onNotAvailable: (cb: (info: UpdateInfo) => void) => Unsubscribe;
+    onProgress: (cb: (progress: UpdateDownloadProgress) => void) => Unsubscribe;
+    onDownloaded: (cb: (info: UpdateInfo) => void) => Unsubscribe;
     onError: (cb: (message: string) => void) => Unsubscribe;
   };
   getAppVersion: () => Promise<string>;

@@ -1,24 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, CheckCircle, X } from 'lucide-react';
+import type { UpdateDownloadProgress, UpdateInfo } from '../../shared/ipc';
 
 const api = window.api;
 
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error';
 
-interface UpdateInfo {
-  version?: string;
-  releaseNotes?: string;
-}
-
-interface DownloadProgress {
-  percent?: number;
-  bytesPerSecond?: number;
-}
-
 const UpdateNotification: React.FC = () => {
   const [status, setStatus] = useState<UpdateStatus>('idle');
   const [info, setInfo] = useState<UpdateInfo>({});
-  const [progress, setProgress] = useState<DownloadProgress>({});
+  const [progress, setProgress] = useState<UpdateDownloadProgress>({});
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
@@ -29,7 +20,7 @@ const UpdateNotification: React.FC = () => {
       setDismissed(false);
     });
 
-    const offAvailable = api.update.onAvailable((updateInfo: any) => {
+    const offAvailable = api.update.onAvailable((updateInfo) => {
       setStatus('available');
       setInfo(updateInfo || {});
       setDismissed(false);
@@ -39,12 +30,12 @@ const UpdateNotification: React.FC = () => {
       setStatus('idle');
     });
 
-    const offProgress = api.update.onProgress((p: any) => {
+    const offProgress = api.update.onProgress((p) => {
       setStatus('downloading');
       setProgress(p || {});
     });
 
-    const offDownloaded = api.update.onDownloaded((updateInfo: any) => {
+    const offDownloaded = api.update.onDownloaded((updateInfo) => {
       setStatus('downloaded');
       setInfo(updateInfo || {});
     });
