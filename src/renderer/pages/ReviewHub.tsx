@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   BookOpen,
@@ -11,11 +11,24 @@ import {
   Target,
   X,
 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { useDueReviews, useFlashcards, useStudyPlans, useDailyStats } from '../hooks/use-api';
+import {
+  useAddDailyRecord,
+  useAddRecommendationEvent,
+  useDailyStats,
+  useDueReviews,
+  useDueFlashcards,
+  useFlashcards,
+  useMarkWrongMastered,
+  useRecentReviewSessions,
+  useReviewFlashcard,
+  useReviewSession,
+  useReviewWrongRecord,
+  useSaveReviewSession,
+  useStudyPlans,
+} from '../hooks/use-api';
 import { buildReviewRecommendations } from '../lib/review-recommendations';
 import { cn } from '../lib/utils';
 
@@ -94,21 +107,11 @@ type RecentReviewSession = {
   completed_flashcard_ids: number[];
 };
 
-function getApi() {
-  return (window as unknown as Window & { api?: Record<string, any> }).api;
-}
-
 function formatDateKey(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-}
-
-function addDays(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return formatDateKey(date);
 }
 
 function safeText(value: string | null | undefined, fallback: string) {
@@ -158,10 +161,6 @@ function formatDate(value: string | null | undefined) {
   return String(value ?? '').slice(0, 10) || '未设置';
 }
 
-function isDueFlashcard(nextReview: string | null | undefined, todayKey: string) {
-  return String(nextReview ?? '').slice(0, 10) <= todayKey;
-}
-
 function createEmptyReviewSession(todayKey: string): ReviewSession {
   return {
     date: todayKey,
@@ -169,6 +168,22 @@ function createEmptyReviewSession(todayKey: string): ReviewSession {
     initial_total: 0,
     completed_wrong_ids: [],
     completed_flashcard_ids: [],
+  };
+}
+
+function normalizeReviewSession(todayKey: string, session: any): ReviewSession {
+  if (!session) return createEmptyReviewSession(todayKey);
+
+  return {
+    date: todayKey,
+    started: Boolean(session.started),
+    initial_total: Number(session.initial_total ?? 0),
+    completed_wrong_ids: Array.isArray(session.completed_wrong_ids)
+      ? session.completed_wrong_ids.map(Number)
+      : [],
+    completed_flashcard_ids: Array.isArray(session.completed_flashcard_ids)
+      ? session.completed_flashcard_ids.map(Number)
+      : [],
   };
 }
 
@@ -301,21 +316,28 @@ const LogStudyModal: React.FC<{
 };
 
 const ReviewHub: React.FC = () => {
-  const queryClient = useQueryClient();
-  const api = getApi();
   const todayKey = formatDateKey();
   const dueReviewsQuery = useDueReviews();
+  const dueFlashcardsQuery = useDueFlashcards(todayKey);
   const flashcardsQuery = useFlashcards();
   const studyPlansQuery = useStudyPlans();
   const statsQuery = useDailyStats(30);
+  const reviewSessionQuery = useReviewSession(todayKey);
+  const recentSessionsQuery = useRecentReviewSessions(7);
+  const reviewWrongRecord = useReviewWrongRecord();
+  const reviewFlashcard = useReviewFlashcard();
+  const markWrongMastered = useMarkWrongMastered();
+  const addDailyRecord = useAddDailyRecord();
+  const saveReviewSession = useSaveReviewSession();
+  const addRecommendationEvent = useAddRecommendationEvent();
 
   const [flashcardIndex, setFlashcardIndex] = useState(0);
   const [flashcardFlipped, setFlashcardFlipped] = useState(false);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [showLogStudy, setShowLogStudy] = useState(false);
   const [reviewSession, setReviewSession] = useState<ReviewSession>(() => createEmptyReviewSession(todayKey));
-  const [recentSessions, setRecentSessions] = useState<RecentReviewSession[]>([]);
   const [sessionLoaded, setSessionLoaded] = useState(false);
+  const savedSessionKeyRef = useRef<string | null>(null);
   const [logForm, setLogForm] = useState<LogForm>({
     study_minutes: 45,
     questions_done: 0,
@@ -328,10 +350,7 @@ const ReviewHub: React.FC = () => {
   const studyPlans = (studyPlansQuery.data ?? []) as StudyPlan[];
   const stats = (statsQuery.data ?? null) as DailyStats | null;
 
-  const dueFlashcards = useMemo(
-    () => flashcards.filter((card) => !Number(card.mastered ?? 0) && isDueFlashcard(card.next_review, todayKey)),
-    [flashcards, todayKey]
-  );
+  const dueFlashcards = (dueFlashcardsQuery.data ?? []) as Flashcard[];
 
   const activePlans = useMemo(
     () => studyPlans.filter((plan) => (plan.status ?? 'pending') !== 'completed'),
@@ -381,73 +400,23 @@ const ReviewHub: React.FC = () => {
   );
 
   useEffect(() => {
-    let cancelled = false;
+    if (reviewSessionQuery.isLoading) return;
 
-    (async () => {
-      const api = getApi();
-      if (!api?.reviewSession?.get) return;
-
-      try {
-        const session = (await api.reviewSession.get(todayKey)) as ReviewSession | null;
-        if (!cancelled && session) {
-          setReviewSession({
-            date: todayKey,
-            started: Boolean((session as any).started),
-            initial_total: Number((session as any).initial_total ?? 0),
-            completed_wrong_ids: Array.isArray((session as any).completed_wrong_ids)
-              ? (session as any).completed_wrong_ids.map(Number)
-              : [],
-            completed_flashcard_ids: Array.isArray((session as any).completed_flashcard_ids)
-              ? (session as any).completed_flashcard_ids.map(Number)
-              : [],
-          });
-          setSessionLoaded(true);
-        }
-      } catch {
-        if (!cancelled) {
-          setReviewSession(createEmptyReviewSession(todayKey));
-          setSessionLoaded(true);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [todayKey]);
+    const nextSession = normalizeReviewSession(todayKey, reviewSessionQuery.data);
+    savedSessionKeyRef.current = JSON.stringify(nextSession);
+    setReviewSession(nextSession);
+    setSessionLoaded(true);
+  }, [reviewSessionQuery.data, reviewSessionQuery.isLoading, todayKey]);
 
   useEffect(() => {
-    let cancelled = false;
+    if (!sessionLoaded) return;
 
-    (async () => {
-      const api = getApi();
-      if (!api?.reviewSession?.getRecent) return;
+    const sessionKey = JSON.stringify(reviewSession);
+    if (savedSessionKeyRef.current === sessionKey) return;
 
-      try {
-        const sessions = (await api.reviewSession.getRecent(7)) as RecentReviewSession[];
-        if (!cancelled) {
-          setRecentSessions(Array.isArray(sessions) ? sessions : []);
-        }
-      } catch {
-        if (!cancelled) {
-          setRecentSessions([]);
-        }
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [reviewSession]);
-
-  useEffect(() => {
-    const api = getApi();
-    if (!api?.reviewSession?.set || !sessionLoaded) return;
-
-    api.reviewSession.set(reviewSession).catch(() => {
-      // ignore persistence failures and keep UI usable
-    });
-  }, [reviewSession, sessionLoaded]);
+    savedSessionKeyRef.current = sessionKey;
+    saveReviewSession.mutate(reviewSession);
+  }, [reviewSession, saveReviewSession, sessionLoaded]);
 
   useEffect(() => {
     if (flashcardIndex > 0 && flashcardIndex >= dueFlashcards.length) {
@@ -463,6 +432,7 @@ const ReviewHub: React.FC = () => {
   const currentTask = reviewSession.started ? reviewFlow[0] ?? null : null;
   const loading =
     dueReviewsQuery.isLoading ||
+    dueFlashcardsQuery.isLoading ||
     flashcardsQuery.isLoading ||
     studyPlansQuery.isLoading ||
     statsQuery.isLoading;
@@ -473,6 +443,7 @@ const ReviewHub: React.FC = () => {
   const streak = Number(stats?.streak ?? 0);
   const totalMinutes = Number(stats?.total_minutes ?? 0);
   const progressPercent = totalReviewItems > 0 ? Math.round((completedFlowCount / totalReviewItems) * 100) : 100;
+  const recentSessions = (recentSessionsQuery.data ?? []) as RecentReviewSession[];
   const recentReviewSummary = recentSessions.map((session) => {
     const completedCount =
       (Array.isArray(session.completed_wrong_ids) ? session.completed_wrong_ids.length : 0) +
@@ -487,15 +458,6 @@ const ReviewHub: React.FC = () => {
       percent,
     };
   });
-
-  const refreshReviewData = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['dueReviews'] }),
-      queryClient.invalidateQueries({ queryKey: ['wrongBookRecords'] }),
-      queryClient.invalidateQueries({ queryKey: ['flashcards'] }),
-      queryClient.invalidateQueries({ queryKey: ['dailyStats'] }),
-    ]);
-  }, [queryClient]);
 
   const appendCompletedWrong = useCallback((id: number) => {
     setReviewSession((current) => ({
@@ -517,68 +479,44 @@ const ReviewHub: React.FC = () => {
 
   const handleWrongReviewed = useCallback(
     async (record: WrongRecord, countForSession = false) => {
-      const api = getApi();
-      if (!api?.wrongBook?.update) return;
-
-      const nextReviewSteps = [1, 3, 7, 14, 30];
-      const nextReviewCount = Number(record.review_count ?? 0) + 1;
-      const nextDays = nextReviewSteps[Math.min(nextReviewCount - 1, nextReviewSteps.length - 1)];
       setBusyKey(`wrong-review-${record.id}`);
       try {
-        await api.wrongBook.update({
-          id: record.id,
-          review_count: nextReviewCount,
-          next_review_at: addDays(nextDays),
-        });
+        await reviewWrongRecord.mutateAsync(record.id);
         if (countForSession) appendCompletedWrong(record.id);
-        await refreshReviewData();
       } finally {
         setBusyKey(null);
       }
     },
-    [appendCompletedWrong, refreshReviewData]
+    [appendCompletedWrong, reviewWrongRecord]
   );
 
   const handleWrongMastered = useCallback(
     async (recordId: number, countForSession = false) => {
-      const api = getApi();
-      if (!api?.wrongBook?.markMastered) return;
-
       setBusyKey(`wrong-mastered-${recordId}`);
       try {
-        await api.wrongBook.markMastered(recordId);
+        await markWrongMastered.mutateAsync(recordId);
         if (countForSession) appendCompletedWrong(recordId);
-        await refreshReviewData();
       } finally {
         setBusyKey(null);
       }
     },
-    [appendCompletedWrong, refreshReviewData]
+    [appendCompletedWrong, markWrongMastered]
   );
 
   const handleFlashcardResult = useCallback(
     async (correct: boolean, card: Flashcard | null, countForSession = false) => {
-      const api = getApi();
-      if (!api?.flashcard?.update || !card) return;
+      if (!card) return;
 
-      const nextReviewCount = Number(card.review_count ?? 0) + 1;
-      const nextDays = correct ? Math.min(2 ** nextReviewCount, 30) : 1;
       setBusyKey(`flashcard-${card.id}`);
       try {
-        await api.flashcard.update({
-          id: card.id,
-          review_count: nextReviewCount,
-          mastered: correct && nextReviewCount >= 5 ? 1 : 0,
-          next_review: addDays(nextDays),
-        });
+        await reviewFlashcard.mutateAsync({ id: card.id, correct });
         if (countForSession) appendCompletedFlashcard(card.id);
         setFlashcardFlipped(false);
-        await refreshReviewData();
       } finally {
         setBusyKey(null);
       }
     },
-    [appendCompletedFlashcard, refreshReviewData]
+    [appendCompletedFlashcard, reviewFlashcard]
   );
 
   const handleStartToday = () => {
@@ -594,16 +532,12 @@ const ReviewHub: React.FC = () => {
   };
 
   const handleLogStudy = async () => {
-    const api = getApi();
-    if (!api?.dailyRecord?.add) return;
-
     setBusyKey('log-study');
     try {
-      await api.dailyRecord.add({
+      await addDailyRecord.mutateAsync({
         date: todayKey,
         ...logForm,
       });
-      await queryClient.invalidateQueries({ queryKey: ['dailyStats'] });
       setShowLogStudy(false);
       setLogForm({
         study_minutes: 45,
@@ -823,7 +757,7 @@ const ReviewHub: React.FC = () => {
                   key={item.title}
                   to={item.href}
                   onClick={() => {
-                    api?.recommendationEvent?.add?.({
+                    addRecommendationEvent.mutate({
                       date: todayKey,
                       source: 'review-hub',
                       title: item.title,

@@ -1,26 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Trophy, Lock, Star, ChevronRight } from 'lucide-react';
+import { useAchievementDefinitions, useAchievements } from '../hooks/use-api';
+import type { AchievementRecord } from '../../shared/ipc';
 
-interface Achievement {
-  id: number;
-  type: string;
-  title: string;
-  description: string;
-  icon: string;
-  threshold: number;
-  unlocked_at: string | null;
-  progress?: number;
-}
+type Achievement = AchievementRecord;
 
 type AchievementGroup = {
   type: string;
   label: string;
   items: Achievement[];
 };
-
-function getApi() {
-  return (window as unknown as Window & { api?: Record<string, any> }).api;
-}
 
 const FALLBACK_ACHIEVEMENTS: Achievement[] = [
   { id: 1, type: 'streak', title: '初出茅庐', description: '连续学习3天', icon: '🌱', threshold: 3, unlocked_at: null, progress: 0 },
@@ -204,45 +193,21 @@ const GroupSection: React.FC<{
 };
 
 const Achievements: React.FC = () => {
-  const [achievements, setAchievements] = useState<Achievement[]>(FALLBACK_ACHIEVEMENTS);
-  const [loading, setLoading] = useState(true);
-  const [usingFallback, setUsingFallback] = useState(false);
+  const definitionsQuery = useAchievementDefinitions();
+  const progressQuery = useAchievements();
 
-  const loadAchievements = useCallback(async () => {
-    const api = getApi();
+  const baseAchievements = useMemo(() => {
+    const definitions = definitionsQuery.data ?? [];
+    return definitions.length > 0 ? definitions : FALLBACK_ACHIEVEMENTS;
+  }, [definitionsQuery.data]);
 
-    if (!api?.achievement) {
-      setAchievements(FALLBACK_ACHIEVEMENTS);
-      setUsingFallback(true);
-      setLoading(false);
-      return;
-    }
+  const achievements = useMemo(() => {
+    const progress = progressQuery.isError ? [] : (progressQuery.data ?? []);
+    return mergeAchievements(baseAchievements, progress);
+  }, [baseAchievements, progressQuery.data, progressQuery.isError]);
 
-    try {
-      const baseList = (await api.achievement.getAll()) as Achievement[];
-      const safeBase = baseList && baseList.length > 0 ? baseList : FALLBACK_ACHIEVEMENTS;
-
-      try {
-        const progressList = (await api.achievement.check()) as Achievement[];
-        setAchievements(mergeAchievements(safeBase, progressList || []));
-        setUsingFallback(!baseList || baseList.length === 0);
-      } catch (error) {
-        console.error('加载成就进度失败，改为显示基础成就列表', error);
-        setAchievements(mergeAchievements(safeBase, []));
-        setUsingFallback(!baseList || baseList.length === 0);
-      }
-    } catch (error) {
-      console.error('加载成就失败，改用内置成就模板', error);
-      setAchievements(FALLBACK_ACHIEVEMENTS);
-      setUsingFallback(true);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadAchievements();
-  }, [loadAchievements]);
+  const usingFallback = definitionsQuery.isError || (definitionsQuery.data ?? []).length === 0;
+  const loading = definitionsQuery.isLoading && !definitionsQuery.data;
 
   const total = achievements.length;
   const unlocked = achievements.filter((achievement) => achievement.unlocked_at).length;

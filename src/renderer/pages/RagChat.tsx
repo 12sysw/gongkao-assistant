@@ -12,28 +12,14 @@ import {
   useSyncQuestions,
   useChromaStatus,
   useChromaMigrate,
+  useImportPdfs,
+  useRagStream,
+  useSendRagChat,
 } from '../hooks/use-api';
+import type { RagConfig, RagMessage } from '../../shared/ipc';
 
-const api = (window as any).api;
-
-interface ChatMessage {
-  id: number;
-  session_id: number;
-  role: 'user' | 'assistant';
-  content: string;
-  sources?: { id: number; title: string; source: string }[];
-  created_at: string;
-}
-
-interface RagSettings {
-  embedApiUrl: string;
-  embedApiKey: string;
-  embedModel: string;
-  rerankerModel: string;
-  llmApiUrl: string;
-  llmApiKey: string;
-  llmModel: string;
-}
+type ChatMessage = RagMessage;
+type RagSettings = RagConfig;
 
 /* ─── RAG Settings Modal ─── */
 
@@ -48,6 +34,7 @@ const RagSettingsPanel: React.FC<{
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importPath, setImportPath] = useState('');
   const syncMutation = useSyncQuestions();
+  const importPdfs = useImportPdfs();
   const { data: chromaStatus } = useChromaStatus();
   const chromaMigrate = useChromaMigrate();
   const [migrating, setMigrating] = useState(false);
@@ -55,7 +42,7 @@ const RagSettingsPanel: React.FC<{
   const handleChromaMigrate = async () => {
     setMigrating(true);
     try {
-      const result: any = await chromaMigrate.mutateAsync();
+      const result = await chromaMigrate.mutateAsync();
       if (result.error) alert(result.error);
       else alert(`迁移完成: 成功 ${result.migrated} 条, 失败 ${result.failed} 条`);
     } catch {
@@ -68,7 +55,7 @@ const RagSettingsPanel: React.FC<{
   const handleSync = async () => {
     setSyncing(true);
     try {
-      const result: any = await syncMutation.mutateAsync();
+      const result = await syncMutation.mutateAsync();
       alert(`同步完成: 新增 ${result.synced} 条知识文档`);
     } catch {
       alert('同步失败');
@@ -82,7 +69,7 @@ const RagSettingsPanel: React.FC<{
     setImporting(true);
     setShowImportDialog(false);
     try {
-      const result: any = await api.rag.importPdfs(importPath);
+      const result = await importPdfs.mutateAsync(importPath);
       alert(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条，失败 ${result.errors} 条`);
     } catch (err) {
       alert(`导入失败: ${err}`);
@@ -344,6 +331,7 @@ const RagChat: React.FC = () => {
   const createSession = useCreateRagSession();
   const deleteSession = useDeleteRagSession();
   const saveConfig = useSaveRagConfig();
+  const sendRagChat = useSendRagChat();
 
   // Keep ref in sync so stream callbacks can access current sessionId
   useEffect(() => { sessionIdRef.current = activeSessionId; }, [activeSessionId]);
@@ -354,26 +342,23 @@ const RagChat: React.FC = () => {
 
   useEffect(() => { scrollToBottom(); }, [messages, streamContent, scrollToBottom]);
 
-  // 监听流式响应
-  useEffect(() => {
-    const unsubChunk = api.rag.onStreamChunk?.((chunk: string) => {
+  useRagStream({
+    onChunk: (chunk) => {
       setStreamContent((prev) => prev + chunk);
-    });
-    const unsubEnd = api.rag.onStreamEnd?.(() => {
+    },
+    onEnd: () => {
       setStreaming(false);
       setStreamContent('');
       setPendingMessages([]);
-      // Refetch messages from DB so user+assistant messages appear
       const sid = sessionIdRef.current;
       if (sid) {
         queryClient.invalidateQueries({ queryKey: ['ragMessages', sid] });
       }
-    });
-    return () => { unsubChunk?.(); unsubEnd?.(); };
-  }, [queryClient]);
+    },
+  });
 
   const handleNewSession = async () => {
-    const session: any = await createSession.mutateAsync(undefined);
+    const session = await createSession.mutateAsync(undefined);
     setActiveSessionId(session.id);
   };
 
@@ -401,7 +386,7 @@ const RagChat: React.FC = () => {
     setPendingMessages((prev) => [...prev, optimisticUserMsg]);
 
     try {
-      await api.rag.chat(activeSessionId, question);
+      await sendRagChat.mutateAsync({ sessionId: activeSessionId, message: question });
     } catch (err) {
       console.error('[RAG Chat] Error:', err);
       setStreaming(false);
@@ -418,7 +403,7 @@ const RagChat: React.FC = () => {
   };
 
   const displayMessages: ChatMessage[] = [...messages, ...pendingMessages.filter(
-    (pm) => !messages.some((m: ChatMessage) => m.role === 'user' && m.content === pm.content)
+    (pm) => !messages.some((m) => m.role === 'user' && m.content === pm.content)
   )];
   if (streaming && streamContent) {
     displayMessages.push({
@@ -446,7 +431,7 @@ const RagChat: React.FC = () => {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-2 space-y-1">
-            {sessions.map((session: any) => (
+            {sessions.map((session) => (
               <div
                 key={session.id}
                 onClick={() => setActiveSessionId(session.id)}

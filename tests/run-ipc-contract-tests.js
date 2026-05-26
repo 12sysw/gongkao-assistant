@@ -10,6 +10,13 @@ const {
   toLegacyFlashcard,
   toLegacyWrongRecord,
 } = require('../dist/main/main/ipc/contract-utils.js');
+const {
+  addDaysAsLocalDate,
+  getNextFlashcardReview,
+  getNextWrongReview,
+  isFlashcardDue,
+  selectDueFlashcards,
+} = require('../dist/main/shared/review-schedule.js');
 
 function run(name, fn) {
   try {
@@ -177,6 +184,47 @@ run('study plans sort active and high-priority items first', () => {
   ]);
 
   assert.deepEqual(sorted.map((item) => item.id), [3, 4, 2, 1]);
+});
+
+run('review schedule uses one local-date interval policy', () => {
+  const now = new Date(2026, 3, 28, 9, 30, 0);
+
+  assert.equal(addDaysAsLocalDate(1, now), '2026-04-29');
+  assert.deepEqual(getNextWrongReview(0, now), {
+    review_count: 1,
+    interval_days: 1,
+    next_review_at: '2026-04-29',
+  });
+  assert.deepEqual(getNextWrongReview(4, now), {
+    review_count: 5,
+    interval_days: 30,
+    next_review_at: '2026-05-28',
+  });
+  assert.deepEqual(getNextFlashcardReview(4, true, now), {
+    review_count: 5,
+    interval_days: 30,
+    mastered: 1,
+    next_review: '2026-05-28',
+  });
+  assert.deepEqual(getNextFlashcardReview(4, false, now), {
+    review_count: 5,
+    interval_days: 1,
+    mastered: 0,
+    next_review: '2026-04-29',
+  });
+  assert.equal(isFlashcardDue({ mastered: 0, next_review: '2026-04-28 10:00:00' }, '2026-04-28'), true);
+  assert.equal(isFlashcardDue({ mastered: 1, next_review: '2026-04-28' }, '2026-04-28'), false);
+  assert.deepEqual(
+    selectDueFlashcards(
+      [
+        { id: 1, mastered: 0, next_review: '2026-04-28' },
+        { id: 2, mastered: 0, next_review: '2026-04-29' },
+        { id: 3, mastered: 1, next_review: '2026-04-27' },
+      ],
+      '2026-04-28'
+    ).map((card) => card.id),
+    [1]
+  );
 });
 
 if (process.exitCode && process.exitCode !== 0) {

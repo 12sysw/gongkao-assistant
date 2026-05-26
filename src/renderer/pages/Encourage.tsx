@@ -12,6 +12,7 @@ import {
   CalendarCheck,
   Sparkles,
 } from 'lucide-react';
+import { useAchievements } from '../hooks/use-api';
 
 interface Achievement {
   id: number;
@@ -72,13 +73,32 @@ const STICKER_MESSAGES: StickerMessage[] = [
   { emoji: '🚀', message: '今天的努力，明天的底气！' },
 ];
 
-function getApi() {
-  return (window as unknown as Window & { api: Record<string, unknown> }).api;
-}
-
 function pickRandom<T>(arr: T[], n: number): T[] {
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, n);
+}
+
+const PROMPTED_UNLOCK_IDS_KEY = 'encourage_last_unlocked_ids';
+
+function readPromptedUnlockIds(): Set<number> {
+  try {
+    const raw = localStorage.getItem(PROMPTED_UNLOCK_IDS_KEY);
+    if (!raw) return new Set();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return new Set(parsed.filter((id): id is number => typeof id === 'number'));
+    }
+    if (typeof parsed === 'number') {
+      return new Set([parsed]);
+    }
+  } catch {}
+  return new Set();
+}
+
+function writePromptedUnlockIds(ids: Set<number>) {
+  try {
+    localStorage.setItem(PROMPTED_UNLOCK_IDS_KEY, JSON.stringify([...ids]));
+  } catch {}
 }
 
 /* ─── Type-safe maps ─── */
@@ -415,16 +435,20 @@ const TipsSection: React.FC = () => {
 /* ─── Main Page ─── */
 
 const Encourage: React.FC = () => {
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [currentQuote, setCurrentQuote] = useState<Quote>(ENCOURAGE_QUOTES[0]);
   const [sticker, setSticker] = useState<StickerMessage>(STICKER_MESSAGES[0]);
   const [dailyQuotes, setDailyQuotes] = useState<Quote[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [unlockAchievement, setUnlockAchievement] = useState<Achievement | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUnlockedId, setLastUnlockedId] = useState<number | null>(null);
+  const achievementsQuery = useAchievements();
+  const achievements = (achievementsQuery.data ?? []) as Achievement[];
+  const loading = achievementsQuery.isLoading;
+  const error = achievementsQuery.isError
+    ? '加载成就失败: ' + String(achievementsQuery.error)
+    : !loading && achievementsQuery.isFetched && achievements.length === 0
+    ? '暂无成就数据'
+    : null;
 
   const randomQuote = useCallback(() => {
     setCurrentQuote(ENCOURAGE_QUOTES[Math.floor(Math.random() * ENCOURAGE_QUOTES.length)]);
@@ -438,51 +462,34 @@ const Encourage: React.FC = () => {
     setDailyQuotes(pickRandom(ENCOURAGE_QUOTES, 3));
   }, []);
 
-  const loadAchievements = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const api = getApi();
-      if (!api) {
-        setError('API 未初始化');
-        setLoading(false);
-        return;
-      }
-      const data = (await api.achievement.check()) as Achievement[];
-      if (!data || data.length === 0) {
-        setError('暂无成就数据');
-      }
-      setAchievements(data || []);
-      // Only show unlock modal for newly unlocked achievements
-      if (data && data.length > 0) {
-        const newlyUnlocked = data.filter((a) => a.unlocked_at && a.id !== lastUnlockedId);
-        if (newlyUnlocked.length > 0 && !showUnlockModal) {
-          setLastUnlockedId(newlyUnlocked[0].id);
-          try {
-            localStorage.setItem('encourage_last_unlocked_ids', JSON.stringify(newlyUnlocked[0].id));
-          } catch {}
-          setUnlockAchievement(newlyUnlocked[0]);
-          setShowUnlockModal(true);
-          setTimeout(() => {
-            setShowUnlockModal(false);
-            setUnlockAchievement(null);
-          }, 5000);
-        }
-      }
-    } catch (e) {
-      console.error('加载成就失败', e);
-      setError('加载成就失败: ' + String(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [showUnlockModal, lastUnlockedId]);
+  useEffect(() => {
+    if (!achievements.length || showUnlockModal) return;
+
+    const promptedIds = readPromptedUnlockIds();
+    const newlyUnlocked = achievements.find((a) => a.unlocked_at && !promptedIds.has(a.id));
+    if (!newlyUnlocked) return;
+
+    promptedIds.add(newlyUnlocked.id);
+    writePromptedUnlockIds(promptedIds);
+    setUnlockAchievement(newlyUnlocked);
+    setShowUnlockModal(true);
+  }, [achievements, showUnlockModal]);
 
   useEffect(() => {
-    loadAchievements();
+    if (!showUnlockModal) return;
+    const timeout = window.setTimeout(() => {
+      setShowUnlockModal(false);
+      setUnlockAchievement(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timeout);
+  }, [showUnlockModal]);
+
+  useEffect(() => {
     randomQuote();
     randomSticker();
     refreshDailyQuotes();
-  }, [loadAchievements, randomQuote, randomSticker, refreshDailyQuotes]);
+  }, [randomQuote, randomSticker, refreshDailyQuotes]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -516,7 +523,7 @@ const Encourage: React.FC = () => {
         achievements={achievements}
         loading={loading}
         error={error}
-        onRetry={loadAchievements}
+        onRetry={() => void achievementsQuery.refetch()}
       />
 
       <TipsSection />

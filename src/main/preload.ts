@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '../shared/ipc';
+import type { Api } from '../shared/ipc';
 
 function onChannel<T extends unknown[]>(channel: string, listener: (...args: T) => void) {
   const wrapped = (_event: Electron.IpcRendererEvent, ...args: T) => listener(...args);
@@ -7,7 +8,7 @@ function onChannel<T extends unknown[]>(channel: string, listener: (...args: T) 
   return () => ipcRenderer.removeListener(channel, wrapped);
 }
 
-const api = {
+const api: Api = {
   question: {
     add: (q: any) => ipcRenderer.invoke(IPC.QUESTION_ADD, q),
     getAll: (filters?: any) => ipcRenderer.invoke(IPC.QUESTION_GET_ALL, filters),
@@ -22,6 +23,7 @@ const api = {
     update: (record: any) => ipcRenderer.invoke(IPC.WRONG_BOOK_UPDATE, record),
     delete: (id: number) => ipcRenderer.invoke(IPC.WRONG_BOOK_DELETE, id),
     markMastered: (id: number) => ipcRenderer.invoke(IPC.WRONG_BOOK_MARK_MASTERED, id),
+    review: (id: number) => ipcRenderer.invoke(IPC.WRONG_BOOK_REVIEW, id),
     getDueReview: () => ipcRenderer.invoke(IPC.WRONG_BOOK_GET_DUE_REVIEW),
     analyze: (recordId: number) => ipcRenderer.invoke(IPC.WRONG_BOOK_ANALYZE, recordId),
   },
@@ -51,6 +53,7 @@ const api = {
     add: (card: any) => ipcRenderer.invoke(IPC.FLASHCARD_ADD, card),
     getAll: (filters?: any) => ipcRenderer.invoke(IPC.FLASHCARD_GET_ALL, filters),
     update: (card: any) => ipcRenderer.invoke(IPC.FLASHCARD_UPDATE, card),
+    review: (params: { id: number; correct: boolean }) => ipcRenderer.invoke(IPC.FLASHCARD_REVIEW, params),
     delete: (id: number) => ipcRenderer.invoke(IPC.FLASHCARD_DELETE, id),
   },
   examConfig: {

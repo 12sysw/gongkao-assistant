@@ -1,6 +1,41 @@
+import { useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { formatLocalDate, selectDueFlashcards } from '../../shared/review-schedule';
+import type {
+  DailyRecordInput,
+  ExamConfigInput,
+  EssayReviewParams,
+  FlashcardFilters,
+  FlashcardInput,
+  FlashcardReviewParams,
+  FlashcardUpdate,
+  MindMapInput,
+  PomodoroRecordInput,
+  QuestionFilters,
+  QuestionInput,
+  RagConfig,
+  RagDocInput,
+  RecommendationEventInput,
+  ReviewSessionInput,
+  StudyPlanInput,
+  StudyPlanUpdate,
+  WrongBookFilters,
+  WrongBookInput,
+  WrongBookUpdate,
+} from '../../shared/ipc';
 
-const api = (window as any).api;
+const api = window.api;
+
+interface StreamCallbacks {
+  onChunk?: (chunk: string) => void;
+  onEnd?: () => void;
+}
+
+function useLatestRef<T>(value: T) {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
+}
 
 // ==================== 考试配置 ====================
 export function useExamConfig() {
@@ -13,7 +48,7 @@ export function useExamConfig() {
 export function useUpdateExamConfig() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (config: { name: string; date: string }) => api.examConfig.set(config),
+    mutationFn: (config: ExamConfigInput) => api.examConfig.set(config),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['examConfig'] }),
   });
 }
@@ -33,6 +68,21 @@ export function useDailyRecordRange(start: string, end: string) {
   });
 }
 
+export function useLoadDailyRecordRange() {
+  return useMutation({
+    mutationFn: ({ start, end }: { start: string; end: string }) =>
+      api.dailyRecord.getRange(start, end),
+  });
+}
+
+export function useDailyRecord(date: string) {
+  return useQuery({
+    queryKey: ['dailyRecord', date],
+    queryFn: () => api.dailyRecord.getByDate(date),
+    enabled: Boolean(date),
+  });
+}
+
 export function useDueReviews() {
   return useQuery({
     queryKey: ['dueReviews'],
@@ -40,10 +90,10 @@ export function useDueReviews() {
   });
 }
 
-export function useWrongBookRecords() {
+export function useWrongBookRecords(filters?: WrongBookFilters) {
   return useQuery({
-    queryKey: ['wrongBookRecords'],
-    queryFn: () => api.wrongBook.getAll(),
+    queryKey: ['wrongBookRecords', filters],
+    queryFn: () => api.wrongBook.getAll(filters),
   });
 }
 
@@ -56,14 +106,34 @@ export function useStudyPlans() {
 }
 
 // ==================== 记忆卡片 ====================
-export function useFlashcards(filters?: any) {
+export function useFlashcards(filters?: FlashcardFilters) {
   return useQuery({
     queryKey: ['flashcards', filters],
     queryFn: () => api.flashcard.getAll(filters),
   });
 }
 
+export function useDueFlashcards(todayKey: string = formatLocalDate()) {
+  const flashcardsQuery = useFlashcards();
+  const dueFlashcards = useMemo(
+    () => selectDueFlashcards(flashcardsQuery.data ?? [], todayKey),
+    [flashcardsQuery.data, todayKey]
+  );
+
+  return {
+    ...flashcardsQuery,
+    data: dueFlashcards,
+  };
+}
+
 // ==================== 成就 ====================
+export function useAchievementDefinitions() {
+  return useQuery({
+    queryKey: ['achievementDefinitions'],
+    queryFn: () => api.achievement.getAll(),
+  });
+}
+
 export function useAchievements() {
   return useQuery({
     queryKey: ['achievements'],
@@ -79,6 +149,20 @@ export function useMindMaps() {
   });
 }
 
+export function useLoadMindMap() {
+  return useMutation({
+    mutationFn: (id: number) => api.mindMap.getById(id),
+  });
+}
+
+export function useReviewSession(date: string) {
+  return useQuery({
+    queryKey: ['reviewSession', date],
+    queryFn: () => api.reviewSession.get(date),
+    enabled: Boolean(date),
+  });
+}
+
 export function useRecentReviewSessions(days: number = 7) {
   return useQuery({
     queryKey: ['reviewSessions', days],
@@ -90,6 +174,14 @@ export function useRecentRecommendationEvents(days: number = 7) {
   return useQuery({
     queryKey: ['recommendationEvents', days],
     queryFn: () => api.recommendationEvent.getRecent(days),
+  });
+}
+
+export function useAddRecommendationEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (event: RecommendationEventInput) => api.recommendationEvent.add(event),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['recommendationEvents'] }),
   });
 }
 
@@ -116,6 +208,55 @@ export function useRagMessages(sessionId: number | null) {
   });
 }
 
+export function useRagStream(callbacks: StreamCallbacks) {
+  const callbacksRef = useLatestRef(callbacks);
+
+  useEffect(() => {
+    const unsubChunk = api.rag.onStreamChunk((chunk) => {
+      callbacksRef.current.onChunk?.(chunk);
+    });
+    const unsubEnd = api.rag.onStreamEnd(() => {
+      callbacksRef.current.onEnd?.();
+    });
+
+    return () => {
+      unsubChunk();
+      unsubEnd();
+    };
+  }, [callbacksRef]);
+}
+
+export function useSendRagChat() {
+  return useMutation({
+    mutationFn: ({ sessionId, message }: { sessionId: number; message: string }) =>
+      api.rag.chat(sessionId, message),
+  });
+}
+
+export function useEssayReviewStream(callbacks: StreamCallbacks) {
+  const callbacksRef = useLatestRef(callbacks);
+
+  useEffect(() => {
+    const unsubChunk = api.rag.onEssayStreamChunk((chunk) => {
+      callbacksRef.current.onChunk?.(chunk);
+    });
+    const unsubEnd = api.rag.onEssayStreamEnd(() => {
+      callbacksRef.current.onEnd?.();
+    });
+
+    return () => {
+      unsubChunk();
+      unsubEnd();
+    };
+  }, [callbacksRef]);
+}
+
+export function useEssayReview() {
+  return useMutation({
+    mutationFn: (params: EssayReviewParams) => api.rag.essayReview(params),
+  });
+}
+
 export function useRagConfig() {
   return useQuery({
     queryKey: ['ragConfig'],
@@ -126,7 +267,7 @@ export function useRagConfig() {
 export function useAddRagDoc() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (doc: any) => api.rag.docAdd(doc),
+    mutationFn: (doc: RagDocInput) => api.rag.docAdd(doc),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ragDocs'] }),
   });
 }
@@ -177,8 +318,64 @@ export function useDeleteRagSession() {
 export function useSaveRagConfig() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (config: any) => api.rag.configSet(config),
+    mutationFn: (config: RagConfig) => api.rag.configSet(config),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ragConfig'] }),
+  });
+}
+
+export function useTestRagConfig() {
+  return useMutation({
+    mutationFn: (params: { apiUrl: string; apiKey: string; model: string }) => api.rag.configTest(params),
+  });
+}
+
+export function useAppVersion() {
+  return useQuery({
+    queryKey: ['appVersion'],
+    queryFn: () => api.getAppVersion(),
+    staleTime: Infinity,
+  });
+}
+
+export function useExportData() {
+  return useMutation({
+    mutationFn: () => api.data.export(),
+  });
+}
+
+export function useImportData() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.data.import(),
+    onSuccess: () => qc.invalidateQueries(),
+  });
+}
+
+// ==================== 知识图谱 ====================
+export function useKnowledgeGraph() {
+  return useQuery({
+    queryKey: ['knowledgeGraph'],
+    queryFn: () => api.kg.getGraph(),
+  });
+}
+
+export function useBuildKnowledgeGraph() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.kg.build(),
+    onSuccess: (result) => {
+      if (!result?.error) {
+        qc.invalidateQueries({ queryKey: ['knowledgeGraph'] });
+      }
+    },
+  });
+}
+
+export function useClearKnowledgeGraph() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.kg.clear(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['knowledgeGraph'] }),
   });
 }
 
@@ -213,9 +410,10 @@ export function useAiRecommend() {
 export function useAddDailyRecord() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (record: any) => api.dailyRecord.add(record),
+    mutationFn: (record: DailyRecordInput) => api.dailyRecord.add(record),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['dailyStats'] });
+      qc.invalidateQueries({ queryKey: ['dailyRecord'] });
       qc.invalidateQueries({ queryKey: ['dailyRecords'] });
     },
   });
@@ -224,11 +422,12 @@ export function useAddDailyRecord() {
 export function useAddWrongRecord() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (record: any) => api.wrongBook.add(record),
+    mutationFn: (record: WrongBookInput) => api.wrongBook.add(record),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['wrongBookRecords'] });
       qc.invalidateQueries({ queryKey: ['dueReviews'] });
       qc.invalidateQueries({ queryKey: ['dailyStats'] });
+      qc.invalidateQueries({ queryKey: ['achievements'] });
     },
   });
 }
@@ -237,11 +436,24 @@ export function useAddWrongRecord() {
 export function useUpdateWrongRecord() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (record: any) => api.wrongBook.update(record),
+    mutationFn: (record: WrongBookUpdate) => api.wrongBook.update(record),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['wrongBookRecords'] });
       qc.invalidateQueries({ queryKey: ['dueReviews'] });
     },
+  });
+}
+
+export function useReviewWrongRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.wrongBook.review(id),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ['wrongBookRecords'] }),
+        qc.invalidateQueries({ queryKey: ['dueReviews'] }),
+        qc.invalidateQueries({ queryKey: ['achievements'] }),
+      ]),
   });
 }
 
@@ -263,14 +475,36 @@ export function useMarkWrongMastered() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['wrongBookRecords'] });
       qc.invalidateQueries({ queryKey: ['dueReviews'] });
+      qc.invalidateQueries({ queryKey: ['achievements'] });
     },
   });
 }
 
+export function useAnalyzeWrongRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const result = await api.wrongBook.analyze(id);
+      if (result?.error) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['wrongBookRecords'] }),
+  });
+}
+
 // ==================== 题目 ====================
+export function useQuestions(filters?: QuestionFilters) {
+  return useQuery({
+    queryKey: ['questions', filters],
+    queryFn: () => api.question.getAll(filters),
+  });
+}
+
 export function useAddQuestion() {
   return useMutation({
-    mutationFn: (q: any) => api.question.add(q),
+    mutationFn: (q: QuestionInput) => api.question.add(q),
   });
 }
 
@@ -278,7 +512,7 @@ export function useAddQuestion() {
 export function useAddFlashcard() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (card: any) => api.flashcard.add(card),
+    mutationFn: (card: FlashcardInput) => api.flashcard.add(card),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['flashcards'] }),
   });
 }
@@ -286,8 +520,20 @@ export function useAddFlashcard() {
 export function useUpdateFlashcard() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (card: any) => api.flashcard.update(card),
+    mutationFn: (card: FlashcardUpdate) => api.flashcard.update(card),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['flashcards'] }),
+  });
+}
+
+export function useReviewFlashcard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (params: FlashcardReviewParams) => api.flashcard.review(params),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: ['flashcards'] }),
+        qc.invalidateQueries({ queryKey: ['achievements'] }),
+      ]),
   });
 }
 
@@ -303,7 +549,7 @@ export function useDeleteFlashcard() {
 export function useAddStudyPlan() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (plan: any) => api.studyPlan.add(plan),
+    mutationFn: (plan: StudyPlanInput) => api.studyPlan.add(plan),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['studyPlans'] }),
   });
 }
@@ -311,7 +557,7 @@ export function useAddStudyPlan() {
 export function useUpdateStudyPlan() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (plan: any) => api.studyPlan.update(plan),
+    mutationFn: (plan: StudyPlanUpdate) => api.studyPlan.update(plan),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['studyPlans'] }),
   });
 }
@@ -328,7 +574,7 @@ export function useDeleteStudyPlan() {
 export function useSaveMindMap() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => api.mindMap.save(data),
+    mutationFn: (data: MindMapInput) => api.mindMap.save(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['mindMaps'] }),
   });
 }
@@ -345,7 +591,7 @@ export function useDeleteMindMap() {
 export function useSaveReviewSession() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (session: any) => api.reviewSession.set(session),
+    mutationFn: (session: ReviewSessionInput) => api.reviewSession.set(session),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reviewSessions'] });
       qc.invalidateQueries({ queryKey: ['dueReviews'] });
@@ -357,7 +603,7 @@ export function useSaveReviewSession() {
 export function useAddPomodoroRecord() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (record: any) => api.pomodoroRecord.add(record),
+    mutationFn: (record: PomodoroRecordInput) => api.pomodoroRecord.add(record),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['dailyStats'] }),
   });
 }

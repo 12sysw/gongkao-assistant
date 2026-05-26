@@ -8,8 +8,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useMockExamStore } from '../stores/mock-exam-store';
-
-const api = (window as any).api;
+import { useQuestions, useRagConfig } from '../hooks/use-api';
 
 // ==================== 题目生成 ====================
 const QUESTION_TYPES = ['言语理解', '数量关系', '判断推理', '资料分析', '常识判断'];
@@ -61,9 +60,8 @@ function generateFallbackQuestions(type: string, count: number, idOffset: number
   return questions;
 }
 
-async function loadExamQuestions(): Promise<any[]> {
+function loadExamQuestions(allQuestions: any[] | null | undefined): any[] {
   try {
-    const allQuestions: any[] = await api.question.getAll();
     if (!allQuestions || allQuestions.length === 0) {
       return generateFallbackFull();
     }
@@ -94,9 +92,8 @@ async function loadExamQuestions(): Promise<any[]> {
   }
 }
 
-async function loadChallengeQuestions(): Promise<any[]> {
+function loadChallengeQuestions(allQuestions: any[] | null | undefined): any[] {
   try {
-    const allQuestions: any[] = await api.question.getAll();
     if (!allQuestions || allQuestions.length === 0) {
       return generateFallbackChallenge();
     }
@@ -161,12 +158,15 @@ function generateFallbackChallenge(): any[] {
 }
 
 // ==================== AI 分析 ====================
-async function analyzeWithAI(report: any, onStream: (text: string) => void): Promise<string | null> {
+async function analyzeWithAI(
+  report: any,
+  ragConfig: any,
+  onStream: (text: string) => void
+): Promise<string | null> {
   // Try RAG config first, then fall back to localStorage ai_config
   let config: { apiUrl: string; apiKey: string; model: string } | null = null;
 
   try {
-    const ragConfig = await api.rag.configGet();
     if (ragConfig?.llmApiUrl && ragConfig?.llmApiKey) {
       const baseUrl = ragConfig.llmApiUrl.replace(/\/+$/, '');
       config = {
@@ -281,6 +281,16 @@ function generateSuggestions(weaknesses: any[], unanswered: number, timeUsed: nu
 // ==================== 主组件 ====================
 export default function MockExam() {
   const store = useMockExamStore();
+  const {
+    data: questionData,
+    refetch: refetchQuestions,
+  } = useQuestions();
+  const { data: ragConfig } = useRagConfig();
+
+  const loadQuestionData = useCallback(async () => {
+    const result = await refetchQuestions();
+    return ((result.data ?? questionData ?? []) as any[]);
+  }, [questionData, refetchQuestions]);
 
   // 正式考试计时器
   useEffect(() => {
@@ -304,16 +314,17 @@ export default function MockExam() {
       return () => clearTimeout(timer);
     } else if (store.challengeCountdown === 0) {
       store.setChallengeCountdown(null);
-      store.setChallengeMode(true);
-      store.setChallengeTimer(0);
-      loadChallengeQuestions().then((questions) => {
+      loadQuestionData().then((allQuestions) => {
+        const questions = loadChallengeQuestions(allQuestions);
         store.setQuestions(questions);
-        store.setStep('exam');
         store.clearAnswers();
         store.setCurrentIndex(0);
+        store.setChallengeMode(true);
+        store.setChallengeTimer(0);
+        store.setStep('exam');
       });
     }
-  }, [store.challengeCountdown]);
+  }, [loadQuestionData, store.challengeCountdown]);
 
   // 挑战模式计时（20分钟倒计时）
   useEffect(() => {
@@ -332,14 +343,15 @@ export default function MockExam() {
 
   // 开始正式考试
   const startExam = useCallback(async () => {
-    store.setStep('exam');
     store.setChallengeMode(false);
     store.clearAnswers();
     store.setCurrentIndex(0);
     store.setTimeLeft(120 * 60);
-    const questions = await loadExamQuestions();
+    const allQuestions = await loadQuestionData();
+    const questions = loadExamQuestions(allQuestions);
     store.setQuestions(questions);
-  }, []);
+    store.setStep('exam');
+  }, [loadQuestionData]);
 
   // 开始挑战模式
   const startChallenge = useCallback(() => {
@@ -434,13 +446,13 @@ export default function MockExam() {
     // 后台AI分析
     store.setAiAnalyzing(true);
     store.setAiAnalysisText('');
-    analyzeWithAI(report, (text) => store.setAiAnalysisText(text)).then(aiAnalysis => {
+    analyzeWithAI(report, ragConfig, (text) => store.setAiAnalysisText(text)).then(aiAnalysis => {
       if (aiAnalysis && store.report) {
         store.setReport({ ...store.report, aiAnalysis });
       }
       store.setAiAnalyzing(false);
     }).catch(() => store.setAiAnalyzing(false));
-  }, [store.answers, store.questions, store.timeLeft]);
+  }, [ragConfig, store.answers, store.questions, store.timeLeft]);
 
   // 重置考试
   const resetExam = useCallback(() => {

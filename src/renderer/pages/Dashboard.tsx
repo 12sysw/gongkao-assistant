@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Clock,
   Flame,
@@ -32,12 +32,11 @@ import {
   useAiRecommend,
   useWrongBookRecords,
   useDailyRecordRange,
+  useDailyStats,
+  useLoadDailyRecordRange,
+  useAddRecommendationEvent,
 } from '../hooks/use-api';
 import { fetchWeather, fetchSaying, fetchAnswer, type WeatherData } from '../lib/uapi';
-
-function getApi() {
-  return (window as unknown as Window & { api: Record<string, unknown> }).api;
-}
 
 interface DashboardStats {
   streak: number;
@@ -170,11 +169,11 @@ function buildRecentReviewSummary(sessions: RecentReviewSession[]): ReviewDaySum
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
   const [saying, setSaying] = useState('');
   const [answer, setAnswer] = useState('');
+  const dailyStatsQuery = useDailyStats(365);
   const recentReviewQuery = useRecentReviewSessions(7);
   const recommendationEventsQuery = useRecentRecommendationEvents(7);
   const dueReviewsQuery = useDueReviews();
@@ -229,21 +228,7 @@ export default function Dashboard() {
     };
   }, [city]);
 
-  const loadStats = useCallback(async () => {
-    try {
-      const api = getApi();
-      if (!api) return;
-      const data = (await api.dailyRecord.getStats(365)) as DashboardStats | null;
-      if (data) setStats(data);
-    } catch (e) {
-      console.error('加载仪表盘数据失败', e);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadStats();
-  }, [loadStats]);
-
+  const stats = (dailyStatsQuery.data ?? EMPTY_STATS) as DashboardStats;
   const formattedHours = (stats.total_minutes / 60).toFixed(1);
   const recentReviewSessions = (recentReviewQuery.data ?? []) as RecentReviewSession[];
   const recommendationEvents = (recommendationEventsQuery.data ?? []) as RecommendationEvent[];
@@ -401,7 +386,7 @@ export default function Dashboard() {
 }
 
 function RecommendationCard({ items }: { items: Array<{ title: string; body: string; href: string }> }) {
-  const api = getApi();
+  const addRecommendationEvent = useAddRecommendationEvent();
 
   return (
     <Card>
@@ -418,7 +403,7 @@ function RecommendationCard({ items }: { items: Array<{ title: string; body: str
               key={item.title}
               to={item.href}
               onClick={() => {
-                api?.recommendationEvent?.add?.({
+                addRecommendationEvent.mutate({
                   date: formatDateKey(),
                   source: 'dashboard',
                   title: item.title,
@@ -814,18 +799,17 @@ function StudyStats({ stats }: { stats: DashboardStats }) {
   const activeDays = stats.active_days || 0;
   const avgDailyMinutes = activeDays > 0 ? Math.round(stats.total_minutes / activeDays) : 0;
   const avgDailyHours = (avgDailyMinutes / 60).toFixed(1);
+  const loadDailyRecords = useLoadDailyRecordRange();
   const [exporting, setExporting] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   const handleExport = async (format: 'xlsx' | 'pdf') => {
     setExporting(true);
     try {
-      const api = getApi();
-      if (!api) return;
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      const dailyRecords = await api.dailyRecord.getRange(startDate, endDate);
-      exportDailyStats(dailyRecords || [], format);
+      const dailyRecords = await loadDailyRecords.mutateAsync({ start: startDate, end: endDate });
+      exportDailyStats((dailyRecords ?? []) as DailyRecord[], format);
     } catch (e) {
       console.error('Export failed:', e);
     } finally {

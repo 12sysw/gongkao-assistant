@@ -16,6 +16,17 @@ import {
 import { Button } from '../components/ui/Button';
 import { MotionItem, AnimateList } from '../components/ui/Motion';
 import { exportWrongRecords } from '../lib/export-utils';
+import {
+  useAnalyzeWrongRecord,
+  useAddQuestion,
+  useAddWrongRecord,
+  useDeleteWrongRecord,
+  useMarkWrongMastered,
+  useRagStream,
+  useReviewWrongRecord,
+  useWrongBookRecords,
+} from '../hooks/use-api';
+import type { WrongBookFilters, WrongBookRecord } from '../../shared/ipc';
 
 const QUESTION_TYPES = [
   '行测-言语理解',
@@ -26,24 +37,7 @@ const QUESTION_TYPES = [
   '申论',
 ];
 
-interface WrongRecordWithQuestion {
-  id: number;
-  question_id: number;
-  my_answer: string;
-  wrong_count: number;
-  last_wrong_at: string;
-  mastered: number;
-  review_count: number;
-  next_review_at: string;
-  note: string;
-  created_at: string;
-  type: string;
-  content: string;
-  options: string | null;
-  answer: string;
-  explanation: string;
-  tags: string;
-}
+type WrongRecordWithQuestion = WrongBookRecord;
 
 interface QuestionForm {
   type: string;
@@ -71,10 +65,6 @@ const DEFAULT_FORM: QuestionForm = {
   my_answer: '',
   note: '',
 };
-
-function getApi() {
-  return (window as any).api;
-}
 
 function parseOptions(options: string | null): string[] {
   if (!options) return [];
@@ -734,7 +724,6 @@ const AddFormModal: React.FC<{
 /* ─── Main Page ─── */
 
 const WrongBook: React.FC = () => {
-  const [records, setRecords] = useState<WrongRecordWithQuestion[]>([]);
   const [filterType, setFilterType] = useState<string>('');
   const [filterMastered, setFilterMastered] = useState<number | undefined>(0);
   const [searchText, setSearchText] = useState('');
@@ -748,24 +737,29 @@ const WrongBook: React.FC = () => {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const wrongBookFilters = useMemo<WrongBookFilters>(() => {
+    const filters: WrongBookFilters = {};
+    if (filterType) filters.type = filterType;
+    if (filterMastered !== undefined) filters.mastered = filterMastered;
+    return filters;
+  }, [filterType, filterMastered]);
+
+  const { data: recordsData, refetch: refetchRecords } = useWrongBookRecords(wrongBookFilters);
+  const records = recordsData ?? [];
+  const addQuestion = useAddQuestion();
+  const addWrongRecord = useAddWrongRecord();
+  const markWrongMastered = useMarkWrongMastered();
+  const deleteWrongRecord = useDeleteWrongRecord();
+  const reviewWrongRecord = useReviewWrongRecord();
+  const analyzeWrongRecord = useAnalyzeWrongRecord();
 
   const loadRecords = useCallback(async () => {
     try {
-      const api = getApi();
-      if (!api) return;
-      const filters: Record<string, unknown> = {};
-      if (filterType) filters.type = filterType;
-      if (filterMastered !== undefined) filters.mastered = filterMastered;
-      const data = (await api.wrongBook.getAll(filters)) as WrongRecordWithQuestion[];
-      setRecords(data || []);
+      await refetchRecords();
     } catch (e) {
       console.error('加载错题失败', e);
     }
-  }, [filterType, filterMastered]);
-
-  useEffect(() => {
-    loadRecords();
-  }, [loadRecords]);
+  }, [refetchRecords]);
 
   // OCR image select
   const handleImageSelect = useCallback(
@@ -855,9 +849,6 @@ const WrongBook: React.FC = () => {
 
   const handleAdd = async () => {
     try {
-      const api = getApi();
-      if (!api) return;
-
       if (!newQuestion.content.trim()) {
         alert('请输入题目内容');
         return;
@@ -867,18 +858,18 @@ const WrongBook: React.FC = () => {
         return;
       }
 
-      const q = (await api.question.add({
+      const q = await addQuestion.mutateAsync({
         type: newQuestion.type,
         content: newQuestion.content,
         options: newQuestion.options || null,
         answer: newQuestion.answer,
         explanation: newQuestion.explanation,
         tags: newQuestion.tags,
-      })) as { id: number };
+      });
 
       console.log('[添加题目成功]', q);
 
-      await api.wrongBook.add({
+      await addWrongRecord.mutateAsync({
         question_id: q.id,
         my_answer: newQuestion.my_answer,
         note: newQuestion.note,
@@ -886,7 +877,6 @@ const WrongBook: React.FC = () => {
 
       setShowAddForm(false);
       setNewQuestion(DEFAULT_FORM);
-      loadRecords();
     } catch (e) {
       console.error('添加错题失败', e);
       alert('添加失败: ' + String(e));
@@ -895,10 +885,7 @@ const WrongBook: React.FC = () => {
 
   const handleMastered = async (id: number) => {
     try {
-      const api = getApi();
-      if (!api) return;
-      await api.wrongBook.markMastered(id);
-      loadRecords();
+      await markWrongMastered.mutateAsync(id);
     } catch (e) {
       console.error('标记掌握失败', e);
     }
@@ -907,10 +894,7 @@ const WrongBook: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (!confirm('确定要删除这道错题吗？')) return;
     try {
-      const api = getApi();
-      if (!api) return;
-      await api.wrongBook.delete(id);
-      loadRecords();
+      await deleteWrongRecord.mutateAsync(id);
     } catch (e) {
       console.error('删除失败', e);
     }
@@ -918,51 +902,26 @@ const WrongBook: React.FC = () => {
 
   const handleReview = async (id: number) => {
     try {
-      const api = getApi();
-      if (!api) return;
-      const record = records.find((r) => r.id === id);
-      if (!record) return;
-      const newWrongCount = record.wrong_count + 1;
-      const newReviewCount = record.review_count + 1;
-      const intervals = [1, 3, 7, 14, 30];
-      const nextDays = intervals[Math.min(newReviewCount, intervals.length - 1)];
-      const nextReview = new Date(Date.now() + nextDays * 86400000).toISOString();
-      await api.wrongBook.update({
-        id,
-        my_answer: record.my_answer,
-        note: record.note,
-        wrong_count: newWrongCount,
-        review_count: newReviewCount,
-        next_review_at: nextReview,
-      });
-      loadRecords();
+      await reviewWrongRecord.mutateAsync(id);
     } catch (e) {
       console.error('更新复习时间失败', e);
     }
   };
 
-  // AI 分析错题
-  useEffect(() => {
-    const api = getApi();
-    if (!api?.rag?.onStreamChunk || !api?.rag?.onStreamEnd) return;
-    const unsubChunk = api.rag.onStreamChunk((chunk: string) => {
+  useRagStream({
+    onChunk: (chunk) => {
       setAiStreamContent((prev) => prev + chunk);
-    });
-    const unsubEnd = api.rag.onStreamEnd(() => {
-      setAnalyzingId(null);
-      setAiStreamContent('');
-      loadRecords();
-    });
-    return () => { unsubChunk?.(); unsubEnd?.(); };
-  }, []);
+    },
+  });
 
   const handleAnalyze = async (recordId: number) => {
-    const api = getApi();
-    if (!api?.wrongBook?.analyze) return;
     setAnalyzingId(recordId);
     setAiStreamContent('');
     try {
-      await api.wrongBook.analyze(recordId);
+      await analyzeWrongRecord.mutateAsync(recordId);
+      await loadRecords();
+      setAnalyzingId(null);
+      setAiStreamContent('');
     } catch (e) {
       console.error('AI 分析失败', e);
       setAnalyzingId(null);

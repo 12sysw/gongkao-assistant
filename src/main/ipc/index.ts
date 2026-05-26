@@ -8,6 +8,7 @@ import * as chroma from '../chroma';
 import fs from 'fs';
 import path from 'path';
 import { PDFParse } from 'pdf-parse';
+import { getNextFlashcardReview, getNextWrongReview } from '../../shared/review-schedule';
 import {
   applyFlashcardFilters,
   applyQuestionFilters,
@@ -338,6 +339,23 @@ export function registerIpcHandlers() {
     return { success: true };
   }));
 
+  ipcMain.handle(IPC.WRONG_BOOK_REVIEW, safe((id: number) => {
+    const row = db.select().from(schema.wrongRecords).where(eq(schema.wrongRecords.id, id)).get();
+    if (!row) return null;
+
+    const nextReview = getNextWrongReview(row.reviewCount);
+    db.update(schema.wrongRecords).set({
+      reviewCount: nextReview.review_count,
+      nextReviewAt: nextReview.next_review_at,
+    }).where(eq(schema.wrongRecords.id, id)).run();
+
+    const updated = db.select().from(schema.wrongRecords).where(eq(schema.wrongRecords.id, id)).get();
+    if (!updated) return null;
+
+    const question = db.select().from(schema.questions).where(eq(schema.questions.id, updated.questionId)).get();
+    return toLegacyWrongRecord(updated, question);
+  }));
+
   ipcMain.handle(IPC.WRONG_BOOK_GET_DUE_REVIEW, safe(() => {
     const questionMap = getQuestionMap();
     const rows = db.select().from(schema.wrongRecords).all();
@@ -601,6 +619,22 @@ export function registerIpcHandlers() {
     db.update(schema.flashcards).set(updates).where(eq(schema.flashcards.id, card.id)).run();
 
     const updated = db.select().from(schema.flashcards).where(eq(schema.flashcards.id, card.id)).get();
+    return toLegacyFlashcard(updated);
+  }));
+
+  ipcMain.handle(IPC.FLASHCARD_REVIEW, safe((params: { id: number; correct: boolean }) => {
+    const id = Number(params.id);
+    const row = db.select().from(schema.flashcards).where(eq(schema.flashcards.id, id)).get();
+    if (!row) return null;
+
+    const nextReview = getNextFlashcardReview(row.reviewCount, Boolean(params.correct));
+    db.update(schema.flashcards).set({
+      reviewCount: nextReview.review_count,
+      mastered: Boolean(nextReview.mastered),
+      nextReview: nextReview.next_review,
+    }).where(eq(schema.flashcards.id, id)).run();
+
+    const updated = db.select().from(schema.flashcards).where(eq(schema.flashcards.id, id)).get();
     return toLegacyFlashcard(updated);
   }));
 
@@ -1962,16 +1996,16 @@ ${truncated}`;
     const nodes = db.select().from(schema.kgNodes).all().map((n) => ({
       id: n.id,
       name: n.name,
-      category: n.category,
-      description: n.description,
-      questionCount: n.questionCount,
+      category: n.category ?? 'common',
+      description: n.description ?? '',
+      questionCount: n.questionCount ?? 0,
     }));
     const edges = db.select().from(schema.kgEdges).all().map((e) => ({
       id: e.id,
       source: e.sourceId,
       target: e.targetId,
-      relation: e.relation,
-      weight: e.weight,
+      relation: e.relation ?? 'related',
+      weight: e.weight ?? 1,
     }));
     return { nodes, edges };
   }));

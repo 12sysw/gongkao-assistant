@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Upload, FileText, CheckCircle2, Image, Loader2, RotateCcw, Send } from 'lucide-react';
 import { cn } from '../lib/utils';
-
-const api = (window as any).api;
+import { useEssayReview, useEssayReviewStream } from '../hooks/use-api';
 
 /* ─── AI OCR（多模态模型识别图片文字） ─── */
 async function ocrImage(file: File): Promise<string> {
@@ -11,7 +10,7 @@ async function ocrImage(file: File): Promise<string> {
     reader.onload = async () => {
       try {
         const base64 = (reader.result as string).split(',')[1];
-        const result = await api.ai.ocrImage(base64);
+        const result = await window.api.ai.ocrImage(base64);
         if (result.error) {
           reject(new Error(result.error));
         } else {
@@ -134,16 +133,16 @@ export default function EssayReview() {
   const [reviewContent, setReviewContent] = useState('');
   const [showResult, setShowResult] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+  const essayReview = useEssayReview();
 
-  useEffect(() => {
-    const unsubChunk = api.rag.onEssayStreamChunk?.((chunk: string) => {
+  useEssayReviewStream({
+    onChunk: (chunk) => {
       setReviewContent((prev) => prev + chunk);
-    });
-    const unsubEnd = api.rag.onEssayStreamEnd?.(() => {
+    },
+    onEnd: () => {
       setReviewing(false);
-    });
-    return () => { unsubChunk?.(); unsubEnd?.(); };
-  }, []);
+    },
+  });
 
   useEffect(() => {
     if (resultRef.current) {
@@ -162,7 +161,7 @@ export default function EssayReview() {
       : myAnswerText;
 
     try {
-      await api.rag.essayReview({
+      await essayReview.mutateAsync({
         topic: topicText || '申论题目',
         material: stdAnswerText ? '已提供标准答案，请对比批改' : '',
         answer: combinedAnswer,

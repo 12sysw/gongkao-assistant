@@ -1,6 +1,13 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Plus, Trash2, Save, FolderOpen } from 'lucide-react';
 import { MotionItem, AnimateList } from '../components/ui/Motion';
+import {
+  useDeleteMindMap,
+  useLoadMindMap,
+  useMindMaps,
+  useSaveMindMap,
+} from '../hooks/use-api';
+import type { MindMapRecord } from '../../shared/ipc';
 
 /* ─── Types ─── */
 
@@ -10,14 +17,7 @@ interface MindMapNode {
   children?: MindMapNode[];
 }
 
-interface MindMapItem {
-  id: number;
-  title: string;
-  subject: string;
-  data: string;
-  created_at: string;
-  updated_at: string;
-}
+type MindMapItem = MindMapRecord;
 
 interface LayoutNode {
   node: MindMapNode;
@@ -61,10 +61,6 @@ function genId(): string {
 
 function createNode(topic: string = '新节点'): MindMapNode {
   return { id: genId(), topic, children: [] };
-}
-
-function getApi() {
-  return (window as unknown as Window & { api?: Record<string, any> }).api;
 }
 
 const MIND_MAP_STORAGE_KEY = 'gongkao_assistant_mind_maps_local';
@@ -469,7 +465,6 @@ const SaveButton: React.FC<{
 /* ─── Main Page ─── */
 
 const MindMap: React.FC = () => {
-  const [maps, setMaps] = useState<MindMapItem[]>([]);
   const [currentMap, setCurrentMap] = useState<MindMapNode | null>(null);
   const [currentMapId, setCurrentMapId] = useState<number | null>(null);
   const [mapTitle, setMapTitle] = useState('新建思维导图');
@@ -478,26 +473,20 @@ const MindMap: React.FC = () => {
   const [editingNode, setEditingNode] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [localMaps, setLocalMaps] = useState<MindMapItem[]>(() => readLocalMindMaps());
+  const mindMapsQuery = useMindMaps();
+  const loadMindMap = useLoadMindMap();
+  const saveMindMap = useSaveMindMap();
+  const deleteMindMap = useDeleteMindMap();
 
-  const loadMaps = useCallback(async () => {
-    const localMaps = readLocalMindMaps();
-    try {
-      const api = getApi();
-      if (!api?.mindMap?.getAll) {
-        setMaps(localMaps);
-        return;
-      }
-      const data = (await api.mindMap.getAll()) as MindMapItem[];
-      setMaps(mergeMindMapItems(data || [], localMaps));
-    } catch (e) {
-      console.error('加载导图列表失败', e);
-      setMaps(localMaps);
-    }
+  const refreshLocalMaps = useCallback(() => {
+    setLocalMaps(readLocalMindMaps());
   }, []);
 
-  useEffect(() => {
-    loadMaps();
-  }, [loadMaps]);
+  const maps = useMemo(() => {
+    const remoteMaps = mindMapsQuery.isError ? [] : (mindMapsQuery.data ?? []);
+    return mergeMindMapItems(remoteMaps, localMaps);
+  }, [localMaps, mindMapsQuery.data, mindMapsQuery.isError]);
 
   const handleNew = useCallback(() => {
     const root = createNode('中心主题');
@@ -509,42 +498,31 @@ const MindMap: React.FC = () => {
   }, []);
 
   const handleLoad = useCallback(async (map: MindMapItem) => {
-    if (map.id < 0) {
-      setCurrentMap(JSON.parse(map.data) as MindMapNode);
-      setCurrentMapId(map.id);
-      setMapTitle(map.title);
-      setMapSubject(map.subject);
+    const applyMap = (item: MindMapItem) => {
+      setCurrentMap(JSON.parse(item.data) as MindMapNode);
+      setCurrentMapId(item.id);
+      setMapTitle(item.title);
+      setMapSubject(item.subject);
       setSelectedNode(null);
+    };
+
+    if (map.id < 0) {
+      applyMap(map);
       return;
     }
 
     try {
-      const api = getApi();
-      if (!api?.mindMap?.getById) {
-        setCurrentMap(JSON.parse(map.data) as MindMapNode);
-        setCurrentMapId(map.id);
-        setMapTitle(map.title);
-        setMapSubject(map.subject);
-        setSelectedNode(null);
-        return;
-      }
-      const full = (await api.mindMap.getById(map.id)) as MindMapItem | null;
+      const full = await loadMindMap.mutateAsync(map.id);
       if (full) {
-        setCurrentMap(JSON.parse(full.data) as MindMapNode);
-        setCurrentMapId(full.id);
-        setMapTitle(full.title);
-        setMapSubject(full.subject);
-        setSelectedNode(null);
+        applyMap(full);
+      } else {
+        applyMap(map);
       }
     } catch (e) {
       console.error('加载导图失败', e);
-      setCurrentMap(JSON.parse(map.data) as MindMapNode);
-      setCurrentMapId(map.id);
-      setMapTitle(map.title);
-      setMapSubject(map.subject);
-      setSelectedNode(null);
+      applyMap(map);
     }
-  }, []);
+  }, [loadMindMap]);
 
   const handleSave = useCallback(async () => {
     if (!currentMap) return;
@@ -556,20 +534,10 @@ const MindMap: React.FC = () => {
       data: JSON.stringify(currentMap),
     };
     try {
-      const api = getApi();
-      if (!api?.mindMap?.save) {
-        const saved = saveLocalMindMap(payload);
-        setCurrentMapId(saved.id);
-        setSaveStatus('saved');
-        loadMaps();
-        setTimeout(() => setSaveStatus('idle'), 2000);
-        return;
-      }
-      const result = (await api.mindMap.save(payload)) as { id?: number } | null;
+      const result = await saveMindMap.mutateAsync(payload);
       if (result?.id && !currentMapId) {
         setCurrentMapId(result.id);
       }
-      loadMaps();
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (e) {
@@ -577,7 +545,7 @@ const MindMap: React.FC = () => {
       try {
         const saved = saveLocalMindMap(payload);
         setCurrentMapId(saved.id);
-        loadMaps();
+        refreshLocalMaps();
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
       } catch (fallbackError) {
@@ -586,22 +554,21 @@ const MindMap: React.FC = () => {
         setTimeout(() => setSaveStatus('idle'), 2000);
       }
     }
-  }, [currentMap, currentMapId, mapTitle, mapSubject, loadMaps]);
+  }, [currentMap, currentMapId, mapTitle, mapSubject, refreshLocalMaps, saveMindMap]);
 
   const handleDeleteMap = useCallback(
     async (id: number) => {
       if (!confirm('确定要删除这个思维导图吗？')) return;
       try {
-        const api = getApi();
-        if (api?.mindMap?.delete && id >= 0) {
-          await api.mindMap.delete(id);
+        if (id >= 0) {
+          await deleteMindMap.mutateAsync(id);
         }
         removeLocalMindMap(id);
         if (currentMapId === id) {
           setCurrentMap(null);
           setCurrentMapId(null);
         }
-        loadMaps();
+        refreshLocalMaps();
       } catch (e) {
         console.error('删除导图失败', e);
         removeLocalMindMap(id);
@@ -609,10 +576,10 @@ const MindMap: React.FC = () => {
           setCurrentMap(null);
           setCurrentMapId(null);
         }
-        loadMaps();
+        refreshLocalMaps();
       }
     },
-    [currentMapId, loadMaps]
+    [currentMapId, deleteMindMap, refreshLocalMaps]
   );
 
   const handleNodeClick = useCallback((nodeId: string) => {

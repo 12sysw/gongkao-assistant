@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download, RefreshCw, CheckCircle, X } from 'lucide-react';
 
-const api = (window as any).api;
+const api = window.api;
 
 type UpdateStatus = 'idle' | 'checking' | 'available' | 'downloading' | 'downloaded' | 'error';
 

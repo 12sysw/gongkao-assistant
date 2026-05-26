@@ -9,27 +9,17 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import dayjs from 'dayjs';
+import {
+  useAddDailyRecord,
+  useDailyRecord,
+  useDailyRecordRange,
+  useDailyStats,
+  useExamConfig,
+  useUpdateExamConfig,
+} from '../hooks/use-api';
+import type { DailyRecord } from '../../shared/ipc';
 
-interface CheckinRecord {
-  date: string;
-  study_minutes: number;
-  questions_done: number;
-  note: string;
-}
-
-interface ExamConfig {
-  name: string;
-  date: string;
-}
-
-interface DailyRecordApiResponse {
-  streak: number;
-  active_days: number;
-}
-
-function getApi() {
-  return (window as unknown as Window & { api: Record<string, unknown> }).api;
-}
+type CheckinRecord = Pick<DailyRecord, 'date' | 'study_minutes' | 'questions_done' | 'note'>;
 
 const TIME_OPTIONS = [30, 60, 90, 120, 180, 240, 300, 480];
 const WEEK_DAYS = ['日', '一', '二', '三', '四', '五', '六'];
@@ -180,44 +170,43 @@ const DailyCheckin: React.FC = () => {
   const [studyMinutes, setStudyMinutes] = useState(0);
   const [currentMonth, setCurrentMonth] = useState(dayjs());
 
-  const loadData = useCallback(async () => {
-    try {
-      const api = getApi();
-      if (!api) return;
-
-      const today = dayjs().format('YYYY-MM-DD');
-      const record = (await api.dailyRecord.getByDate(today)) as CheckinRecord | null;
-      if (record) {
-        setTodayRecord(record);
-        setNote(record.note || '');
-        setStudyMinutes(record.study_minutes || 0);
-      }
-
-      const stats = (await api.dailyRecord.getStats(365)) as DailyRecordApiResponse | null;
-      if (stats) {
-        setStreak(stats.streak || 0);
-        setTotalDays(stats.active_days || 0);
-      }
-
-      const range = (await api.dailyRecord.getRange(
-        dayjs().subtract(90, 'day').format('YYYY-MM-DD'),
-        dayjs().format('YYYY-MM-DD')
-      )) as CheckinRecord[];
-      if (range) setCheckedDates(range.map((r) => r.date));
-
-      const config = (await api.examConfig.get()) as ExamConfig | null;
-      if (config) {
-        setExamName(config.name);
-        setExamDate(config.date);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  const today = useMemo(() => dayjs().format('YYYY-MM-DD'), []);
+  const rangeStart = useMemo(() => dayjs().subtract(90, 'day').format('YYYY-MM-DD'), []);
+  const todayRecordQuery = useDailyRecord(today);
+  const statsQuery = useDailyStats(365);
+  const rangeQuery = useDailyRecordRange(rangeStart, today);
+  const examConfigQuery = useExamConfig();
+  const addDailyRecord = useAddDailyRecord();
+  const updateExamConfig = useUpdateExamConfig();
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const record = todayRecordQuery.data ?? null;
+    setTodayRecord(record);
+    if (record) {
+      setNote(record.note || '');
+      setStudyMinutes(record.study_minutes || 0);
+    }
+  }, [todayRecordQuery.data]);
+
+  useEffect(() => {
+    const stats = statsQuery.data ?? null;
+    if (stats) {
+      setStreak(stats.streak || 0);
+      setTotalDays(stats.active_days || 0);
+    }
+  }, [statsQuery.data]);
+
+  useEffect(() => {
+    setCheckedDates((rangeQuery.data ?? []).map((record) => record.date));
+  }, [rangeQuery.data]);
+
+  useEffect(() => {
+    const config = examConfigQuery.data ?? null;
+    if (config) {
+      setExamName(config.name);
+      setExamDate(config.date);
+    }
+  }, [examConfigQuery.data]);
 
   const daysLeft = useMemo(() => {
     if (!examDate) return 0;
@@ -227,9 +216,7 @@ const DailyCheckin: React.FC = () => {
 
   const handleCheckin = useCallback(async () => {
     try {
-      const api = getApi();
-      const today = dayjs().format('YYYY-MM-DD');
-      await api.dailyRecord.add({
+      await addDailyRecord.mutateAsync({
         date: today,
         study_minutes: studyMinutes,
         questions_done: 0,
@@ -237,16 +224,27 @@ const DailyCheckin: React.FC = () => {
         note,
       });
       // Only save exam config if changed from current
-      const currentConfig = await api.examConfig.get();
+      const currentConfig = examConfigQuery.data ?? null;
       if (!currentConfig || currentConfig.name !== examName || currentConfig.date !== examDate) {
-        await api.examConfig.set({ name: examName || currentConfig?.name || '2027国考', date: examDate || currentConfig?.date || '2026-12-01' });
+        await updateExamConfig.mutateAsync({
+          name: examName || currentConfig?.name || '2027国考',
+          date: examDate || currentConfig?.date || '2026-12-01',
+        });
       }
       setTodayRecord({ date: today, study_minutes: studyMinutes, questions_done: 0, note });
-      loadData();
     } catch (e) {
       console.error(e);
     }
-  }, [studyMinutes, note, examName, examDate, loadData]);
+  }, [
+    addDailyRecord,
+    today,
+    studyMinutes,
+    note,
+    examConfigQuery.data,
+    examName,
+    examDate,
+    updateExamConfig,
+  ]);
 
   const studyDisplay = useMemo(
     () => (studyMinutes >= 60 ? `${(studyMinutes / 60).toFixed(1)}h` : `${studyMinutes}m`),

@@ -1,27 +1,20 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Network, RefreshCw, Trash2, Loader2, ZoomIn, ZoomOut, X, Search } from 'lucide-react';
+import {
+  useBuildKnowledgeGraph,
+  useClearKnowledgeGraph,
+  useKnowledgeGraph,
+} from '../hooks/use-api';
+import type { KnowledgeGraphEdge, KnowledgeGraphNode } from '../../shared/ipc';
 
-const api = (window as any).api;
-
-interface KgNode {
-  id: number;
-  name: string;
-  category: string;
-  description: string;
-  questionCount: number;
+interface KgNode extends KnowledgeGraphNode {
   x: number;
   y: number;
   vx: number;
   vy: number;
 }
 
-interface KgEdge {
-  id: number;
-  source: number;
-  target: number;
-  relation: string;
-  weight: number;
-}
+type KgEdge = KnowledgeGraphEdge;
 
 interface Toast {
   id: number;
@@ -63,8 +56,6 @@ const STABLE_FRAMES = 40;
 const KnowledgeGraph: React.FC = () => {
   const [nodes, setNodes] = useState<KgNode[]>([]);
   const [edges, setEdges] = useState<KgEdge[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [building, setBuilding] = useState(false);
   const [selectedNode, setSelectedNode] = useState<KgNode | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -87,6 +78,11 @@ const KnowledgeGraph: React.FC = () => {
   const stableCountRef = useRef(0);
   const searchRef = useRef('');
   const toastIdRef = useRef(0);
+  const graphQuery = useKnowledgeGraph();
+  const buildGraph = useBuildKnowledgeGraph();
+  const clearGraph = useClearKnowledgeGraph();
+  const loading = graphQuery.isLoading;
+  const building = buildGraph.isPending;
 
   useEffect(() => { zoomRef.current = zoom; }, [zoom]);
   useEffect(() => { panRef.current = pan; }, [pan]);
@@ -130,35 +126,37 @@ const KnowledgeGraph: React.FC = () => {
     setPan({ x: w / 2 - cx * z, y: h / 2 - cy * z });
   }, []);
 
-  const loadGraph = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await api.kg.getGraph();
-      const count = (data.nodes || []).length;
-      const w = sizeRef.current.w;
-      const h = sizeRef.current.h;
-      const cx = w / 2, cy = h / 2;
-      const angleStep = (2 * Math.PI) / Math.max(count, 1);
-      const radius = Math.min(w, h) * 0.3;
-      const loadedNodes: KgNode[] = (data.nodes || []).map((n: any, i: number) => ({
-        ...n,
-        x: cx + Math.cos(i * angleStep + Math.random() * 0.3) * (radius + Math.random() * 60),
-        y: cy + Math.sin(i * angleStep + Math.random() * 0.3) * (radius + Math.random() * 60),
-        vx: 0,
-        vy: 0,
-      }));
-      setNodes(loadedNodes);
-      setEdges(data.edges || []);
-      nodesRef.current = loadedNodes;
-      edgesRef.current = data.edges || [];
-      stableRef.current = false;
-      stableCountRef.current = 0;
-    } catch (err) {
-      console.error('[KG] Load error:', err);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (graphQuery.isError) {
+      console.error('[KG] Load error:', graphQuery.error);
+      return;
     }
-  }, []);
+
+    const data = graphQuery.data;
+    if (!data) return;
+
+    const count = data.nodes.length;
+    const w = sizeRef.current.w;
+    const h = sizeRef.current.h;
+    const cx = w / 2, cy = h / 2;
+    const angleStep = (2 * Math.PI) / Math.max(count, 1);
+    const radius = Math.min(w, h) * 0.3;
+    const loadedNodes: KgNode[] = data.nodes.map((n, i) => ({
+      ...n,
+      x: cx + Math.cos(i * angleStep + Math.random() * 0.3) * (radius + Math.random() * 60),
+      y: cy + Math.sin(i * angleStep + Math.random() * 0.3) * (radius + Math.random() * 60),
+      vx: 0,
+      vy: 0,
+    }));
+
+    setNodes(loadedNodes);
+    setEdges(data.edges);
+    nodesRef.current = loadedNodes;
+    edgesRef.current = data.edges;
+    stableRef.current = false;
+    stableCountRef.current = 0;
+    setSelectedNode(null);
+  }, [graphQuery.data, graphQuery.error, graphQuery.isError]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -234,34 +232,32 @@ const KnowledgeGraph: React.FC = () => {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  useEffect(() => { loadGraph(); }, [loadGraph]);
-
   const handleBuild = async () => {
-    setBuilding(true);
     try {
-      const result: any = await api.kg.build();
+      const result = await buildGraph.mutateAsync();
       if (result.error) {
         showToast(result.error, 'error');
       } else {
         showToast(`知识图谱构建完成：${result.nodes} 个节点，${result.edges} 条关系`);
-        await loadGraph();
       }
     } catch {
       showToast('构建失败', 'error');
-    } finally {
-      setBuilding(false);
     }
   };
 
   const handleClear = async () => {
     if (!confirm('确定清空知识图谱？')) return;
-    await api.kg.clear();
-    setNodes([]);
-    setEdges([]);
-    nodesRef.current = [];
-    edgesRef.current = [];
-    setSelectedNode(null);
-    showToast('已清空知识图谱');
+    try {
+      await clearGraph.mutateAsync();
+      setNodes([]);
+      setEdges([]);
+      nodesRef.current = [];
+      edgesRef.current = [];
+      setSelectedNode(null);
+      showToast('已清空知识图谱');
+    } catch {
+      showToast('清空失败', 'error');
+    }
   };
 
   // Physics simulation — stops when stable to save CPU

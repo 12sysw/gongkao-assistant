@@ -17,6 +17,7 @@ export const IPC = {
   WRONG_BOOK_UPDATE: 'wrong-book:update',
   WRONG_BOOK_DELETE: 'wrong-book:delete',
   WRONG_BOOK_MARK_MASTERED: 'wrong-book:mark-mastered',
+  WRONG_BOOK_REVIEW: 'wrong-book:review',
   WRONG_BOOK_GET_DUE_REVIEW: 'wrong-book:get-due-review',
   WRONG_BOOK_ANALYZE: 'wrong-book:analyze',
 
@@ -46,6 +47,7 @@ export const IPC = {
   FLASHCARD_ADD: 'flashcard:add',
   FLASHCARD_GET_ALL: 'flashcard:get-all',
   FLASHCARD_UPDATE: 'flashcard:update',
+  FLASHCARD_REVIEW: 'flashcard:review',
   FLASHCARD_DELETE: 'flashcard:delete',
 
   // 考试配置
@@ -126,73 +128,433 @@ export const IPC = {
 export type IpcChannel = typeof IPC[keyof typeof IPC];
 export type Unsubscribe = () => void;
 
+export type DeleteResult = { success: boolean };
+
+export interface QuestionRecord {
+  id: number;
+  type: string;
+  content: string;
+  options: string | null;
+  answer: string;
+  explanation: string;
+  tags: string;
+  created_at: string | null;
+}
+
+export type QuestionInput = Omit<QuestionRecord, 'id' | 'created_at'>;
+export type QuestionUpdate = Partial<QuestionInput> & { id: number };
+export interface QuestionFilters {
+  type?: string;
+  tags?: string;
+}
+
+export interface WrongBookRecord {
+  type: string;
+  content: string;
+  options: string | null;
+  answer: string;
+  explanation: string;
+  tags: string;
+  id: number;
+  question_id: number;
+  my_answer: string;
+  wrong_count: number;
+  last_wrong_at: string | null;
+  mastered: number;
+  review_count: number;
+  next_review_at: string | null;
+  note: string;
+  created_at: string | null;
+}
+
+export interface WrongBookInput {
+  question_id: number;
+  my_answer?: string;
+  note?: string;
+}
+
+export interface WrongBookUpdate {
+  id: number;
+  my_answer?: string;
+  note?: string;
+  next_review_at?: string | null;
+  wrong_count?: number;
+  review_count?: number;
+}
+
+export interface WrongBookFilters {
+  type?: string;
+  mastered?: number;
+}
+
+export interface WrongRecordAnalysisResult {
+  analysis?: string;
+  error?: string;
+}
+
+export type StudyPlanPriority = 'low' | 'medium' | 'high';
+export type StudyPlanStatus = 'pending' | 'in_progress' | 'completed';
+
+export interface StudyPlanRecord {
+  id: number;
+  title: string;
+  subject: string;
+  target_date: string | null;
+  priority: StudyPlanPriority;
+  status: StudyPlanStatus;
+  description: string;
+  daily_minutes: number;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface StudyPlanInput {
+  title: string;
+  subject: string;
+  target_date: string;
+  priority: StudyPlanPriority;
+  status?: StudyPlanStatus;
+  description?: string;
+  daily_minutes: number;
+}
+
+export type StudyPlanUpdate = Partial<StudyPlanInput> & { id: number };
+
+export interface DailyRecord {
+  id: number;
+  date: string;
+  study_minutes: number;
+  questions_done: number;
+  wrong_count: number;
+  plan_id?: number | null;
+  note: string;
+  created_at?: string | null;
+}
+
+export interface DailyRecordInput {
+  date: string;
+  study_minutes?: number;
+  questions_done?: number;
+  wrong_count?: number;
+  plan_id?: number | null;
+  note?: string;
+}
+
+export interface DailyStats {
+  streak: number;
+  total_questions: number;
+  total_minutes: number;
+  total_wrong?: number;
+  mastered_count: number;
+  active_days: number;
+}
+
+export interface MindMapRecord {
+  id: number;
+  title: string;
+  subject: string;
+  data: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface MindMapInput {
+  id?: number | null;
+  title: string;
+  subject: string;
+  data: string;
+}
+
+export interface AchievementRecord {
+  id: number;
+  type: string;
+  title: string;
+  description: string;
+  icon: string;
+  threshold: number;
+  unlocked_at: string | null;
+  progress?: number;
+}
+
+export type FlashcardDifficulty = 'easy' | 'medium' | 'hard';
+
+export interface FlashcardRecord {
+  id: number;
+  front: string;
+  back: string;
+  category: string;
+  difficulty: FlashcardDifficulty;
+  review_count: number;
+  mastered: number;
+  next_review: string | null;
+  created_at: string | null;
+}
+
+export interface FlashcardInput {
+  front: string;
+  back: string;
+  category?: string;
+  difficulty?: FlashcardDifficulty;
+}
+
+export interface FlashcardUpdate extends Partial<FlashcardInput> {
+  id: number;
+  review_count?: number;
+  mastered?: number | boolean;
+  next_review?: string | null;
+}
+
+export interface FlashcardFilters {
+  category?: string;
+  mastered?: number;
+}
+
+export interface FlashcardReviewParams {
+  id: number;
+  correct: boolean;
+}
+
+export interface ExamConfigRecord {
+  id: number;
+  name: string;
+  date: string;
+}
+
+export type ExamConfigInput = Pick<ExamConfigRecord, 'name' | 'date'>;
+
+export interface PomodoroRecord {
+  id: number;
+  date: string;
+  duration: number;
+  mode: string;
+  created_at: string | null;
+}
+
+export interface PomodoroRecordInput {
+  date: string;
+  duration?: number;
+  mode?: string;
+}
+
+export interface EncourageQuoteRecord {
+  id: number;
+  text: string;
+  content: string;
+  author: string;
+  category: string;
+}
+
+export interface ReviewSessionRecord {
+  date: string;
+  started: boolean;
+  initial_total: number;
+  completed_wrong_ids: number[];
+  completed_flashcard_ids: number[];
+}
+
+export interface RecentReviewSessionRecord extends Omit<ReviewSessionRecord, 'started'> {
+  started: number;
+}
+
+export type ReviewSessionInput = ReviewSessionRecord;
+
+export interface RecommendationEventRecord {
+  id: number;
+  date: string;
+  source: string;
+  title: string;
+  href: string;
+  created_at: string | null;
+}
+
+export type RecommendationEventInput = Omit<RecommendationEventRecord, 'id' | 'created_at'>;
+
+export interface RagDoc {
+  id: number;
+  title: string;
+  content: string;
+  source: string;
+  category: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RagDocInput = Omit<RagDoc, 'id' | 'created_at' | 'updated_at'>;
+export type RagDocUpdate = Partial<RagDocInput> & { id: number };
+
+export interface RagSource {
+  id: number;
+  title: string;
+  source: string;
+}
+
+export interface RagSession {
+  id: number;
+  title: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface RagMessage {
+  id: number;
+  session_id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  sources?: RagSource[];
+  created_at: string;
+}
+
+export interface RagMessageInput {
+  session_id: number;
+  role: RagMessage['role'];
+  content: string;
+  sources?: RagSource[];
+}
+
+export interface RagConfig {
+  embedApiUrl: string;
+  embedApiKey: string;
+  embedModel: string;
+  rerankerModel: string;
+  llmApiUrl: string;
+  llmApiKey: string;
+  llmModel: string;
+}
+
+export interface RagChatResult {
+  answer?: string;
+  sources?: RagSource[];
+  error?: string;
+}
+
+export interface RagImportResult {
+  imported: number;
+  skipped: number;
+  errors: number;
+  message?: string;
+}
+
+export interface ChromaStatus {
+  running: boolean;
+  port: number;
+  host: string;
+  dataDir: string;
+}
+
+export interface ChromaMigrateResult {
+  migrated: number;
+  failed: number;
+  error?: string;
+}
+
+export interface EssayReviewParams {
+  topic: string;
+  material: string;
+  answer: string;
+  type: string;
+}
+
+export interface EssayReviewResult {
+  review: string;
+  error?: string;
+}
+
+export interface KnowledgeGraphNode {
+  id: number;
+  name: string;
+  category: string;
+  description: string;
+  questionCount: number;
+}
+
+export interface KnowledgeGraphEdge {
+  id: number;
+  source: number;
+  target: number;
+  relation: string;
+  weight: number;
+}
+
+export interface KnowledgeGraphData {
+  nodes: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
+}
+
+export interface KnowledgeGraphBuildResult {
+  nodes: number;
+  edges: number;
+  error?: string;
+}
+
 // API 类型定义（用于 preload 暴露）
 export interface Api {
   question: {
-    add: (q: any) => Promise<any>;
-    getAll: (filters?: any) => Promise<any[]>;
-    getById: (id: number) => Promise<any>;
-    update: (q: any) => Promise<any>;
-    delete: (id: number) => Promise<{ success: boolean }>;
+    add: (q: QuestionInput) => Promise<QuestionRecord>;
+    getAll: (filters?: QuestionFilters) => Promise<QuestionRecord[]>;
+    getById: (id: number) => Promise<QuestionRecord | null>;
+    update: (q: QuestionUpdate) => Promise<QuestionRecord>;
+    delete: (id: number) => Promise<DeleteResult>;
   };
   wrongBook: {
-    add: (record: any) => Promise<any>;
-    getAll: (filters?: any) => Promise<any[]>;
-    getById: (id: number) => Promise<any>;
-    update: (record: any) => Promise<any>;
-    delete: (id: number) => Promise<{ success: boolean }>;
-    markMastered: (id: number) => Promise<{ success: boolean }>;
-    getDueReview: () => Promise<any[]>;
-    analyze: (recordId: number) => Promise<{ analysis: string }>;
+    add: (record: WrongBookInput) => Promise<WrongBookRecord>;
+    getAll: (filters?: WrongBookFilters) => Promise<WrongBookRecord[]>;
+    getById: (id: number) => Promise<WrongBookRecord | null>;
+    update: (record: WrongBookUpdate) => Promise<WrongBookRecord | null>;
+    delete: (id: number) => Promise<DeleteResult>;
+    markMastered: (id: number) => Promise<DeleteResult>;
+    review: (id: number) => Promise<WrongBookRecord | null>;
+    getDueReview: () => Promise<WrongBookRecord[]>;
+    analyze: (recordId: number) => Promise<WrongRecordAnalysisResult>;
   };
   mindMap: {
-    save: (data: any) => Promise<any>;
-    getAll: () => Promise<any[]>;
-    getById: (id: number) => Promise<any>;
-    delete: (id: number) => Promise<{ success: boolean }>;
+    save: (data: MindMapInput) => Promise<MindMapRecord>;
+    getAll: () => Promise<MindMapRecord[]>;
+    getById: (id: number) => Promise<MindMapRecord | null>;
+    delete: (id: number) => Promise<DeleteResult>;
   };
   studyPlan: {
-    add: (plan: any) => Promise<any>;
-    getAll: () => Promise<any[]>;
-    update: (plan: any) => Promise<any>;
-    delete: (id: number) => Promise<{ success: boolean }>;
+    add: (plan: StudyPlanInput) => Promise<StudyPlanRecord>;
+    getAll: () => Promise<StudyPlanRecord[]>;
+    update: (plan: StudyPlanUpdate) => Promise<StudyPlanRecord>;
+    delete: (id: number) => Promise<DeleteResult>;
   };
   dailyRecord: {
-    add: (record: any) => Promise<any>;
-    getByDate: (date: string) => Promise<any>;
-    getRange: (start: string, end: string) => Promise<any[]>;
-    getStats: (days: number) => Promise<any>;
+    add: (record: DailyRecordInput) => Promise<DeleteResult>;
+    getByDate: (date: string) => Promise<DailyRecord | null>;
+    getRange: (start: string, end: string) => Promise<DailyRecord[]>;
+    getStats: (days: number) => Promise<DailyStats>;
   };
   achievement: {
-    getAll: () => Promise<any[]>;
-    check: () => Promise<any[]>;
+    getAll: () => Promise<AchievementRecord[]>;
+    check: () => Promise<AchievementRecord[]>;
   };
   flashcard: {
-    add: (card: any) => Promise<any>;
-    getAll: (filters?: any) => Promise<any[]>;
-    update: (card: any) => Promise<any>;
-    delete: (id: number) => Promise<{ success: boolean }>;
+    add: (card: FlashcardInput) => Promise<FlashcardRecord>;
+    getAll: (filters?: FlashcardFilters) => Promise<FlashcardRecord[]>;
+    update: (card: FlashcardUpdate) => Promise<FlashcardRecord | null>;
+    review: (params: FlashcardReviewParams) => Promise<FlashcardRecord | null>;
+    delete: (id: number) => Promise<DeleteResult>;
   };
   examConfig: {
-    get: () => Promise<any>;
-    set: (config: any) => Promise<any>;
+    get: () => Promise<ExamConfigRecord | null>;
+    set: (config: ExamConfigInput) => Promise<ExamConfigRecord | null>;
   };
   pomodoroRecord: {
-    add: (record: any) => Promise<any>;
-    getByDate: (date: string) => Promise<any[]>;
-    getRange: (start: string, end: string) => Promise<any[]>;
+    add: (record: PomodoroRecordInput) => Promise<PomodoroRecord>;
+    getByDate: (date: string) => Promise<PomodoroRecord[]>;
+    getRange: (start: string, end: string) => Promise<PomodoroRecord[]>;
   };
   encourage: {
-    getRandom: (category?: string) => Promise<any>;
+    getRandom: (category?: string) => Promise<EncourageQuoteRecord | null>;
   };
   reviewSession: {
-    get: (date: string) => Promise<any>;
-    set: (session: any) => Promise<any>;
-    getRecent: (days: number) => Promise<any[]>;
+    get: (date: string) => Promise<ReviewSessionRecord>;
+    set: (session: ReviewSessionInput) => Promise<ReviewSessionRecord>;
+    getRecent: (days: number) => Promise<RecentReviewSessionRecord[]>;
   };
   recommendationEvent: {
-    add: (event: any) => Promise<{ success: boolean }>;
-    getRecent: (days: number) => Promise<any[]>;
+    add: (event: RecommendationEventInput) => Promise<DeleteResult>;
+    getRecent: (days: number) => Promise<RecommendationEventRecord[]>;
   };
   data: {
     export: () => Promise<any>;
@@ -203,31 +565,32 @@ export interface Api {
     generateUserSig: (userID: string) => Promise<string>;
   };
   rag: {
-    docAdd: (doc: any) => Promise<any>;
-    docGetAll: () => Promise<any[]>;
-    docGetById: (id: number) => Promise<any>;
-    docUpdate: (doc: any) => Promise<any>;
-    docDelete: (id: number) => Promise<{ success: boolean }>;
+    docAdd: (doc: RagDocInput) => Promise<RagDoc>;
+    docGetAll: () => Promise<RagDoc[]>;
+    docGetById: (id: number) => Promise<RagDoc | null>;
+    docUpdate: (doc: RagDocUpdate) => Promise<RagDoc | null>;
+    docDelete: (id: number) => Promise<DeleteResult>;
     syncQuestions: () => Promise<{ synced: number }>;
-    search: (query: string, topK?: number) => Promise<any[]>;
-    embedDoc: (id: number) => Promise<{ success: boolean }>;
-    configGet: () => Promise<any>;
-    configSet: (config: any) => Promise<{ success: boolean }>;
-    sessionCreate: (title?: string) => Promise<any>;
-    sessionGetAll: () => Promise<any[]>;
-    sessionGet: (id: number) => Promise<any>;
-    sessionDelete: (id: number) => Promise<{ success: boolean }>;
-    sessionAddMessage: (msg: any) => Promise<any>;
-    sessionGetMessages: (sessionId: number) => Promise<any[]>;
-    chat: (sessionId: number, message: string) => Promise<any>;
+    search: (query: string, topK?: number) => Promise<RagDoc[]>;
+    embedDoc: (id: number) => Promise<DeleteResult>;
+    configGet: () => Promise<RagConfig>;
+    configSet: (config: RagConfig) => Promise<DeleteResult>;
+    configTest: (params: { apiUrl: string; apiKey: string; model: string }) => Promise<any>;
+    sessionCreate: (title?: string) => Promise<RagSession>;
+    sessionGetAll: () => Promise<RagSession[]>;
+    sessionGet: (id: number) => Promise<RagSession | null>;
+    sessionDelete: (id: number) => Promise<DeleteResult>;
+    sessionAddMessage: (msg: RagMessageInput) => Promise<RagMessage>;
+    sessionGetMessages: (sessionId: number) => Promise<RagMessage[]>;
+    chat: (sessionId: number, message: string) => Promise<RagChatResult>;
     onStreamChunk: (cb: (chunk: string) => void) => Unsubscribe;
     onStreamEnd: (cb: () => void) => Unsubscribe;
-    importPdfs: (dirPath: string) => Promise<{ imported: number; skipped: number; errors: number }>;
+    importPdfs: (dirPath: string) => Promise<RagImportResult>;
     docDeleteBatch: (ids: number[]) => Promise<{ deleted: number }>;
-    chromaStatus: () => Promise<{ running: boolean; port: number; host: string; dataDir: string }>;
-    chromaMigrate: () => Promise<{ migrated: number; failed: number }>;
+    chromaStatus: () => Promise<ChromaStatus>;
+    chromaMigrate: () => Promise<ChromaMigrateResult>;
     aiRecommend: () => Promise<{ recommendations: string }>;
-    essayReview: (params: { topic: string; material: string; answer: string; type: string }) => Promise<{ review: string }>;
+    essayReview: (params: EssayReviewParams) => Promise<EssayReviewResult>;
     onEssayStreamChunk: (cb: (chunk: string) => void) => Unsubscribe;
     onEssayStreamEnd: (cb: () => void) => Unsubscribe;
     parsePdf: (buffer: ArrayBuffer) => Promise<{ text: string; error?: string }>;
@@ -237,9 +600,9 @@ export interface Api {
     ocrImage: (base64Data: string) => Promise<{ text: string; error?: string }>;
   };
   kg: {
-    getGraph: () => Promise<{ nodes: any[]; edges: any[] }>;
-    build: () => Promise<{ nodes: number; edges: number }>;
-    clear: () => Promise<{ success: boolean }>;
+    getGraph: () => Promise<KnowledgeGraphData>;
+    build: () => Promise<KnowledgeGraphBuildResult>;
+    clear: () => Promise<DeleteResult>;
   };
   update: {
     check: () => Promise<void>;
@@ -252,4 +615,5 @@ export interface Api {
     onDownloaded: (cb: (info: any) => void) => Unsubscribe;
     onError: (cb: (message: string) => void) => Unsubscribe;
   };
+  getAppVersion: () => Promise<string>;
 }

@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Key, Globe, Save, CheckCircle, AlertCircle, Eye, EyeOff, Brain, Database } from 'lucide-react';
 import type { ReactNode } from 'react';
-
-const api = (window as any).api;
+import {
+  useAppVersion,
+  useExportData,
+  useImportData,
+  useRagConfig,
+  useSaveRagConfig,
+  useTestRagConfig,
+} from '../hooks/use-api';
 
 interface AIConfig {
   provider: string;
@@ -96,50 +102,47 @@ const SettingsPage: React.FC = () => {
     model: AI_PROVIDERS[0].model,
   });
   const [showKey, setShowKey] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
-  const [appVersion, setAppVersion] = useState('');
+  const [configInitialized, setConfigInitialized] = useState(false);
 
-  // Load config from both sources
+  const ragConfigQuery = useRagConfig();
+  const saveRagConfigMutation = useSaveRagConfig();
+  const testRagConfigMutation = useTestRagConfig();
+  const exportDataMutation = useExportData();
+  const importDataMutation = useImportData();
+  const { data: appVersion = '' } = useAppVersion();
+  const saving = saveRagConfigMutation.isPending;
+  const testing = testRagConfigMutation.isPending;
+
+  // Load config from both sources once; do not overwrite local edits after init.
   useEffect(() => {
-    const loadConfig = async () => {
-      // 1. Try rag_config.json (main process, authoritative source)
-      try {
-        const ragConfig: RagConfig = await api.rag.configGet();
-        if (ragConfig?.llmApiUrl && ragConfig?.llmApiKey) {
-          // Find matching provider
-          const provider = AI_PROVIDERS.find(p =>
-            ragConfig.llmApiUrl.includes(p.url.replace('https://', '').replace('http://', ''))
-          );
-          setConfig({
-            provider: provider?.name || '自定义',
-            apiUrl: ragConfig.llmApiUrl,
-            apiKey: ragConfig.llmApiKey,
-            model: ragConfig.llmModel || '',
-          });
-          return;
-        }
-      } catch {}
+    if (configInitialized || !ragConfigQuery.isFetched) return;
 
-      // 2. Fallback to localStorage
-      try {
-        const savedStr = localStorage.getItem('ai_config');
-        if (savedStr) {
-          setConfig(JSON.parse(savedStr) as AIConfig);
-        }
-      } catch {}
-    };
-
-    loadConfig();
-
-    // Load app version
-    const w = window as any;
-    if (w.api?.getAppVersion) {
-      w.api.getAppVersion().then((v: string) => setAppVersion(v)).catch(() => {});
+    const ragConfig = ragConfigQuery.data as RagConfig | undefined;
+    if (ragConfig?.llmApiUrl && ragConfig?.llmApiKey) {
+      const provider = AI_PROVIDERS.find(p =>
+        ragConfig.llmApiUrl.includes(p.url.replace('https://', '').replace('http://', ''))
+      );
+      setConfig({
+        provider: provider?.name || '自定义',
+        apiUrl: ragConfig.llmApiUrl,
+        apiKey: ragConfig.llmApiKey,
+        model: ragConfig.llmModel || '',
+      });
+      setConfigInitialized(true);
+      return;
     }
-  }, []);
+
+    try {
+      const savedStr = localStorage.getItem('ai_config');
+      if (savedStr) {
+        setConfig(JSON.parse(savedStr) as AIConfig);
+      }
+    } catch {}
+
+    setConfigInitialized(true);
+  }, [configInitialized, ragConfigQuery.data, ragConfigQuery.isFetched]);
 
   const handleProviderChange = useCallback((providerName: string) => {
     const provider = AI_PROVIDERS.find((p) => p.name === providerName);
@@ -155,7 +158,6 @@ const SettingsPage: React.FC = () => {
 
   // Save to both rag_config.json AND localStorage
   const handleSave = useCallback(async () => {
-    setSaving(true);
     try {
       // 1. Save to rag_config.json (main process uses this)
       const ragConfig: RagConfig = {
@@ -167,7 +169,7 @@ const SettingsPage: React.FC = () => {
         llmApiKey: config.apiKey,
         llmModel: config.model,
       };
-      await api.rag.configSet(ragConfig);
+      await saveRagConfigMutation.mutateAsync(ragConfig);
 
       // 2. Save to localStorage (backward compat)
       localStorage.setItem('ai_config', JSON.stringify(config));
@@ -176,10 +178,8 @@ const SettingsPage: React.FC = () => {
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       console.error('保存配置失败', e);
-    } finally {
-      setSaving(false);
     }
-  }, [config]);
+  }, [config, saveRagConfigMutation]);
 
   const handleTest = useCallback(async () => {
     if (!config.apiKey || !config.apiUrl) {
@@ -187,11 +187,10 @@ const SettingsPage: React.FC = () => {
       return;
     }
 
-    setTesting(true);
     setTestResult(null);
 
     try {
-      const result = await api.rag.configTest({
+      const result = await testRagConfigMutation.mutateAsync({
         apiUrl: config.apiUrl,
         apiKey: config.apiKey,
         model: config.model,
@@ -199,10 +198,8 @@ const SettingsPage: React.FC = () => {
       setTestResult(result.success ? 'success' : 'error');
     } catch {
       setTestResult('error');
-    } finally {
-      setTesting(false);
     }
-  }, [config]);
+  }, [config, testRagConfigMutation]);
 
   const providerOptions: SelectOption[] = AI_PROVIDERS.map((p) => ({
     value: p.name,
@@ -345,7 +342,7 @@ const SettingsPage: React.FC = () => {
           <button
             onClick={async () => {
               try {
-                const result = await api.data.export();
+                const result = await exportDataMutation.mutateAsync();
                 if (result?.success) {
                   alert('数据导出成功');
                 }
@@ -353,15 +350,16 @@ const SettingsPage: React.FC = () => {
                 console.error(e);
               }
             }}
+            disabled={exportDataMutation.isPending}
             className="px-4 py-2 border border-surface-200 dark:border-surface-600 rounded-lg text-sm hover:bg-surface-50 dark:hover:bg-surface-700 dark:text-surface-0"
           >
-            导出全部数据
+            {exportDataMutation.isPending ? '导出中...' : '导出全部数据'}
           </button>
           <button
             onClick={async () => {
               if (!confirm('导入数据将覆盖当前所有数据，确定继续？')) return;
               try {
-                const result = await api.data.import();
+                const result = await importDataMutation.mutateAsync();
                 if (result?.success) {
                   alert('数据导入成功');
                 }
@@ -369,9 +367,10 @@ const SettingsPage: React.FC = () => {
                 console.error(e);
               }
             }}
+            disabled={importDataMutation.isPending}
             className="px-4 py-2 border border-surface-200 dark:border-surface-600 rounded-lg text-sm hover:bg-surface-50 dark:hover:bg-surface-700 dark:text-surface-0"
           >
-            导入数据
+            {importDataMutation.isPending ? '导入中...' : '导入数据'}
           </button>
         </div>
       </div>

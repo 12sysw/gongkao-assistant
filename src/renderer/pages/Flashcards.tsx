@@ -1,23 +1,15 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Plus, Check, X, Save, Trash2, Layers, Download } from 'lucide-react';
 import { exportFlashcards } from '../lib/export-utils';
+import { useAddFlashcard, useDeleteFlashcard, useFlashcards, useReviewFlashcard } from '../hooks/use-api';
+import { selectDueFlashcards } from '../../shared/review-schedule';
+import type { FlashcardDifficulty, FlashcardFilters, FlashcardRecord } from '../../shared/ipc';
 
 const CATEGORIES = ['常识-政治', '常识-法律', '常识-经济', '常识-人文', '常识-科技', '行测-公式', '申论-金句'];
 
 type FilterMode = 'all' | 'due' | 'mastered';
-type Difficulty = 'easy' | 'medium' | 'hard';
-
-interface Flashcard {
-  id: number;
-  front: string;
-  back: string;
-  category: string;
-  difficulty: Difficulty;
-  review_count: number;
-  mastered: number;
-  next_review: string;
-  created_at: string;
-}
+type Difficulty = FlashcardDifficulty;
+type Flashcard = FlashcardRecord;
 
 interface CardForm {
   front: string;
@@ -34,18 +26,6 @@ const DEFAULT_FORM: CardForm = {
 };
 
 /* ─── Helpers ─── */
-
-function getApi() {
-  return (window as unknown as Window & { api: Record<string, unknown> }).api;
-}
-
-function getTodayStr(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function getDifficultyLabel(d: Difficulty): string {
   return d === 'easy' ? '简单' : d === 'hard' ? '困难' : '中等';
@@ -366,42 +346,30 @@ const AddCardModal: React.FC<{
 /* ─── Main Page ─── */
 
 const Flashcards: React.FC = () => {
-  const [cards, setCards] = useState<Flashcard[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [filterCat, setFilterCat] = useState('all');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [form, setForm] = useState<CardForm>(DEFAULT_FORM);
-
-  const loadCards = useCallback(async () => {
-    try {
-      const api = getApi();
-      if (!api) return;
-      const filters: Record<string, unknown> = {};
-      if (filterCat !== 'all') filters.category = filterCat;
-      if (filterMode === 'mastered') filters.mastered = 1;
-      const data = (await api.flashcard.getAll(
-        Object.keys(filters).length > 0 ? filters : undefined
-      )) as Flashcard[];
-      setCards(data || []);
-    } catch (e) {
-      console.error(e);
-    }
+  const filters = useMemo<FlashcardFilters | undefined>(() => {
+    const next: FlashcardFilters = {};
+    if (filterCat !== 'all') next.category = filterCat;
+    if (filterMode === 'mastered') next.mastered = 1;
+    return Object.keys(next).length > 0 ? next : undefined;
   }, [filterCat, filterMode]);
-
-  useEffect(() => {
-    loadCards();
-  }, [loadCards]);
+  const flashcardsQuery = useFlashcards(filters);
+  const addFlashcard = useAddFlashcard();
+  const deleteFlashcard = useDeleteFlashcard();
+  const reviewFlashcard = useReviewFlashcard();
+  const cards = flashcardsQuery.data ?? [];
 
   const handleAdd = async () => {
     if (!form.front.trim() || !form.back.trim()) return;
     try {
-      const api = getApi();
-      await api.flashcard.add(form);
+      await addFlashcard.mutateAsync(form);
       setForm(DEFAULT_FORM);
       setShowForm(false);
-      loadCards();
     } catch (e) {
       console.error(e);
     }
@@ -410,20 +378,9 @@ const Flashcards: React.FC = () => {
   const handleResult = async (correct: boolean) => {
     const card = filteredCards[currentIndex];
     if (!card) return;
-    const newCount = card.review_count + 1;
-    const nextDays = correct ? Math.min(Math.pow(2, newCount), 30) : 1;
-    const nextDate = new Date();
-    nextDate.setDate(nextDate.getDate() + nextDays);
     try {
-      const api = getApi();
-      await api.flashcard.update({
-        id: card.id,
-        review_count: newCount,
-        mastered: correct && newCount >= 5 ? 1 : 0,
-        next_review: nextDate.toISOString().split('T')[0],
-      });
+      await reviewFlashcard.mutateAsync({ id: card.id, correct });
       setIsFlipped(false);
-      loadCards();
       if (currentIndex >= filteredCards.length - 1) {
         setCurrentIndex(0);
       }
@@ -434,9 +391,7 @@ const Flashcards: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      const api = getApi();
-      await api.flashcard.delete(id);
-      loadCards();
+      await deleteFlashcard.mutateAsync(id);
       if (currentIndex >= filteredCards.length - 1) {
         setCurrentIndex(0);
       }
@@ -446,25 +401,14 @@ const Flashcards: React.FC = () => {
   };
 
   const filteredCards = useMemo(() => {
-    const today = getTodayStr();
-    return cards.filter((c) => {
-      // filterCat and filterMode are now applied server-side via loadCards,
-      // so client-side only needs to handle 'due' mode (server doesn't do due comparison)
-      if (filterMode === 'due') {
-        // Compare date portion only to handle both 'YYYY-MM-DD' and 'YYYY-MM-DD HH:MM:SS' formats
-        const reviewDate = (c.next_review || '').slice(0, 10);
-        return reviewDate <= today && !c.mastered;
-      }
-      return true;
-    });
+    if (filterMode === 'due') {
+      return selectDueFlashcards(cards);
+    }
+    return cards;
   }, [cards, filterMode]);
 
   const dueCount = useMemo(() => {
-    const today = getTodayStr();
-    return cards.filter((c) => {
-      const reviewDate = (c.next_review || '').slice(0, 10);
-      return reviewDate <= today && !c.mastered;
-    }).length;
+    return selectDueFlashcards(cards).length;
   }, [cards]);
 
   const currentCard = filteredCards[currentIndex] || null;

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Play, Pause, RotateCcw, Settings, SkipForward, Coffee, Brain } from 'lucide-react';
 import dayjs from 'dayjs';
+import { useAddDailyRecord, useAddPomodoroRecord, useDailyRecordRange } from '../hooks/use-api';
 
 type TimerMode = 'work' | 'shortBreak' | 'longBreak';
 
@@ -26,10 +27,6 @@ const MODE_BUTTONS: { key: TimerMode; icon: React.ReactNode; label: string }[] =
   { key: 'shortBreak', icon: <Coffee className="w-4 h-4" />, label: MODES.shortBreak.label },
   { key: 'longBreak', icon: <Coffee className="w-4 h-4" />, label: MODES.longBreak.label },
 ];
-
-function getApi() {
-  return (window as unknown as Window & { api: Record<string, unknown> }).api;
-}
 
 function formatTime(s: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -196,32 +193,27 @@ const Pomodoro: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [history, setHistory] = useState<HistoryRecord[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const historyStart = useMemo(() => dayjs().subtract(7, 'day').format('YYYY-MM-DD'), []);
+  const historyEnd = useMemo(() => dayjs().format('YYYY-MM-DD'), []);
+  const historyQuery = useDailyRecordRange(historyStart, historyEnd);
+  const addDailyRecord = useAddDailyRecord();
+  const addPomodoroRecord = useAddPomodoroRecord();
 
   const getModeMinutes = useCallback(
     (m: TimerMode) => (m === 'work' ? workMin : m === 'shortBreak' ? shortBreakMin : longBreakMin),
     [workMin, shortBreakMin, longBreakMin]
   );
 
-  const loadHistory = useCallback(async () => {
-    try {
-      const api = getApi();
-      if (!api) return;
-      const records = (await api.dailyRecord.getRange(
-        dayjs().subtract(7, 'day').format('YYYY-MM-DD'),
-        dayjs().format('YYYY-MM-DD')
-      )) as { date: string; study_minutes: number }[];
-      if (records) setHistory(records.map((r) => ({ date: r.date, minutes: r.study_minutes || 0 })));
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
+  useEffect(() => {
+    const records = (historyQuery.data ?? []) as { date: string; study_minutes: number }[];
+    setHistory(records.map((record) => ({ date: record.date, minutes: record.study_minutes || 0 })));
+  }, [historyQuery.data]);
 
   useEffect(() => {
-    loadHistory();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [loadHistory]);
+  }, []);
 
   const switchMode = useCallback(
     (m: TimerMode) => {
@@ -253,20 +245,14 @@ const Pomodoro: React.FC = () => {
         const today = dayjs().format('YYYY-MM-DD');
         (async () => {
           try {
-            const api = getApi();
-            if (api) {
-              await api.dailyRecord.add({
-                date: today,
-                study_minutes: workMin,
-                questions_done: 0,
-                wrong_count: 0,
-                note: '',
-              });
-              if (api.pomodoroRecord) {
-                await api.pomodoroRecord.add({ date: today, duration: workMin, mode: 'work' });
-              }
-              loadHistory();
-            }
+            await addDailyRecord.mutateAsync({
+              date: today,
+              study_minutes: workMin,
+              questions_done: 0,
+              wrong_count: 0,
+              note: '',
+            });
+            await addPomodoroRecord.mutateAsync({ date: today, duration: workMin, mode: 'work' });
           } catch (e) {
             console.error(e);
           }
@@ -278,7 +264,7 @@ const Pomodoro: React.FC = () => {
     } else {
       switchMode('work');
     }
-  }, [mode, workMin, switchMode, loadHistory]);
+  }, [mode, completed, workMin, switchMode, addDailyRecord, addPomodoroRecord]);
 
   useEffect(() => {
     if (isRunning) {

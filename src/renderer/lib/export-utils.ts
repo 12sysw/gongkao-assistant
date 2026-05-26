@@ -44,7 +44,7 @@ export function exportToPDF(
 ) {
   const { title = '导出数据' } = options;
 
-  const api = (window as any).api;
+  const api = window.api;
   if (!api?.data?.exportPdf) {
     console.error('[Export] exportPdf API not available');
     return;

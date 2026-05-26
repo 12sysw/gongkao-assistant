@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Plus,
   Trash2,
@@ -13,34 +13,24 @@ import {
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import { exportStudyPlans } from '../lib/export-utils';
+import {
+  useAddDailyRecord,
+  useAddStudyPlan,
+  useDailyRecord,
+  useDailyRecordRange,
+  useDeleteStudyPlan,
+  useStudyPlans,
+  useUpdateStudyPlan,
+} from '../hooks/use-api';
+import type { StudyPlanRecord } from '../../shared/ipc';
 
-interface StudyPlanItem {
-  id: number;
-  title: string;
-  subject: string;
-  target_date: string;
-  priority: 'low' | 'medium' | 'high';
-  status: 'pending' | 'in_progress' | 'completed';
-  description: string;
-  daily_minutes: number;
-  created_at: string;
-  updated_at: string;
-}
-
-interface DailyRecordItem {
-  id: number;
-  date: string;
-  study_minutes: number;
-  questions_done: number;
-  wrong_count: number;
-  note: string;
-}
+type StudyPlanItem = StudyPlanRecord;
 
 interface PlanForm {
   title: string;
   subject: string;
   target_date: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: StudyPlanItem['priority'];
   description: string;
   daily_minutes: number;
 }
@@ -67,10 +57,6 @@ const statusConfig: Record<string, { label: string; icon: React.ElementType; col
 };
 
 const HEATMAP_COLORS = ['bg-surface-50', 'bg-success-light', 'bg-success-light', 'bg-success', 'bg-success-dark'];
-
-function getApi() {
-  return (window as unknown as Window & { api: Record<string, unknown> }).api;
-}
 
 function getNextStatus(current: StudyPlanItem['status']): StudyPlanItem['status'] {
   if (current === 'pending') return 'in_progress';
@@ -225,8 +211,9 @@ const PlanItem: React.FC<{
   onDelete: (id: number) => void;
 }> = ({ plan, onStatusChange, onDelete }) => {
   const StatusIcon = statusConfig[plan.status].icon;
-  const daysLeft = dayjs(plan.target_date).diff(dayjs(), 'day');
-  const isOverdue = daysLeft < 0 && plan.status !== 'completed';
+  const hasTargetDate = Boolean(plan.target_date);
+  const daysLeft = hasTargetDate ? dayjs(plan.target_date).diff(dayjs(), 'day') : 0;
+  const isOverdue = hasTargetDate && daysLeft < 0 && plan.status !== 'completed';
 
   return (
     <div className="px-5 py-4 flex items-start gap-3 hover:bg-surface-0 transition-colors">
@@ -254,7 +241,7 @@ const PlanItem: React.FC<{
         <div className="flex items-center gap-3 mt-1.5 text-xs text-surface-400">
           <span className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            截止：{plan.target_date}
+            截止：{plan.target_date || '未设置'}
           </span>
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
@@ -266,7 +253,7 @@ const PlanItem: React.FC<{
               已逾期{Math.abs(daysLeft)}天
             </span>
           )}
-          {!isOverdue && plan.status !== 'completed' && (
+          {hasTargetDate && !isOverdue && plan.status !== 'completed' && (
             <span>剩余{daysLeft}天</span>
           )}
         </div>
@@ -469,8 +456,6 @@ const LogStudyModal: React.FC<{
 /* ─── Main Page ─── */
 
 const StudyPlan: React.FC = () => {
-  const [plans, setPlans] = useState<StudyPlanItem[]>([]);
-  const [todayRecord, setTodayRecord] = useState<DailyRecordItem | null>(null);
   const [showAddPlan, setShowAddPlan] = useState(false);
   const [showLogStudy, setShowLogStudy] = useState(false);
   const [newPlan, setNewPlan] = useState<PlanForm>({
@@ -487,37 +472,23 @@ const StudyPlan: React.FC = () => {
     wrong_count: 0,
     note: '',
   });
-  const [weeklyData, setWeeklyData] = useState<DailyRecordItem[]>([]);
+  const todayKey = useMemo(() => dayjs().format('YYYY-MM-DD'), []);
+  const heatmapStart = useMemo(() => dayjs().subtract(29, 'day').format('YYYY-MM-DD'), []);
+  const plansQuery = useStudyPlans();
+  const todayRecordQuery = useDailyRecord(todayKey);
+  const weeklyQuery = useDailyRecordRange(heatmapStart, todayKey);
+  const addStudyPlan = useAddStudyPlan();
+  const updateStudyPlan = useUpdateStudyPlan();
+  const deleteStudyPlan = useDeleteStudyPlan();
+  const addDailyRecord = useAddDailyRecord();
 
-  const loadData = useCallback(async () => {
-    try {
-      const api = getApi();
-      if (!api) return;
-      const [plansData, today, weekly] = await Promise.all([
-        api.studyPlan.getAll() as Promise<StudyPlanItem[]>,
-        api.dailyRecord.getByDate(dayjs().format('YYYY-MM-DD')) as Promise<DailyRecordItem | null>,
-        api.dailyRecord.getRange(
-          dayjs().subtract(29, 'day').format('YYYY-MM-DD'),
-          dayjs().format('YYYY-MM-DD')
-        ) as Promise<DailyRecordItem[]>,
-      ]);
-      setPlans(plansData || []);
-      setTodayRecord(today);
-      setWeeklyData(weekly || []);
-    } catch (e) {
-      console.error('加载数据失败', e);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  const plans = plansQuery.data ?? [];
+  const todayRecord = todayRecordQuery.data ?? null;
+  const weeklyData = weeklyQuery.data ?? [];
 
   const handleAddPlan = async () => {
     try {
-      const api = getApi();
-      if (!api) return;
-      await api.studyPlan.add(newPlan);
+      await addStudyPlan.mutateAsync(newPlan);
       setShowAddPlan(false);
       setNewPlan({
         title: '',
@@ -527,7 +498,6 @@ const StudyPlan: React.FC = () => {
         description: '',
         daily_minutes: 60,
       });
-      loadData();
     } catch (e) {
       console.error('添加计划失败', e);
     }
@@ -535,10 +505,7 @@ const StudyPlan: React.FC = () => {
 
   const handleUpdateStatus = async (plan: StudyPlanItem) => {
     try {
-      const api = getApi();
-      if (!api) return;
-      await api.studyPlan.update({ ...plan, status: getNextStatus(plan.status) });
-      loadData();
+      await updateStudyPlan.mutateAsync({ id: plan.id, status: getNextStatus(plan.status) });
     } catch (e) {
       console.error('更新状态失败', e);
     }
@@ -547,10 +514,7 @@ const StudyPlan: React.FC = () => {
   const handleDeletePlan = async (id: number) => {
     if (!confirm('确定要删除这个计划吗？')) return;
     try {
-      const api = getApi();
-      if (!api) return;
-      await api.studyPlan.delete(id);
-      loadData();
+      await deleteStudyPlan.mutateAsync(id);
     } catch (e) {
       console.error('删除计划失败', e);
     }
@@ -558,15 +522,12 @@ const StudyPlan: React.FC = () => {
 
   const handleLogStudy = async () => {
     try {
-      const api = getApi();
-      if (!api) return;
-      await api.dailyRecord.add({
-        date: dayjs().format('YYYY-MM-DD'),
+      await addDailyRecord.mutateAsync({
+        date: todayKey,
         ...logForm,
       });
       setShowLogStudy(false);
       setLogForm({ study_minutes: 60, questions_done: 0, wrong_count: 0, note: '' });
-      loadData();
     } catch (e) {
       console.error('记录学习失败', e);
     }

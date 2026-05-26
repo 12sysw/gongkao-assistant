@@ -14,7 +14,7 @@ import TencentCloudChat from '@tencentcloud/chat';
 
 async function generateUserSig(userID: string): Promise<string> {
   try {
-    const sig = await (window as any).api?.chat?.generateUserSig(userID);
+    const sig = await window.api.chat.generateUserSig(userID);
     if (sig) return sig;
   } catch (e) {
     console.error('[Chat] generateUserSig failed:', e);

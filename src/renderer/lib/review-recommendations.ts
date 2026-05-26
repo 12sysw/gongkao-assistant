@@ -1,3 +1,5 @@
+import { selectDueFlashcards } from '../../shared/review-schedule';
+
 export interface ReviewRecommendationWrongRecord {
   type?: string | null;
 }
@@ -37,10 +39,6 @@ function getTopLabel(values: string[], fallback: string) {
   }, {});
 
   return Object.entries(counter).sort((a, b) => b[1] - a[1])[0][0];
-}
-
-function isDueFlashcard(nextReview: string | null | undefined, todayKey: string) {
-  return String(nextReview ?? '').slice(0, 10) <= todayKey;
 }
 
 function normalizeLabel(value: string | null | undefined) {
@@ -123,9 +121,7 @@ export function buildReviewRecommendations(params: {
   const { dueReviews, flashcards, studyPlans, todayKey } = params;
   const items: ReviewRecommendationItem[] = [];
 
-  const dueFlashcards = flashcards.filter(
-    (card) => !Number(card.mastered ?? 0) && isDueFlashcard(card.next_review, todayKey)
-  );
+  const dueFlashcards = selectDueFlashcards(flashcards, todayKey);
   const activePlans = studyPlans.filter((plan) => (plan.status ?? 'pending') !== 'completed');
   const highPriorityPlans = activePlans.filter((plan) => (plan.priority ?? 'medium') === 'high');
   const scoredPlans = scorePlans({ activePlans, dueReviews, dueFlashcards });

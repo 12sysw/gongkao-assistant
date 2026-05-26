@@ -13,19 +13,8 @@ import {
 import { cn } from '../lib/utils';
 import { MotionItem } from '../components/ui/Motion';
 import { SkeletonCard } from '../components/ui/Skeleton';
-import { useRagDocs, useDeleteRagDocBatch, useSyncQuestions } from '../hooks/use-api';
-
-const api = (window as any).api;
-
-interface RagDoc {
-  id: number;
-  title: string;
-  content: string;
-  source: string;
-  category: string;
-  created_at: string;
-  updated_at: string;
-}
+import { useRagDocs, useDeleteRagDocBatch, useImportPdfs, useSyncQuestions } from '../hooks/use-api';
+import type { RagDoc } from '../../shared/ipc';
 
 interface DocGroup {
   key: string;
@@ -49,26 +38,27 @@ const QuestionBank: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSource, setSelectedSource] = useState<string>('all');
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  const [importing, setImporting] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importPath, setImportPath] = useState('');
 
-  const { data: docs = [], isLoading, refetch } = useRagDocs();
+  const { data: docs = [], isLoading } = useRagDocs();
+  const importPdfs = useImportPdfs();
   const deleteDocBatch = useDeleteRagDocBatch();
   const syncMutation = useSyncQuestions();
+  const importing = importPdfs.isPending;
 
   const categories = useMemo(
-    () => ['all', ...new Set((docs as RagDoc[]).map((d) => d.category).filter(Boolean))],
+    () => ['all', ...new Set(docs.map((d) => d.category).filter(Boolean))],
     [docs],
   );
   const sources = useMemo(
-    () => ['all', ...new Set((docs as RagDoc[]).map((d) => d.source).filter(Boolean))],
+    () => ['all', ...new Set(docs.map((d) => d.source).filter(Boolean))],
     [docs],
   );
 
   // 将分片文档合并为组，每组代表一篇完整的 PDF / 一道题目
   const groups = useMemo(() => {
-    const filtered = (docs as RagDoc[]).filter((doc) => {
+    const filtered = docs.filter((doc) => {
       if (!doc.content || doc.content.trim().length < 20) return false;
       const matchesSearch =
         !searchQuery ||
@@ -134,24 +124,20 @@ const QuestionBank: React.FC = () => {
 
   const handleImportPdfs = async () => {
     if (!importPath.trim()) return;
-    setImporting(true);
     setShowImportDialog(false);
     try {
-      const result: any = await api.rag.importPdfs(importPath);
+      const result = await importPdfs.mutateAsync(importPath);
       alert(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条，失败 ${result.errors} 条`);
-      refetch();
+      setImportPath('');
     } catch (err) {
       alert(`导入失败: ${err}`);
-    } finally {
-      setImporting(false);
     }
   };
 
   const handleSyncQuestions = async () => {
     try {
-      const result: any = await syncMutation.mutateAsync();
+      const result = await syncMutation.mutateAsync();
       alert(`同步完成: 新增 ${result.synced} 条知识文档`);
-      refetch();
     } catch {
       alert('同步失败');
     }
@@ -161,7 +147,6 @@ const QuestionBank: React.FC = () => {
     if (!confirm(`确定要删除「${group.displayTitle}」（${group.parts.length} 个分片）吗？`)) return;
     try {
       await deleteDocBatch.mutateAsync(group.parts.map((p) => p.id));
-      refetch();
     } catch {
       alert('删除失败');
     }
@@ -249,7 +234,7 @@ const QuestionBank: React.FC = () => {
         </div>
 
         <div className="mt-3 flex items-center gap-4 text-sm font-medium text-surface-500 dark:text-surface-400">
-          <span>共 {(docs as RagDoc[]).length} 条知识文档</span>
+          <span>共 {docs.length} 条知识文档</span>
           <span>显示 {groups.length} 篇</span>
         </div>
       </div>
