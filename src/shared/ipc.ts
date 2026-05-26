@@ -567,6 +567,12 @@ export interface UpdateDownloadProgress {
   bytesPerSecond?: number;
 }
 
+export interface UpdateCheckResult {
+  supported: boolean;
+  started: boolean;
+  message: string;
+}
+
 export interface Api {
   question: {
     add: (q: QuestionInput) => Promise<QuestionRecord>;
@@ -685,7 +691,7 @@ export interface Api {
     clear: () => Promise<DeleteResult>;
   };
   update: {
-    check: () => Promise<void>;
+    check: () => Promise<UpdateCheckResult>;
     download: () => Promise<void>;
     install: () => void;
     onChecking: (cb: () => void) => Unsubscribe;

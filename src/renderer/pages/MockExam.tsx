@@ -820,26 +820,28 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
       </div>
 
       {/* 题号导航 */}
-      <div className="bg-surface-0 dark:bg-surface-900 border-t border-surface-200 dark:border-surface-700 px-4 py-2 overflow-x-auto">
-        <div className="max-w-4xl mx-auto flex gap-1 flex-wrap">
-          {questions.slice(0, 50).map((_q: any, i: number) => {
-            const isSelected = currentIndex === i;
-            const hasAnswer = answers.has(questions[i]?.id);
-            return (
-              <button
-                key={i}
-                onClick={() => setCurrentIndex(i)}
-                className={`w-7 h-7 text-xs rounded border-2 transition-all ${
-                  isSelected ? 'border-brand-500 bg-brand-500 text-white' :
-                  hasAnswer ? 'border-surface-200 dark:border-surface-700 bg-brand-50 dark:bg-brand-500/10 text-surface-900 dark:text-surface-0' :
-                  'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-600'
-                }`}
-              >
-                {i + 1}
-              </button>
-            );
-          })}
-          {questions.length > 50 && <span className="w-7 h-7 flex items-center justify-center text-xs text-surface-400 dark:text-surface-400">...</span>}
+      <div className="bg-surface-0 dark:bg-surface-900 border-t border-surface-200 dark:border-surface-700 px-4 py-2">
+        <div className="w-full max-w-[1500px] mx-auto max-h-48 overflow-y-auto pr-1">
+          <div className="flex gap-1.5 flex-wrap">
+            {questions.map((question: any, i: number) => {
+              const isSelected = currentIndex === i;
+              const hasAnswer = answers.has(question.id);
+              return (
+                <button
+                  key={question.id ?? i}
+                  onClick={() => setCurrentIndex(i)}
+                  aria-label={`跳转到第 ${i + 1} 题`}
+                  className={`min-w-8 h-8 px-1 text-xs font-medium rounded border-2 transition-all ${
+                    isSelected ? 'border-brand-500 bg-brand-500 text-white' :
+                    hasAnswer ? 'border-surface-200 dark:border-surface-700 bg-brand-50 dark:bg-brand-500/10 text-surface-900 dark:text-surface-0' :
+                    'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-600'
+                  }`}
+                >
+                  {i + 1}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

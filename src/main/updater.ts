@@ -1,6 +1,7 @@
 import { autoUpdater } from 'electron-updater';
 import { BrowserWindow, app } from 'electron';
 import { IPC } from '../shared/ipc';
+import type { UpdateCheckResult } from '../shared/ipc';
 
 let mainWindow: BrowserWindow | null = null;
 let updateTimer: ReturnType<typeof setInterval> | null = null;
@@ -43,12 +44,31 @@ export function initUpdater(window: BrowserWindow): void {
   updateTimer = setInterval(() => checkForUpdates(), CHECK_INTERVAL);
 }
 
-export async function checkForUpdates(): Promise<void> {
-  if (!app.isPackaged) return;
+export async function checkForUpdates(): Promise<UpdateCheckResult> {
+  if (!app.isPackaged) {
+    return {
+      supported: false,
+      started: false,
+      message: '开发模式不支持自动更新检查，请在安装版中使用。',
+    };
+  }
+
   try {
     await autoUpdater.checkForUpdates();
+    return {
+      supported: true,
+      started: true,
+      message: '已开始检查更新。',
+    };
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     console.error('[Updater] check failed:', err);
+    mainWindow?.webContents.send(IPC.UPDATE_ERROR, message);
+    return {
+      supported: true,
+      started: false,
+      message,
+    };
   }
 }
 

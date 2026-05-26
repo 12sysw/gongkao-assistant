@@ -2149,7 +2149,7 @@ ${sampleQuestions.join('\n')}
 
   // ==================== 自动更新 ====================
   ipcMain.handle(IPC.UPDATE_CHECK, async () => {
-    await checkForUpdates();
+    return await checkForUpdates();
   });
 
   ipcMain.handle(IPC.UPDATE_DOWNLOAD, async () => {
