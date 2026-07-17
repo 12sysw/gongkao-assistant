@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Clock,
   BarChart3,
@@ -8,14 +9,22 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useMockExamStore } from '../stores/mock-exam-store';
-import { useQuestions, useRagConfig, useRagDocs } from '../hooks/use-api';
-import type { QuestionRecord, RagDoc } from '../../shared/ipc';
+import { useQuestions, useRagConfig } from '../hooks/use-api';
+import type { QuestionRecord } from '../../shared/ipc';
 
 // ==================== 题目生成 ====================
-const QUESTION_TYPES = ['言语理解', '数量关系', '判断推理', '资料分析', '常识判断'];
-const EXAM_COUNTS: Record<string, number> = { '言语理解': 40, '数量关系': 15, '判断推理': 35, '资料分析': 20, '常识判断': 25 };
+const QUESTION_TYPES = ['常识判断', '言语理解', '数量关系', '判断推理', '资料分析'];
+const EXAM_COUNTS: Record<string, number> = { '常识判断': 20, '言语理解': 40, '数量关系': 15, '判断推理': 40, '资料分析': 20 };
 const DEFAULT_FULL_EXAM_COUNT = Object.values(EXAM_COUNTS).reduce((sum, count) => sum + count, 0);
-const IMPORTED_QUESTION_ID_OFFSET = 1_000_000;
+const SCREEN_PRACTICE_TYPES = QUESTION_TYPES.filter((type) => type !== '资料分析');
+const SCREEN_EXAM_COUNTS: Record<string, number> = {
+  '常识判断': 20,
+  '言语理解': 40,
+  '数量关系': 15,
+  '判断推理': 40,
+};
+const SCREEN_FULL_EXAM_COUNT = Object.values(SCREEN_EXAM_COUNTS).reduce((sum, count) => sum + count, 0);
+const FALLBACK_QUESTION_ID_OFFSET = 9_000_000;
 
 interface ExamQuestion {
   id: number;
@@ -26,10 +35,10 @@ interface ExamQuestion {
   explanation: string;
 }
 
-type AnswerLookup = {
-  scoped: Map<string, string>;
-  byNumber: Map<string, string>;
-  allowNumberFallback: boolean;
+type PaperInfo = {
+  key: string;
+  title: string;
+  category: string;
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -52,15 +61,19 @@ function parseOptions(raw: string | null | undefined): string[] {
   return ['A.选项一', 'B.选项二', 'C.选项三', 'D.选项四'];
 }
 
-function normalizeQuestionType(rawType: string | null | undefined, content = ''): string {
-  const text = `${rawType ?? ''} ${content}`.replace(/\s+/g, '');
-  if (/言语|逻辑填空|片段阅读|语句表达|阅读理解|中心理解/.test(text)) return '言语理解';
-  if (/数量|数学运算|数字推理|数资/.test(text)) return '数量关系';
-  if (/判断|图形推理|定义判断|类比推理|逻辑判断/.test(text)) return '判断推理';
-  if (/资料|材料分析|统计|图表|增长率|比重/.test(text)) return '资料分析';
-  if (/常识|政治|法律|经济|科技|人文|历史|地理|时政/.test(text)) return '常识判断';
+function inferQuestionTypeFromNumber(number: string | null | undefined): string {
+  const value = Number.parseInt(String(number ?? ''), 10);
+  if (!Number.isFinite(value) || value < 1 || value > 135) return '';
+  return inferQuestionTypeByPosition(value - 1);
+}
 
-  return QUESTION_TYPES.includes(rawType ?? '') ? rawType! : '常识判断';
+function inferQuestionTypeByPosition(index: number): string {
+  const number = index + 1;
+  if (number <= 20) return '常识判断';
+  if (number <= 60) return '言语理解';
+  if (number <= 75) return '数量关系';
+  if (number <= 115) return '判断推理';
+  return '资料分析';
 }
 
 function canonicalType(type: string): string {
@@ -75,192 +88,132 @@ function normalizeQuestionText(text: string): string {
     .trim();
 }
 
-function normalizeImportedTitle(title: string) {
-  return title
-    .replace(/\s*\(\d+\/\d+\)\s*$/, '')
-    .replace(/参考答案|参考解析|试题答案|真题答案|答案解析|答案|解析/g, '')
-    .replace(/真题|试题|题库|套题|模拟题|模拟卷/g, '')
-    .replace(/\s+/g, '')
-    .trim();
+function getQuestionCore(content: string): string {
+  const normalized = normalizeQuestionText(content);
+  const marker = '【题目】';
+  const markerIndex = normalized.lastIndexOf(marker);
+  if (markerIndex >= 0) {
+    return normalized.slice(markerIndex + marker.length).trim();
+  }
+  return normalized;
 }
 
-function isImportedQuestion(question: QuestionRecord): boolean {
-  return question.id >= IMPORTED_QUESTION_ID_OFFSET || /pdf_import|pdf_exam/.test(question.tags ?? '');
+function getQuestionTags(question: QuestionRecord): string[] {
+  return String(question.tags ?? '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
 }
 
-function prioritizeQuestionRecords(questions: QuestionRecord[]): QuestionRecord[] {
-  const imported = shuffle(questions.filter(isImportedQuestion));
-  const regular = shuffle(questions.filter((question) => !isImportedQuestion(question)));
-  return [...imported, ...regular];
+function getPaperInfo(question: QuestionRecord): PaperInfo | null {
+  const tags = getQuestionTags(question);
+  if (!tags.includes('pdf_import') && !tags.includes('pdf_exam')) return null;
+
+  const ignored = new Set(['pdf_import', 'pdf_exam', 'pdf_answer', 'question_bank', 'manual']);
+  const title = [...tags].reverse().find((tag) => !ignored.has(tag) && !/^\d+个分片合并$/.test(tag));
+  if (!title) return null;
+
+  const category = tags.find((tag) => !ignored.has(tag) && tag !== title && !/^\d+个分片合并$/.test(tag)) ?? '未分类';
+  return {
+    key: `${category}::${title}`,
+    title,
+    category,
+  };
 }
 
-function toExamQuestion(q: QuestionRecord): ExamQuestion {
-  const normalizedType = normalizeQuestionType(q.type, q.content);
+function isXingcePaper(paper: PaperInfo): boolean {
+  return /行测|行政职业能力测验/.test(`${paper.category} ${paper.title}`);
+}
+
+function isLikelyXingceQuestion(question: QuestionRecord): boolean {
+  const paper = getPaperInfo(question);
+  if (paper) return isXingcePaper(paper);
+  const text = `${question.type} ${question.tags}`.replace(/\s+/g, '');
+  return /行测|行政职业能力测验|常识判断|言语理解|数量关系|判断推理|资料分析/.test(text);
+}
+
+function normalizeQuestionType(
+  rawType: string | null | undefined,
+  content = '',
+  number?: string,
+  paper?: PaperInfo,
+  indexInPaper = -1,
+): string {
+  const normalizedContent = normalizeQuestionText(content);
+  if (normalizedContent.startsWith('【资料】')) return '资料分析';
+  if (paper && isXingcePaper(paper) && indexInPaper >= 0) return inferQuestionTypeByPosition(indexInPaper);
+
+  const raw = String(rawType ?? '');
+  const explicitType = raw.replace(/^行测-/, '');
+  if (QUESTION_TYPES.includes(explicitType)) return explicitType;
+
+  const rawText = raw.replace(/\s+/g, '');
+  if (/资料|材料分析|统计|图表|增长率|比重/.test(rawText)) return '资料分析';
+  if (/判断|图形推理|定义判断|类比推理|逻辑判断/.test(rawText)) return '判断推理';
+  if (/数量|数学运算|数字推理|数资/.test(rawText)) return '数量关系';
+  if (/言语|逻辑填空|片段阅读|语句表达|阅读理解|中心理解/.test(rawText)) return '言语理解';
+  if (/常识|政治|法律|经济|科技|人文|历史|地理|时政/.test(rawText)) return '常识判断';
+
+  const numberedType = inferQuestionTypeFromNumber(number);
+  if (numberedType) return numberedType;
+
+  const text = `${raw} ${content}`.replace(/\s+/g, '');
+  if (/资料|材料分析|统计|图表|增长率|比重/.test(text)) return '资料分析';
+  if (/言语|逻辑填空|片段阅读|语句表达|阅读理解|中心理解/.test(text)) return '言语理解';
+  if (/数量|数学运算|数字推理|数资/.test(text)) return '数量关系';
+  if (/判断|图形推理|定义判断|类比推理|逻辑判断/.test(text)) return '判断推理';
+  if (/常识|政治|法律|经济|科技|人文|历史|地理|时政/.test(text)) return '常识判断';
+
+  return '常识判断';
+}
+
+function hasCompleteMaterial(question: QuestionRecord): boolean {
+  const display = splitQuestionDisplay(question.content);
+  return display.material.length >= 20 && display.question.length >= 8;
+}
+
+function hasUsableContent(question: QuestionRecord, type: string): boolean {
+  const content = getQuestionCore(question.content);
+  if (content.length < 8) return false;
+  if (type === '资料分析') return hasCompleteMaterial(question);
+  return true;
+}
+
+function getQuestionDedupeKey(question: QuestionRecord): string {
+  return getQuestionCore(question.content).replace(/\s+/g, '').slice(0, 180);
+}
+
+function toExamQuestion(q: QuestionRecord, type: string): ExamQuestion {
+  const options = parseOptions(q.options);
+  const fallbackAnswer = options[0]?.[0]?.toUpperCase() || 'A';
   return {
     id: q.id,
-    type: canonicalType(normalizedType),
+    type: canonicalType(type),
     content: q.content,
-    options: parseOptions(q.options),
-    answer: q.answer,
+    options,
+    answer: q.answer || fallbackAnswer,
     explanation: q.explanation || '',
   };
 }
 
-function buildAnswerMap(docs: RagDoc[]): AnswerLookup {
-  const scoped = new Map<string, string>();
-  const byNumber = new Map<string, string>();
-  const answerDocs = docs.filter((doc) => doc.source === 'pdf_answer' || /答案|解析|参考答案/.test(`${doc.title} ${doc.content.slice(0, 100)}`));
-  const uniqueAnswerTitles = new Set(
-    answerDocs
-      .map((doc) => normalizeImportedTitle(doc.title))
-      .filter(Boolean),
-  );
-  const allowBroadFallback = uniqueAnswerTitles.size <= 1;
-
-  for (const doc of answerDocs) {
-    const text = normalizeQuestionText(doc.content);
-    const titleKey = normalizeImportedTitle(doc.title);
-    const categoryKey = normalizeImportedTitle(doc.category);
-    const pattern = /(?:^|\n|\s)(?:第\s*)?(\d{1,3})\s*(?:题)?\s*[.．、)）:：]?\s*(?:【?答案】?|正确答案|参考答案)?\s*[:：]?\s*([A-D])(?=\s|[。；;，,、.)）]|$)/g;
-    for (const match of text.matchAll(pattern)) {
-      const number = match[1];
-      const answer = match[2].toUpperCase();
-      byNumber.set(number, answer);
-      if (categoryKey && titleKey) scoped.set(`${categoryKey}:${titleKey}:${number}`, answer);
-      if (titleKey) scoped.set(`${titleKey}:${number}`, answer);
-      if (allowBroadFallback && categoryKey) scoped.set(`${categoryKey}:${number}`, answer);
-    }
-  }
-
+function makePlaceholderQuestion(type: string, index: number): ExamQuestion {
+  const typeIndex = Math.max(0, QUESTION_TYPES.indexOf(type));
   return {
-    scoped,
-    byNumber,
-    allowNumberFallback: allowBroadFallback,
+    id: FALLBACK_QUESTION_ID_OFFSET + typeIndex * 10000 + index,
+    type: canonicalType(type),
+    content: type === '资料分析'
+      ? `【资料】\n当前题库没有可用于资料分析模块的完整材料，请重新导入带资料页的真题 PDF。\n\n【题目】【${type}】第${index + 1}题：题库不足，无法生成真实资料分析题。`
+      : `【${type}】第${index + 1}题：当前模块题库不足，请继续导入对应题型真题。`,
+    options: ['A.题库不足', 'B.题库不足', 'C.题库不足', 'D.题库不足'],
+    answer: 'A',
+    explanation: '当前模块题库不足，请导入真实题目。',
   };
 }
 
-function splitImportedQuestionSegments(text: string) {
-  const normalized = normalizeQuestionText(text);
-  const strictStarts = [...normalized.matchAll(/^\s*(?:第\s*)?(\d{1,3})\s*(?:题|[.．、)）:：])\s*/gm)];
-  const starts = strictStarts.length > 0
-    ? strictStarts
-    : [...normalized.matchAll(/^\s*(\d{1,3})\s+/gm)];
-
-  if (starts.length === 0) {
-    return [{ number: '1', text: normalized }];
-  }
-
-  return starts.map((match, index) => {
-    const start = match.index ?? 0;
-    const end = index + 1 < starts.length ? starts[index + 1].index ?? normalized.length : normalized.length;
-    return {
-      number: match[1],
-      text: normalized.slice(start, end).trim(),
-    };
-  });
-}
-
-function parseImportedOptions(segmentText: string) {
-  const normalized = normalizeQuestionText(segmentText)
-    .replace(/\s+([A-D])\s*[.．、)）:：]\s*/g, '\n$1. ')
-    .replace(/([A-D])\s*[.．、)）:：]\s*/g, '\n$1. ');
-  let optionMatches = [...normalized.matchAll(/^\s*([A-D])\.\s*([\s\S]*?)(?=^\s*[A-D]\.\s*|^\s*(?:【?答案】?|正确答案|参考答案|解析)\s*[:：]?|\s*$)/gm)];
-
-  if (optionMatches.length < 2) {
-    optionMatches = [...normalized.matchAll(/(?:^|\n|\s)([A-D])\s+([\s\S]*?)(?=(?:^|\n|\s)[A-D]\s+|^\s*(?:【?答案】?|正确答案|参考答案|解析)\s*[:：]?|\s*$)/gm)];
-  }
-
-  if (optionMatches.length < 2) {
-    return { content: segmentText, options: [] as string[] };
-  }
-
-  const firstOptionIndex = optionMatches[0].index ?? segmentText.length;
-  const content = normalized
-    .slice(0, firstOptionIndex)
-    .replace(/^\s*(?:第\s*)?\d{1,3}\s*(?:题|[.．、)）:：])?\s*/, '')
-    .trim();
-  const options = optionMatches.slice(0, 4).map((match) => {
-    const label = match[1].toUpperCase();
-    const value = match[2]
-      .replace(/(?:【?答案】?|正确答案|参考答案|解析)\s*[:：]?[\s\S]*$/g, '')
-      .trim();
-    return `${label}. ${value}`;
-  });
-
-  return { content: content || segmentText, options };
-}
-
-function extractAnswer(segmentText: string, doc: RagDoc, number: string, answerLookup: AnswerLookup) {
-  const inline = segmentText.match(/(?:【?答案】?|正确答案|参考答案)\s*[:：]?\s*([A-D])/i);
-  if (inline) return inline[1].toUpperCase();
-  const categoryKey = normalizeImportedTitle(doc.category);
-  const titleKey = normalizeImportedTitle(doc.title);
-  return answerLookup.scoped.get(`${categoryKey}:${titleKey}:${number}`)
-    ?? answerLookup.scoped.get(`${titleKey}:${number}`)
-    ?? (answerLookup.allowNumberFallback ? answerLookup.scoped.get(`${categoryKey}:${number}`) : undefined)
-    ?? (answerLookup.allowNumberFallback ? answerLookup.byNumber.get(number) : undefined)
-    ?? '';
-}
-
-function extractQuestionsFromRagDocs(docs: RagDoc[]): QuestionRecord[] {
-  const answerLookup = buildAnswerMap(docs);
-  const records: QuestionRecord[] = [];
-  const seenContent = new Set<string>();
-  const examDocs = docs.filter((doc) => doc.source !== 'pdf_answer' && doc.content.trim().length >= 30);
-
-  for (const doc of examDocs) {
-    const segments = splitImportedQuestionSegments(doc.content);
-    segments.forEach((segment, index) => {
-      const parsed = parseImportedOptions(segment.text);
-      if (parsed.options.length < 2 || parsed.content.length < 8) return;
-
-      const dedupeKey = parsed.content.replace(/\s+/g, '').slice(0, 120);
-      if (seenContent.has(dedupeKey)) return;
-      seenContent.add(dedupeKey);
-
-      const answer = extractAnswer(segment.text, doc, segment.number, answerLookup);
-      records.push({
-        id: IMPORTED_QUESTION_ID_OFFSET + doc.id * 1000 + index,
-        type: canonicalType(normalizeQuestionType(doc.category, parsed.content)),
-        content: parsed.content,
-        options: JSON.stringify(parsed.options),
-        answer: answer || parsed.options[0]?.[0] || 'A',
-        explanation: answer ? `来源：${doc.title}` : `来源：${doc.title}；未识别到答案，已使用默认选项。`,
-        tags: ['pdf_import', doc.source, doc.category, doc.title].filter(Boolean).join(','),
-        created_at: doc.created_at,
-      });
-    });
-  }
-
-  return records;
-}
-
-function getQuestionDedupeKey(question: QuestionRecord): string {
-  return normalizeQuestionText(question.content).replace(/\s+/g, '').slice(0, 180);
-}
-
-function mergeQuestionSources(dbQuestions: QuestionRecord[], importedQuestions: QuestionRecord[]): QuestionRecord[] {
-  const merged: QuestionRecord[] = [];
-  const seen = new Set<string>();
-
-  for (const question of [
-    ...dbQuestions.filter(isImportedQuestion),
-    ...importedQuestions,
-    ...dbQuestions.filter((item) => !isImportedQuestion(item)),
-  ]) {
-    const key = getQuestionDedupeKey(question);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    merged.push(question);
-  }
-
-  return merged;
-}
-
-function makeRepeatedExamQuestion(question: ExamQuestion, index: number): ExamQuestion {
+function makeRepeatedExamQuestion(question: ExamQuestion, syntheticId: number): ExamQuestion {
   return {
     ...question,
-    id: question.id * 1000 + index,
+    id: syntheticId,
   };
 }
 
@@ -271,45 +224,157 @@ function appendFromPool(target: ExamQuestion[], pool: ExamQuestion[], count: num
   }
 }
 
+function buildPaperIndexLookup(questions: QuestionRecord[]) {
+  const groups = new Map<string, { paper: PaperInfo; questions: QuestionRecord[] }>();
+  for (const question of questions) {
+    const paper = getPaperInfo(question);
+    if (!paper) continue;
+
+    const existing = groups.get(paper.key);
+    if (existing) {
+      existing.questions.push(question);
+    } else {
+      groups.set(paper.key, { paper, questions: [question] });
+    }
+  }
+
+  const lookup = new Map<number, { paper: PaperInfo; index: number }>();
+  for (const group of groups.values()) {
+    group.questions
+      .sort((a, b) => a.id - b.id)
+      .forEach((question, index) => lookup.set(question.id, { paper: group.paper, index }));
+  }
+  return lookup;
+}
+
+function prioritizeQuestionRecords(questions: QuestionRecord[]): QuestionRecord[] {
+  const realPaperQuestions = questions.filter((question) => getPaperInfo(question));
+  const regularQuestions = questions.filter((question) => !getPaperInfo(question));
+  return [...shuffle(realPaperQuestions), ...shuffle(regularQuestions)];
+}
+
+function toTypedExamQuestion(
+  question: QuestionRecord,
+  paperMeta?: { paper: PaperInfo; index: number },
+): ExamQuestion | null {
+  const normalizedType = normalizeQuestionType(
+    question.type,
+    question.content,
+    undefined,
+    paperMeta?.paper,
+    paperMeta?.index ?? -1,
+  );
+  if (!QUESTION_TYPES.includes(normalizedType)) return null;
+  if (!hasUsableContent(question, normalizedType)) return null;
+  return toExamQuestion(question, normalizedType);
+}
+
+function getTrainingQuestionCandidates(allQuestions: QuestionRecord[]): QuestionRecord[] {
+  const realPaperQuestions = allQuestions.filter((question) => getPaperInfo(question) && isLikelyXingceQuestion(question));
+  if (realPaperQuestions.length > 0) return realPaperQuestions;
+  return allQuestions.filter(isLikelyXingceQuestion);
+}
+
 function groupQuestionsByType(questions: QuestionRecord[]) {
   const byType: Record<string, ExamQuestion[]> = {};
-  for (const q of prioritizeQuestionRecords(questions)) {
-    const normalizedType = normalizeQuestionType(q.type, q.content);
+  const paperIndexLookup = buildPaperIndexLookup(questions);
+  const seen = new Set<string>();
+
+  for (const question of prioritizeQuestionRecords(questions)) {
+    const examQuestion = toTypedExamQuestion(question, paperIndexLookup.get(question.id));
+    if (!examQuestion) continue;
+
+    const dedupeKey = getQuestionDedupeKey(question);
+    if (!dedupeKey || seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+
+    const normalizedType = examQuestion.type.replace(/^行测-/, '');
     if (!byType[normalizedType]) byType[normalizedType] = [];
-    byType[normalizedType].push(toExamQuestion(q));
+    byType[normalizedType].push(examQuestion);
   }
   return byType;
 }
 
-function buildRealQuestionSet(allQuestions: QuestionRecord[], perTypeCount: number | Record<string, number>, fallbackTotal: number): ExamQuestion[] {
-  const byType = groupQuestionsByType(allQuestions);
-  const allRealQuestions = prioritizeQuestionRecords(allQuestions).map(toExamQuestion);
-  const usedIds = new Set<number>();
+function buildRealQuestionSet(
+  allQuestions: QuestionRecord[],
+  perTypeCount: number | Record<string, number>,
+  fallbackTotal: number,
+  typeList: string[] = QUESTION_TYPES,
+): ExamQuestion[] {
+  const byType = groupQuestionsByType(getTrainingQuestionCandidates(allQuestions));
   const result: ExamQuestion[] = [];
+  const shouldShuffleFinal = typeof perTypeCount === 'number';
 
-  for (const type of QUESTION_TYPES) {
+  typeList.forEach((type) => {
+    const typeIndex = Math.max(0, QUESTION_TYPES.indexOf(type));
     const needed = typeof perTypeCount === 'number' ? perTypeCount : perTypeCount[type];
     const pool = byType[type] || [];
     const picked = pool.slice(0, needed);
-    picked.forEach((question) => usedIds.add(question.id));
     result.push(...picked);
-  }
 
-  const targetTotal = typeof perTypeCount === 'number'
-    ? Math.min(fallbackTotal, Math.max(allRealQuestions.length, QUESTION_TYPES.length * perTypeCount))
+    const missing = needed - picked.length;
+    if (missing <= 0) return;
+    if (pool.length > 0) {
+      appendFromPool(result, pool, missing, FALLBACK_QUESTION_ID_OFFSET + typeIndex * 10000);
+      return;
+    }
+
+    for (let i = 0; i < missing; i++) {
+      result.push(makePlaceholderQuestion(type, i));
+    }
+  });
+
+  const targetTotal = shouldShuffleFinal
+    ? Math.min(fallbackTotal, typeList.length * perTypeCount)
     : DEFAULT_FULL_EXAM_COUNT;
-  const remaining = allRealQuestions.filter((question) => !usedIds.has(question.id));
-  const directFill = remaining.slice(0, Math.max(0, targetTotal - result.length));
-  result.push(...directFill);
 
-  appendFromPool(result, allRealQuestions, targetTotal - result.length, 700000);
-  return shuffle(result).slice(0, targetTotal);
+  const sliced = result.slice(0, targetTotal);
+  return shouldShuffleFinal ? shuffle(sliced) : sliced;
 }
 
-function loadExamQuestions(allQuestions: QuestionRecord[] | null | undefined): ExamQuestion[] {
+function buildPaperExamQuestions(allQuestions: QuestionRecord[], paperKey: string, skipDataAnalysis = false): ExamQuestion[] {
+  const paperQuestions = allQuestions
+    .map((question) => ({ question, paper: getPaperInfo(question) }))
+    .filter((item): item is { question: QuestionRecord; paper: PaperInfo } => item.paper?.key === paperKey)
+    .sort((a, b) => a.question.id - b.question.id);
+
+  if (paperQuestions.length === 0) return [];
+
+  const result: ExamQuestion[] = [];
+  for (const [index, item] of paperQuestions.entries()) {
+    const type = normalizeQuestionType(item.question.type, item.question.content, undefined, item.paper, index);
+    if (!QUESTION_TYPES.includes(type)) continue;
+    if (skipDataAnalysis && type === '资料分析') continue;
+
+    if (type === '资料分析' && !hasCompleteMaterial(item.question)) {
+      result.push({
+        ...makePlaceholderQuestion(type, index),
+        id: FALLBACK_QUESTION_ID_OFFSET + 500_000 + index,
+        explanation: `${item.paper.title} 第${index + 1}题缺少完整资料，请在题库页重新同步结构化题后再训练。`,
+      });
+      continue;
+    }
+
+    if (!hasUsableContent(item.question, type)) continue;
+    result.push(toExamQuestion(item.question, type));
+  }
+
+  return result;
+}
+
+function loadExamQuestions(allQuestions: QuestionRecord[] | null | undefined, paperKey?: string | null, skipDataAnalysis = false): ExamQuestion[] {
   try {
     if (!allQuestions || allQuestions.length === 0) {
       return generateFallbackFull();
+    }
+
+    if (paperKey) {
+      const paperQuestions = buildPaperExamQuestions(allQuestions, paperKey, skipDataAnalysis);
+      if (paperQuestions.length > 0) return paperQuestions;
+    }
+
+    if (skipDataAnalysis) {
+      return buildRealQuestionSet(allQuestions, SCREEN_EXAM_COUNTS, SCREEN_FULL_EXAM_COUNT, SCREEN_PRACTICE_TYPES);
     }
 
     return buildRealQuestionSet(allQuestions, EXAM_COUNTS, DEFAULT_FULL_EXAM_COUNT);
@@ -325,10 +390,19 @@ function loadChallengeQuestions(allQuestions: QuestionRecord[] | null | undefine
       return generateFallbackChallenge();
     }
 
-    return buildRealQuestionSet(allQuestions, 5, 25);
+    return buildRealQuestionSet(allQuestions, 5, 20, SCREEN_PRACTICE_TYPES);
   } catch {
     return generateFallbackChallenge();
   }
+}
+
+function getPaperTitleByKey(questions: QuestionRecord[] | null | undefined, paperKey: string | null): string | null {
+  if (!questions || !paperKey) return null;
+  for (const question of questions) {
+    const paper = getPaperInfo(question);
+    if (paper?.key === paperKey) return paper.title;
+  }
+  return null;
 }
 
 function generateFallbackFull(): ExamQuestion[] {
@@ -364,6 +438,34 @@ function generateFallbackChallenge(): ExamQuestion[] {
     }
   });
   return shuffle(questions);
+}
+
+function splitQuestionDisplay(content: string): { material: string; question: string } {
+  const normalized = normalizeQuestionText(content);
+  const materialMatch = normalized.match(/^【资料】\s*([\s\S]*?)(?:\n\s*\n)?【题目】\s*([\s\S]*)$/);
+  if (!materialMatch) return { material: '', question: normalized };
+  return {
+    material: materialMatch[1].trim(),
+    question: materialMatch[2].trim(),
+  };
+}
+
+function QuestionContent({ content, large = false }: { content: string; large?: boolean }) {
+  const display = splitQuestionDisplay(content);
+  const questionClass = large ? 'text-xl mb-8' : 'text-lg mb-6';
+  return (
+    <div className="space-y-5">
+      {display.material && (
+        <div className="rounded-lg border border-info/20 bg-info-light/60 dark:bg-info/10 px-4 py-3">
+          <div className="text-xs font-semibold text-info-dark dark:text-info uppercase tracking-wide mb-2">资料</div>
+          <div className="whitespace-pre-wrap text-sm leading-7 text-surface-700 dark:text-surface-200">{display.material}</div>
+        </div>
+      )}
+      <p className={`${questionClass} whitespace-pre-wrap text-surface-900 dark:text-surface-0 leading-relaxed`}>
+        {display.question}
+      </p>
+    </div>
+  );
 }
 
 // ==================== AI 分析 ====================
@@ -490,24 +592,20 @@ function generateSuggestions(weaknesses: any[], unanswered: number, timeUsed: nu
 // ==================== 主组件 ====================
 export default function MockExam() {
   const store = useMockExamStore();
+  const [searchParams] = useSearchParams();
+  const selectedPaperKey = searchParams.get('paper');
+  const skipDataAnalysis = searchParams.get('skipData') === '1';
   const {
     data: questionData,
     refetch: refetchQuestions,
   } = useQuestions();
   const { data: ragConfig } = useRagConfig();
-  const {
-    data: ragDocs = [],
-    refetch: refetchRagDocs,
-  } = useRagDocs();
+  const selectedPaperTitle = getPaperTitleByKey(questionData, selectedPaperKey);
 
   const loadQuestionData = useCallback(async (): Promise<QuestionRecord[]> => {
     const questionResult = await refetchQuestions();
-    const dbQuestions = questionResult.data ?? questionData ?? [];
-    const ragResult = await refetchRagDocs();
-    const importedDocs = ragResult.data ?? ragDocs;
-    const importedQuestions = extractQuestionsFromRagDocs(importedDocs);
-    return mergeQuestionSources(dbQuestions, importedQuestions);
-  }, [questionData, ragDocs, refetchQuestions, refetchRagDocs]);
+    return questionResult.data ?? questionData ?? [];
+  }, [questionData, refetchQuestions]);
 
   // 正式考试计时器
   useEffect(() => {
@@ -565,10 +663,10 @@ export default function MockExam() {
     store.setCurrentIndex(0);
     store.setTimeLeft(120 * 60);
     const allQuestions = await loadQuestionData();
-    const questions = loadExamQuestions(allQuestions);
+    const questions = loadExamQuestions(allQuestions, selectedPaperKey, skipDataAnalysis);
     store.setQuestions(questions);
     store.setStep('exam');
-  }, [loadQuestionData]);
+  }, [loadQuestionData, selectedPaperKey, skipDataAnalysis]);
 
   // 开始挑战模式
   const startChallenge = useCallback(() => {
@@ -684,7 +782,7 @@ export default function MockExam() {
 
   // 选择界面
   if (step === 'select') {
-    return <SelectPage startExam={startExam} startChallenge={startChallenge} challengeCountdown={challengeCountdown} challengeResult={challengeResult} challengeMessage={challengeMessage} resetChallenge={resetChallenge} questions={questions} answers={answers} challengeTimer={challengeTimer} />;
+    return <SelectPage startExam={startExam} startChallenge={startChallenge} challengeCountdown={challengeCountdown} challengeResult={challengeResult} challengeMessage={challengeMessage} resetChallenge={resetChallenge} questions={questions} answers={answers} challengeTimer={challengeTimer} selectedPaperKey={selectedPaperKey} selectedPaperTitle={selectedPaperTitle} skipDataAnalysis={skipDataAnalysis} />;
   }
 
   // 答题界面
@@ -701,7 +799,9 @@ export default function MockExam() {
 }
 
 // ==================== 选择页面 ====================
-function SelectPage({ startExam, startChallenge, challengeCountdown, challengeResult, challengeMessage, resetChallenge, questions, answers, challengeTimer }: any) {
+function SelectPage({ startExam, startChallenge, challengeCountdown, challengeResult, challengeMessage, resetChallenge, questions, answers, challengeTimer, selectedPaperKey, selectedPaperTitle, skipDataAnalysis }: any) {
+  const isPaperMode = Boolean(selectedPaperKey);
+
   return (
     <div className="min-h-screen bg-surface-0 dark:bg-surface-900 p-6 space-y-6">
       {/* 主标题 */}
@@ -717,8 +817,14 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
         <button onClick={startExam} className="w-full bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-6 hover:border-brand-300 dark:hover:border-brand-500 hover:shadow-card-hover transition-all text-left group">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">行政职业能力测验</h3>
-              <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">135题 | 120分钟 | 言语+数量+判断+资料+常识</p>
+              <h3 className="text-lg font-semibold text-surface-900 dark:text-surface-0 font-display">
+                {isPaperMode ? '真题屏幕训练' : '行政职业能力测验'}
+              </h3>
+              <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">
+                {isPaperMode
+                  ? `${selectedPaperTitle || '已选择真题'} | ${skipDataAnalysis ? '跳过资料分析' : '按真题顺序训练'} | 120分钟`
+                  : '135题 | 120分钟 | 常识+言语+数量+判断+资料'}
+              </p>
             </div>
             <div className="flex items-center gap-2 text-brand-500 group-hover:translate-x-1 transition-transform">
               <Clock className="w-5 h-5" />
@@ -752,7 +858,11 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
       </div>
 
       <div className="bg-brand-50 dark:bg-brand-500/10 border border-brand-200 dark:border-brand-500/30 rounded-xl p-4">
-        <p className="text-sm text-brand-700 dark:text-brand-400">提示：已导入题库时将优先使用真实题目；题库为空时才使用示例题。</p>
+        <p className="text-sm text-brand-700 dark:text-brand-400">
+          {isPaperMode
+            ? '提示：当前从真题入口进入，电脑训练用于常识、言语、数量、判断等屏幕适配题型；资料分析建议在真题入口打印后纸面练习。'
+            : '提示：套题训练优先从真题入口中的结构化题库抽题，并按国考行测题型分布组卷。'}
+        </p>
       </div>
 
       {/* 倒计时弹窗 */}
@@ -820,7 +930,7 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
           <div className="max-w-4xl mx-auto">
             {q && (
               <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-8">
-                <p className="text-xl text-surface-900 dark:text-surface-0 leading-relaxed mb-8">{q.content}</p>
+                <QuestionContent content={q.content} large />
                 <div className="space-y-4">
                   {q.options.map((opt: string, i: number) => {
                     const isSelected = answers.get(q.id)?.myAnswer === opt[0];
@@ -872,7 +982,7 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
         <div className="max-w-4xl mx-auto p-6">
           {q && (
             <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-6">
-              <p className="text-lg text-surface-900 dark:text-surface-0 leading-relaxed mb-6">{q.content}</p>
+              <QuestionContent content={q.content} />
               <div className="space-y-3">
                 {q.options.map((opt: string, i: number) => {
                   const isSelected = answers.get(q.id)?.myAnswer === opt[0];
@@ -909,7 +1019,7 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
                   key={question.id ?? i}
                   onClick={() => setCurrentIndex(i)}
                   aria-label={`跳转到第 ${i + 1} 题`}
-                  className={`min-w-8 h-8 px-1 text-xs font-medium rounded border-2 transition-all ${
+                  className={`min-w-9 h-8 px-1.5 text-xs font-medium rounded border-2 transition-all tabular-nums ${
                     isSelected ? 'border-brand-500 bg-brand-500 text-white' :
                     hasAnswer ? 'border-surface-200 dark:border-surface-700 bg-brand-50 dark:bg-brand-500/10 text-surface-900 dark:text-surface-0' :
                     'border-surface-200 dark:border-surface-700 bg-white dark:bg-surface-800 text-surface-500 dark:text-surface-400 hover:border-surface-300 dark:hover:border-surface-600'

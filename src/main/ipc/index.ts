@@ -8,6 +8,8 @@ import * as chroma from '../chroma';
 import fs from 'fs';
 import path from 'path';
 import { PDFParse } from 'pdf-parse';
+import { enhancedSyncPdfToQuestions } from './enhanced-parser';
+import { buildGongkaoChatSystemPrompt, buildGongkaoEssayReviewPrompt } from './gongkao-skill';
 import { getNextFlashcardReview, getNextWrongReview } from '../../shared/review-schedule';
 import type { ExportPdfParams } from '../../shared/ipc';
 import {
@@ -28,6 +30,7 @@ import {
   toLegacyDailyRecord,
   toLegacyExamConfig,
   toLegacyFlashcard,
+  toLegacyKnowledgePoint,
   toLegacyMindMap,
   toLegacyPomodoroRecord,
   toLegacyQuestion,
@@ -118,7 +121,7 @@ function normalizeIdList(value: unknown) {
   );
 }
 
-const IMPORT_TABLES = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'review_sessions', 'recommendation_events', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes'] as const;
+const IMPORT_TABLES = ['questions', 'wrong_records', 'mind_maps', 'study_plans', 'daily_records', 'review_sessions', 'recommendation_events', 'achievements', 'flashcards', 'exam_config', 'pomodoro_records', 'encourage_quotes', 'knowledge_points'] as const;
 const MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024;
 
 function assertValidImportFile(filePath: string) {
@@ -170,7 +173,7 @@ function splitPdfText(text: string, fileName: string): { index: number; content:
   if (matches.length >= 3) {
     const chunks: { index: number; content: string }[] = [];
     for (let i = 0; i < matches.length; i++) {
-      const start = matches[i].index!;
+      const start = i === 0 ? 0 : matches[i].index!;
       const end = i + 1 < matches.length ? matches[i + 1].index! : text.length;
       const content = text.slice(start, end).trim();
       if (content.length > 10) {
@@ -228,6 +231,21 @@ type ImportedAnswerLookup = {
   allowNumberFallback: boolean;
 };
 
+type ImportedOptionParseResult = {
+  content: string;
+  options: string[];
+  trailingMaterial: string;
+};
+
+type ImportedDocGroup = {
+  key: string;
+  title: string;
+  source: string;
+  category: string;
+  content: string;
+  partCount: number;
+};
+
 function normalizeImportedQuestionText(text: string) {
   return text
     .replace(/\r\n/g, '\n')
@@ -236,17 +254,39 @@ function normalizeImportedQuestionText(text: string) {
     .trim();
 }
 
-function normalizeImportedQuestionType(rawType: string | null | undefined, content = '') {
+function inferQuestionTypeFromNumber(number: string | null | undefined) {
+  const value = Number.parseInt(String(number ?? ''), 10);
+  if (!Number.isFinite(value) || value < 1 || value > 135) return '';
+  if (value <= 20) return '行测-常识判断';
+  if (value <= 60) return '行测-言语理解';
+  if (value <= 75) return '行测-数量关系';
+  if (value <= 115) return '行测-判断推理';
+  return '行测-资料分析';
+}
+
+function normalizeImportedQuestionType(rawType: string | null | undefined, content = '', number?: string) {
+  const raw = String(rawType ?? '');
+  if (/^行测-(言语理解|数量关系|判断推理|资料分析|常识判断)$/.test(raw) || raw === '申论') return raw;
+  const rawText = raw.replace(/\s+/g, '');
+  const numberedType = inferQuestionTypeFromNumber(number);
+  const isXingceSource = /行测|行政职业能力测验/.test(rawText) || /行测|行政职业能力测验/.test(content);
+  if (numberedType && isXingceSource) return numberedType;
+  if (/申论/.test(rawText) && !isXingceSource) return '申论';
+  if (/资料|材料分析|统计|图表|增长率|比重/.test(rawText)) return '行测-资料分析';
+  if (/判断|图形推理|定义判断|类比推理|逻辑判断/.test(rawText)) return '行测-判断推理';
+  if (/数量|数学运算|数字推理|数资/.test(rawText)) return '行测-数量关系';
+  if (/言语|逻辑填空|片段阅读|语句表达|阅读理解|中心理解/.test(rawText)) return '行测-言语理解';
+  if (/常识|政治|法律|经济|科技|人文|历史|地理|时政/.test(rawText)) return '行测-常识判断';
+
+  if (numberedType) return numberedType;
+
   const text = `${rawType ?? ''} ${content}`.replace(/\s+/g, '');
+  if (/资料|材料分析|统计|图表|增长率|比重/.test(text)) return '行测-资料分析';
   if (/言语|逻辑填空|片段阅读|语句表达|阅读理解|中心理解/.test(text)) return '行测-言语理解';
   if (/数量|数学运算|数字推理|数资/.test(text)) return '行测-数量关系';
   if (/判断|图形推理|定义判断|类比推理|逻辑判断/.test(text)) return '行测-判断推理';
-  if (/资料|材料分析|统计|图表|增长率|比重/.test(text)) return '行测-资料分析';
   if (/常识|政治|法律|经济|科技|人文|历史|地理|时政/.test(text)) return '行测-常识判断';
   if (/申论/.test(text)) return '申论';
-
-  const raw = String(rawType ?? '');
-  if (/^行测-(言语理解|数量关系|判断推理|资料分析|常识判断)$/.test(raw) || raw === '申论') return raw;
   return '行测-常识判断';
 }
 
@@ -259,8 +299,153 @@ function normalizeImportedTitle(title: string) {
     .trim();
 }
 
+function getImportedDocPartInfo(title: string) {
+  const match = title.match(/^(.+?)\s*\((\d+)\/\d+\)\s*$/);
+  if (!match) return { base: title.trim(), part: 1 };
+  return {
+    base: match[1].trim(),
+    part: Number.parseInt(match[2], 10) || 1,
+  };
+}
+
+function getImportedDocGroupKey(doc: any) {
+  const { base } = getImportedDocPartInfo(String(doc.title ?? 'PDF题库'));
+  return `${doc.source ?? ''}:${doc.category ?? ''}:${base}`;
+}
+
+function groupImportedExamDocs(docs: any[]): ImportedDocGroup[] {
+  const groups = new Map<string, { title: string; source: string; category: string; docs: any[] }>();
+
+  for (const doc of docs) {
+    if (doc.source === 'pdf_answer' || String(doc.content ?? '').trim().length < 30) continue;
+    const title = String(doc.title ?? 'PDF题库');
+    const { base } = getImportedDocPartInfo(title);
+    const key = getImportedDocGroupKey(doc);
+    const group = groups.get(key) ?? {
+      title: base || title,
+      source: String(doc.source ?? ''),
+      category: String(doc.category ?? ''),
+      docs: [],
+    };
+    group.docs.push(doc);
+    groups.set(key, group);
+  }
+
+  return [...groups.entries()]
+    .map(([key, group]) => {
+      const parts = [...group.docs].sort((a, b) => {
+        const partA = getImportedDocPartInfo(String(a.title ?? '')).part;
+        const partB = getImportedDocPartInfo(String(b.title ?? '')).part;
+        return partA - partB || Number(a.id ?? 0) - Number(b.id ?? 0);
+      });
+      return {
+        key,
+        title: group.title,
+        source: group.source,
+        category: group.category,
+        content: stripImportedPageNoise(parts.map((doc) => String(doc.content ?? '')).join('\n\n')),
+        partCount: parts.length,
+      };
+    })
+    .sort((a, b) => a.key.localeCompare(b.key));
+}
+
 function importedQuestionKey(content: string) {
-  return normalizeImportedQuestionText(content).replace(/\s+/g, '').slice(0, 180);
+  return getImportedQuestionCore(content).replace(/\s+/g, '').slice(0, 180);
+}
+
+function getImportedQuestionCore(content: string) {
+  const normalized = normalizeImportedQuestionText(content);
+  const marker = '【题目】';
+  const markerIndex = normalized.lastIndexOf(marker);
+  if (markerIndex >= 0) {
+    return normalized.slice(markerIndex + marker.length).trim();
+  }
+  return normalized;
+}
+
+function stripImportedPageNoise(text: string) {
+  return normalizeImportedQuestionText(text)
+    .replace(/^\s*--\s*\d+\s+of\s+\d+\s*--\s*$/gim, '')
+    .replace(/^\s*-\s*\d+\s*-\s*$/gm, '')
+    .replace(/^\s*第\s*\d+\s*页\s*(?:共\s*\d+\s*页)?\s*$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function findImportedMaterialStart(text: string) {
+  const normalized = stripImportedPageNoise(text);
+  const explicitPattern = /(?:^|\n)\s*(?:[（(][一二三四五六七八九十\d]+[)）]\s*)?(?:根据(?:以下|下列|给定|上述)?资料|阅读(?:以下|下列)?资料|回答\s*\d{1,3}\s*[~～—-]\s*\d{1,3}\s*题|资料分析|材料[一二三四五六七八九十\d]*)/;
+  const explicit = explicitPattern.exec(normalized);
+  const dataPattern = /(?:^|\n)\s*(?:(?:19|20)\d{2}\s*年|截至\s*(?:19|20)\d{2}|据(?:统计|测算|调查|海关|国家统计局)|[一二三四五六七八九十]+、\s*(?:根据|阅读)|[（(][一二三四五六七八九十\d]+[)）]\s*(?:根据|阅读))/g;
+  let data: RegExpExecArray | null;
+  while ((data = dataPattern.exec(normalized))) {
+    if (data.index === 0 && explicit && explicit.index > 0) continue;
+    const tail = normalized.slice(data.index);
+    if (/(?:根据(?:以下|下列|给定|上述)?资料|阅读(?:以下|下列)?资料|回答\s*\d{1,3}\s*[~～—-]\s*\d{1,3}\s*题|^\s*\d{1,3}\s*(?:题|[、)）:：]|[.．](?!\d)))/m.test(tail)) {
+      if (!explicit || data.index < explicit.index) return data.index;
+    }
+  }
+  return explicit?.index ?? -1;
+}
+
+function trimImportedMaterialStart(text: string) {
+  const normalized = stripImportedPageNoise(text);
+  const start = findImportedMaterialStart(normalized);
+  if (start <= 0) return normalized;
+  const prefix = normalized.slice(0, start);
+  if (/(?:^|\n)\s*(?:\d{1,3}\s*[、.．:：]|[A-D]\s*[.．、)）:：])/.test(prefix)) {
+    return normalized.slice(start).trim();
+  }
+  return normalized;
+}
+
+function normalizeImportedMaterial(text: string) {
+  return trimImportedMaterialStart(text)
+    .replace(/(?:^|\n)\s*(?:[（(][一二三四五六七八九十\d]+[)）]\s*)?(?:根据(?:以下|下列|给定|上述)?资料|阅读(?:以下|下列)?资料|回答\s*\d{1,3}\s*[~～—-]\s*\d{1,3}\s*题)[。；;，,、.．]?\s*/g, '\n')
+    .replace(/^\s*(?:资料分析|材料[一二三四五六七八九十\d]*|[一二三四五六七八九十]+、)\s*[:：、.]?\s*/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function looksLikeImportedMaterial(text: string) {
+  const normalized = normalizeImportedMaterial(text);
+  if (normalized.length < 20) return false;
+  return /根据(?:以下|下列|给定|上述)?资料|阅读(?:以下|下列)?资料|回答\s*\d{1,3}\s*[~～—-]\s*\d{1,3}\s*题|资料分析|材料[一二三四五六七八九十\d]*|图\d*|表\d*|统计|增长|比重|百分点|亿元|万人|%|(?:19|20)\d{2}\s*年/.test(normalized);
+}
+
+function splitImportedOptionTail(value: string) {
+  const normalized = stripImportedPageNoise(value);
+  const materialStart = findImportedMaterialStart(normalized);
+  if (materialStart <= 0) return { value: normalized.trim(), trailingMaterial: '' };
+
+  const optionValue = normalized.slice(0, materialStart).trim();
+  const trailingMaterial = normalized.slice(materialStart).trim();
+  if (!looksLikeImportedMaterial(trailingMaterial)) return { value: value.trim(), trailingMaterial: '' };
+  return { value: optionValue, trailingMaterial };
+}
+
+function splitLeadingImportedMaterial(content: string, number: string) {
+  const escapedNumber = number.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const marker = new RegExp(`(?:第\\s*)?${escapedNumber}\\s*(?:题|[.．、)）:：])\\s*`);
+  const match = marker.exec(content);
+  if (!match || match.index <= 0) {
+    return { material: '', content: content.trim() };
+  }
+
+  const material = content.slice(0, match.index).trim();
+  const questionContent = content.slice(match.index + match[0].length).trim();
+  if (!looksLikeImportedMaterial(material) || !questionContent) {
+    return { material: '', content: content.trim() };
+  }
+  return { material: normalizeImportedMaterial(material), content: questionContent };
+}
+
+function formatImportedQuestionContent(material: string, content: string) {
+  const normalizedMaterial = normalizeImportedMaterial(material);
+  const normalizedContent = normalizeImportedQuestionText(content);
+  if (!normalizedMaterial) return normalizedContent;
+  return `【资料】\n${normalizedMaterial}\n\n【题目】${normalizedContent}`;
 }
 
 function buildImportedAnswerMap(docs: any[]): ImportedAnswerLookup {
@@ -301,18 +486,23 @@ function buildImportedAnswerMap(docs: any[]): ImportedAnswerLookup {
 }
 
 function splitImportedQuestionSegments(text: string) {
-  const normalized = normalizeImportedQuestionText(text);
-  const strictStarts = [...normalized.matchAll(/^\s*(?:第\s*)?(\d{1,3})\s*(?:题|[.．、)）:：])\s*/gm)];
+  const normalized = stripImportedPageNoise(text);
+  const validStart = (match: RegExpMatchArray) => {
+    const value = Number.parseInt(match[1], 10);
+    return Number.isFinite(value) && value >= 1 && value <= 150;
+  };
+  const strictStarts = [...normalized.matchAll(/^\s*(?:第\s*)?(\d{1,3})\s*(?:题|[、)）:：]|[.．](?!\d))\s*/gm)].filter(validStart);
   const starts = strictStarts.length > 0
     ? strictStarts
-    : [...normalized.matchAll(/^\s*(\d{1,3})\s+/gm)];
+    : [...normalized.matchAll(/^\s*(\d{1,3})\s+/gm)].filter(validStart);
 
   if (starts.length === 0) {
     return [{ number: '1', text: normalized }];
   }
 
   return starts.map((match, index) => {
-    const start = match.index ?? 0;
+    const prefix = index === 0 ? normalized.slice(0, match.index ?? 0).trim() : '';
+    const start = prefix && looksLikeImportedMaterial(prefix) ? 0 : match.index ?? 0;
     const end = index + 1 < starts.length ? starts[index + 1].index ?? normalized.length : normalized.length;
     return {
       number: match[1],
@@ -321,7 +511,7 @@ function splitImportedQuestionSegments(text: string) {
   });
 }
 
-function parseImportedOptions(segmentText: string) {
+function parseImportedOptions(segmentText: string): ImportedOptionParseResult {
   const normalized = normalizeImportedQuestionText(segmentText)
     .replace(/\s+([A-D])\s*[.．、)）:：]\s*/g, '\n$1. ')
     .replace(/([A-D])\s*[.．、)）:：]\s*/g, '\n$1. ');
@@ -332,7 +522,7 @@ function parseImportedOptions(segmentText: string) {
   }
 
   if (optionMatches.length < 2) {
-    return { content: segmentText, options: [] as string[] };
+    return { content: segmentText, options: [] as string[], trailingMaterial: '' };
   }
 
   const firstOptionIndex = optionMatches[0].index ?? normalized.length;
@@ -340,15 +530,19 @@ function parseImportedOptions(segmentText: string) {
     .slice(0, firstOptionIndex)
     .replace(/^\s*(?:第\s*)?\d{1,3}\s*(?:题|[.．、)）:：])?\s*/, '')
     .trim();
+  let trailingMaterial = '';
   const options = optionMatches.slice(0, 4).map((match) => {
     const label = match[1].toUpperCase();
-    const value = match[2]
+    const rawValue = match[2]
       .replace(/(?:【?答案】?|正确答案|参考答案|解析)\s*[:：]?[\s\S]*$/g, '')
       .trim();
+    const split = splitImportedOptionTail(rawValue);
+    if (split.trailingMaterial) trailingMaterial = split.trailingMaterial;
+    const value = split.value;
     return `${label}. ${value}`;
   });
 
-  return { content: content || segmentText, options };
+  return { content: content || segmentText, options, trailingMaterial };
 }
 
 function extractImportedAnswer(segmentText: string, doc: any, number: string, answerLookup: ImportedAnswerLookup) {
@@ -368,30 +562,45 @@ function extractPdfQuestionDraftsFromDocs(docs: any[]): PdfQuestionDraft[] {
   const answerLookup = buildImportedAnswerMap(docs);
   const drafts: PdfQuestionDraft[] = [];
   const seenContent = new Set<string>();
-  const examDocs = docs.filter((doc) => doc.source !== 'pdf_answer' && String(doc.content ?? '').trim().length >= 30);
+  const examGroups = groupImportedExamDocs(docs);
 
-  for (const doc of examDocs) {
-    const segments = splitImportedQuestionSegments(String(doc.content ?? ''));
+  for (const doc of examGroups) {
+    let activeMaterial = '';
+    let nextMaterial = '';
+    const title = doc.title || 'PDF题库';
+
+    const segments = splitImportedQuestionSegments(doc.content);
     segments.forEach((segment) => {
-      const parsed = parseImportedOptions(segment.text);
-      if (parsed.options.length < 2 || parsed.content.length < 8) return;
+      if (nextMaterial) {
+        activeMaterial = nextMaterial;
+        nextMaterial = '';
+      }
 
-      const key = importedQuestionKey(parsed.content);
+      const parsed = parseImportedOptions(segment.text);
+      const leading = splitLeadingImportedMaterial(parsed.content, segment.number);
+      if (leading.material) activeMaterial = leading.material;
+      if (parsed.trailingMaterial) nextMaterial = normalizeImportedMaterial(parsed.trailingMaterial);
+      if (parsed.options.length < 2 || leading.content.length < 8) return;
+
+      const category = doc.category;
+      const type = normalizeImportedQuestionType(category, `${title} ${activeMaterial} ${leading.content}`, segment.number);
+      const content = type === '行测-资料分析'
+        ? formatImportedQuestionContent(activeMaterial, leading.content)
+        : leading.content;
+      const key = importedQuestionKey(content);
       if (!key || seenContent.has(key)) return;
       seenContent.add(key);
 
       const answer = extractImportedAnswer(segment.text, doc, segment.number, answerLookup);
       const fallbackAnswer = parsed.options[0]?.[0]?.toUpperCase() || 'A';
-      const title = String(doc.title ?? 'PDF题库');
-      const category = String(doc.category ?? '');
 
       drafts.push({
-        type: normalizeImportedQuestionType(category, `${title} ${parsed.content}`),
-        content: parsed.content,
+        type,
+        content,
         options: parsed.options,
         answer: answer || fallbackAnswer,
         explanation: answer ? `来源：${title}` : `来源：${title}；未识别到答案，已默认使用 ${fallbackAnswer}。`,
-        tags: ['pdf_import', String(doc.source ?? ''), category, title].filter(Boolean).join(','),
+        tags: ['pdf_import', doc.source, category, title, `${doc.partCount}个分片合并`].filter(Boolean).join(','),
         hasAnswer: Boolean(answer),
       });
     });
@@ -408,26 +617,51 @@ function syncPdfDocsToQuestions() {
   `).all() as any[];
 
   const drafts = extractPdfQuestionDraftsFromDocs(docs);
-  const existingRows = sqlite.prepare('SELECT content FROM questions').all() as Array<{ content: string }>;
-  const existingKeys = new Set(existingRows.map((row) => importedQuestionKey(row.content)));
+  const existingRows = sqlite.prepare('SELECT id, content, tags FROM questions').all() as Array<{ id: number; content: string; tags: string | null }>;
+  const existingByKey = new Map(existingRows.map((row) => [importedQuestionKey(row.content), row]));
   const insert = sqlite.prepare(`
     INSERT INTO questions (type, content, options, answer, explanation, tags)
     VALUES (?, ?, ?, ?, ?, ?)
   `);
+  const update = sqlite.prepare(`
+    UPDATE questions
+    SET type = ?, content = ?, options = ?, answer = ?, explanation = ?, tags = ?
+    WHERE id = ?
+  `);
 
   let questionsImported = 0;
   let questionsSkipped = 0;
+  let questionsUpdated = 0;
   let questionsUnanswered = 0;
 
   const insertMany = sqlite.transaction((items: PdfQuestionDraft[]) => {
     for (const item of items) {
       const key = importedQuestionKey(item.content);
-      if (!key || existingKeys.has(key)) {
+      if (!key) {
         questionsSkipped++;
         continue;
       }
+      const existing = existingByKey.get(key);
+      if (existing) {
+        if (/pdf_import|pdf_exam/.test(existing.tags ?? '')) {
+          update.run(
+            item.type,
+            item.content,
+            JSON.stringify(item.options),
+            item.answer,
+            item.explanation,
+            item.tags,
+            existing.id,
+          );
+          questionsUpdated++;
+          if (!item.hasAnswer) questionsUnanswered++;
+        } else {
+          questionsSkipped++;
+        }
+        continue;
+      }
 
-      insert.run(
+      const info = insert.run(
         item.type,
         item.content,
         JSON.stringify(item.options),
@@ -435,14 +669,14 @@ function syncPdfDocsToQuestions() {
         item.explanation,
         item.tags,
       );
-      existingKeys.add(key);
+      existingByKey.set(key, { id: Number(info.lastInsertRowid), content: item.content, tags: item.tags });
       questionsImported++;
       if (!item.hasAnswer) questionsUnanswered++;
     }
   });
 
   insertMany(drafts);
-  return { questionsImported, questionsSkipped, questionsUnanswered };
+  return { questionsImported, questionsSkipped, questionsUpdated, questionsUnanswered };
 }
 
 export function registerIpcHandlers() {
@@ -1020,6 +1254,72 @@ export function registerIpcHandlers() {
       }));
   }));
 
+  // ==================== 用户知识点 ====================
+  ipcMain.handle(IPC.KNOWLEDGE_POINT_GET_ALL, safe(() => {
+    return db.select().from(schema.knowledgePoints).all()
+      .sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? '')))
+      .map((row) => toLegacyKnowledgePoint(row));
+  }));
+
+  ipcMain.handle(IPC.KNOWLEDGE_POINT_ADD, safe((point: any) => {
+    const title = String(point?.title ?? '').trim();
+    const content = String(point?.content ?? '').trim();
+    if (!title) throw new Error('请填写知识点名称');
+    if (!content) throw new Error('请填写知识点内容');
+
+    const now = formatLocalDateTime();
+    const row = db.insert(schema.knowledgePoints).values({
+      title,
+      category: String(point?.category ?? 'formula').trim() || 'formula',
+      content,
+      tags: Array.isArray(point?.tags)
+        ? point.tags.map((tag: unknown) => String(tag).trim()).filter(Boolean).join(' ')
+        : String(point?.tags ?? '').trim(),
+      createdAt: now,
+      updatedAt: now,
+    }).returning().get();
+
+    return toLegacyKnowledgePoint(row);
+  }));
+
+  ipcMain.handle(IPC.KNOWLEDGE_POINT_UPDATE, safe((point: any) => {
+    const id = Number(point?.id);
+    if (!Number.isFinite(id)) throw new Error('知识点 ID 无效');
+
+    const updates: Record<string, unknown> = {};
+    if (point.title !== undefined) {
+      const title = String(point.title).trim();
+      if (!title) throw new Error('请填写知识点名称');
+      updates.title = title;
+    }
+    if (point.content !== undefined) {
+      const content = String(point.content).trim();
+      if (!content) throw new Error('请填写知识点内容');
+      updates.content = content;
+    }
+    if (point.category !== undefined) {
+      updates.category = String(point.category).trim() || 'formula';
+    }
+    if (point.tags !== undefined) {
+      updates.tags = Array.isArray(point.tags)
+        ? point.tags.map((tag: unknown) => String(tag).trim()).filter(Boolean).join(' ')
+        : String(point.tags).trim();
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updates.updatedAt = formatLocalDateTime();
+      db.update(schema.knowledgePoints).set(updates).where(eq(schema.knowledgePoints.id, id)).run();
+    }
+
+    const updated = db.select().from(schema.knowledgePoints).where(eq(schema.knowledgePoints.id, id)).get();
+    return toLegacyKnowledgePoint(updated);
+  }));
+
+  ipcMain.handle(IPC.KNOWLEDGE_POINT_DELETE, safe((id: number) => {
+    db.delete(schema.knowledgePoints).where(eq(schema.knowledgePoints.id, Number(id))).run();
+    return { success: true };
+  }));
+
   // ==================== 数据导入导出 ====================
   ipcMain.handle(IPC.DATA_EXPORT, async () => {
     const result = await dialog.showSaveDialog({
@@ -1342,7 +1642,16 @@ export function registerIpcHandlers() {
 
   // 同步题库为知识文档
   ipcMain.handle(IPC.RAG_SYNC_QUESTIONS, async () => {
-    const questionSync = syncPdfDocsToQuestions();
+    // 使用增强版解析器
+    let questionSync;
+    try {
+      console.log('[IPC] 使用增强版PDF解析器');
+      questionSync = enhancedSyncPdfToQuestions();
+    } catch (err) {
+      console.error('[IPC] 增强解析器失败，回退到原版:', err);
+      questionSync = syncPdfDocsToQuestions();
+    }
+
     const questions = db.select().from(schema.questions).all();
     const existingDocs = db.select().from(schema.ragDocs).where(eq(schema.ragDocs.source, 'question_bank')).all();
     const existingIds = new Set(existingDocs.map((d) => d.title));
@@ -1563,7 +1872,7 @@ export function registerIpcHandlers() {
       .slice(-10);
 
     const messages = [
-      { role: 'system', content: `你是一个公考知识助手。根据以下参考资料回答用户问题。如果资料中没有相关内容，请如实说明。回答时请引用资料编号如 [1] [2]。\n\n参考资料:\n${context}` },
+      { role: 'system', content: buildGongkaoChatSystemPrompt(context) },
       ...history.map((m) => ({ role: m.role, content: m.content })),
     ];
 
@@ -1885,7 +2194,7 @@ ${context}
       }
     }
 
-    let questionSync = { questionsImported: 0, questionsSkipped: 0, questionsUnanswered: 0 };
+    let questionSync = { questionsImported: 0, questionsSkipped: 0, questionsUpdated: 0, questionsUnanswered: 0 };
     try {
       questionSync = syncPdfDocsToQuestions();
     } catch (err) {
@@ -2042,53 +2351,7 @@ ${Object.entries(wrongByType).map(([type, stat]) => `- ${type}：${stat.total}�
       type === 'application' ? '贯彻执行题' :
       type === 'essay' ? '大作文' : '申论';
 
-    const prompt = `你是一位资深公务员考试申论阅卷专家和辅导老师。请对以下申论答案进行专业批改。
-
-## 题目类型
-${typeLabel}
-
-## 题目要求
-${topic}
-
-${material ? `## 给定材料（摘要）\n${material.slice(0, 2000)}` : ''}
-
-## 考生答案
-${answer}
-
-${referenceContext ? `## 参考资料\n${referenceContext}` : ''}
-
-## 批改要求
-请从以下维度进行评分和点评：
-
-1.【总分评估】满分25分（大作文40分），给出预估分数和档次（一类/二类/三类/四类）
-
-2.【立意与审题】
-- 是否准确把握题目要求和材料主旨
-- 观点是否明确、有深度
-
-3.【内容与论证】
-- 要点是否齐全，是否遗漏关键信息
-- 论证是否充分，逻辑是否严密
-- 是否结合材料，有无脱离材料空谈
-
-4.【结构与条理】
-- 层次是否清晰，条理是否分明
-- 是否有总分结构或递进关系
-
-5.【语言与表达】
-- 用词是否准确规范
-- 是否有病句、错别字
-- 语言是否简洁有力
-
-6.【亮点与不足】
-- 答案中的亮点
-- 主要扣分点
-
-7.【修改建议】
-- 给出具体的改进方向
-- 如有可能，给出优化后的参考片段
-
-请用清晰的中文回答，每个维度用【】标注。`;
+    const prompt = buildGongkaoEssayReviewPrompt({ typeLabel, topic, material, referenceContext, answer });
 
     const baseUrl = config.llmApiUrl.replace(/\/+$/, '');
     let review = '';

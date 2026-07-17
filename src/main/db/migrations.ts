@@ -173,6 +173,27 @@ export function initDatabase() {
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_flashcards_next_review ON flashcards(next_review)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_pomodoro_records_date ON pomodoro_records(date)`);
 
+  // ===== v3.0 迁移：番茄钟专注率统计 =====
+  try {
+    db.run(sql`ALTER TABLE pomodoro_records ADD COLUMN real_focus_seconds INTEGER DEFAULT 0`);
+    console.log('[Migration v3.0] 添加 real_focus_seconds 字段成功');
+  } catch (e) {
+    // 字段已存在，忽略
+  }
+
+  try {
+    db.run(sql`ALTER TABLE pomodoro_records ADD COLUMN total_seconds INTEGER DEFAULT 0`);
+    console.log('[Migration v3.0] 添加 total_seconds 字段成功');
+  } catch (e) {
+    // 字段已存在，忽略
+  }
+
+  try {
+    db.run(sql`ALTER TABLE pomodoro_records ADD COLUMN focus_rate INTEGER DEFAULT 100`);
+    console.log('[Migration v3.0] 添加 focus_rate 字段成功');
+  } catch (e) {
+    // 字段已存在，忽略
+  }
   // RAG 知识库表
   db.run(sql`
     CREATE TABLE IF NOT EXISTS rag_docs (
@@ -207,9 +228,24 @@ export function initDatabase() {
     )
   `);
 
+  // 用户知识点表
+  db.run(sql`
+    CREATE TABLE IF NOT EXISTS knowledge_points (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      category TEXT DEFAULT 'formula',
+      content TEXT NOT NULL,
+      tags TEXT DEFAULT '',
+      created_at TEXT DEFAULT (datetime('now', 'localtime')),
+      updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+  `);
+
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_rag_messages_session ON rag_messages(session_id)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_rag_docs_source ON rag_docs(source)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_rag_sessions_updated ON rag_sessions(updated_at)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_knowledge_points_category ON knowledge_points(category)`);
+  db.run(sql`CREATE INDEX IF NOT EXISTS idx_knowledge_points_updated ON knowledge_points(updated_at)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_wrong_records_question ON wrong_records(question_id)`);
   db.run(sql`CREATE INDEX IF NOT EXISTS idx_achievements_unlocked ON achievements(unlocked_at)`);
 

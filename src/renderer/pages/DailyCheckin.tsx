@@ -6,7 +6,9 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
+  Play,
+  RotateCcw,
+  Square,
 } from 'lucide-react';
 import dayjs from 'dayjs';
 import {
@@ -21,8 +23,20 @@ import type { DailyRecord } from '../../shared/ipc';
 
 type CheckinRecord = Pick<DailyRecord, 'date' | 'study_minutes' | 'questions_done' | 'note'>;
 
-const TIME_OPTIONS = [30, 60, 90, 120, 180, 240, 300, 480];
+const CHECKIN_TIMER_START_KEY = 'gongkao_checkin_timer_started_at';
 const WEEK_DAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+function formatStudyMinutes(minutes: number) {
+  return minutes >= 60 ? `${(minutes / 60).toFixed(1)}h` : `${minutes}m`;
+}
+
+function formatElapsedTime(seconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const restSeconds = safeSeconds % 60;
+  return [hours, minutes, restSeconds].map((value) => String(value).padStart(2, '0')).join(':');
+}
 
 /* ─── Sub-components ─── */
 
@@ -59,30 +73,6 @@ const StatCard: React.FC<{
     <div>
       <p className="text-[11px] font-semibold text-surface-400 uppercase tracking-wider">{label}</p>
       <p className="text-lg font-bold text-surface-900 dark:text-surface-0 font-display">{value}</p>
-    </div>
-  </div>
-);
-
-const TimeSelector: React.FC<{
-  value: number;
-  onChange: (minutes: number) => void;
-}> = ({ value, onChange }) => (
-  <div>
-    <label className="block text-sm font-semibold text-surface-900 dark:text-surface-0 mb-2">学习时长</label>
-    <div className="grid grid-cols-4 gap-2">
-      {TIME_OPTIONS.map((m) => (
-        <button
-          key={m}
-          onClick={() => onChange(m)}
-          className={`py-2 rounded-xl text-sm transition-all duration-200 font-medium ${
-            value === m
-              ? 'bg-brand-500 text-white shadow-md active:scale-[0.96]'
-              : 'bg-surface-50 dark:bg-surface-700 text-surface-500 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-600'
-          }`}
-        >
-          {m >= 60 ? `${m / 60}h` : `${m}m`}
-        </button>
-      ))}
     </div>
   </div>
 );
@@ -168,10 +158,15 @@ const DailyCheckin: React.FC = () => {
   const [examDate, setExamDate] = useState('');
   const [note, setNote] = useState('');
   const [studyMinutes, setStudyMinutes] = useState(0);
+  const [timerStartedAt, setTimerStartedAt] = useState<number | null>(() => {
+    const stored = Number(localStorage.getItem(CHECKIN_TIMER_START_KEY));
+    return Number.isFinite(stored) && stored > 0 ? stored : null;
+  });
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [currentMonth, setCurrentMonth] = useState(dayjs());
 
-  const today = useMemo(() => dayjs().format('YYYY-MM-DD'), []);
-  const rangeStart = useMemo(() => dayjs().subtract(90, 'day').format('YYYY-MM-DD'), []);
+  const today = useMemo(() => dayjs(nowMs).format('YYYY-MM-DD'), [nowMs]);
+  const rangeStart = useMemo(() => dayjs(today).subtract(90, 'day').format('YYYY-MM-DD'), [today]);
   const todayRecordQuery = useDailyRecord(today);
   const statsQuery = useDailyStats(365);
   const rangeQuery = useDailyRecordRange(rangeStart, today);
@@ -180,11 +175,22 @@ const DailyCheckin: React.FC = () => {
   const updateExamConfig = useUpdateExamConfig();
 
   useEffect(() => {
+    setNowMs(Date.now());
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const record = todayRecordQuery.data ?? null;
     setTodayRecord(record);
     if (record) {
       setNote(record.note || '');
       setStudyMinutes(record.study_minutes || 0);
+    } else {
+      setStudyMinutes(0);
     }
   }, [todayRecordQuery.data]);
 
@@ -214,11 +220,33 @@ const DailyCheckin: React.FC = () => {
     return isNaN(diff) ? 0 : Math.max(0, diff);
   }, [examDate]);
 
+  const elapsedSeconds = useMemo(() => {
+    if (!timerStartedAt) return 0;
+    return Math.max(0, Math.floor((nowMs - timerStartedAt) / 1000));
+  }, [nowMs, timerStartedAt]);
+
+  const elapsedFullMinutes = useMemo(() => Math.floor(elapsedSeconds / 60), [elapsedSeconds]);
+
+  const startTimer = useCallback(() => {
+    const startedAt = Date.now();
+    localStorage.setItem(CHECKIN_TIMER_START_KEY, String(startedAt));
+    setTimerStartedAt(startedAt);
+    setNowMs(startedAt);
+  }, []);
+
+  const resetTimer = useCallback(() => {
+    localStorage.removeItem(CHECKIN_TIMER_START_KEY);
+    setTimerStartedAt(null);
+    setNowMs(Date.now());
+  }, []);
+
   const handleCheckin = useCallback(async () => {
+    if (!timerStartedAt || elapsedFullMinutes <= 0) return;
+
     try {
       await addDailyRecord.mutateAsync({
         date: today,
-        study_minutes: studyMinutes,
+        study_minutes: elapsedFullMinutes,
         questions_done: 0,
         wrong_count: 0,
         note,
@@ -231,28 +259,34 @@ const DailyCheckin: React.FC = () => {
           date: examDate || currentConfig?.date || '2026-12-01',
         });
       }
-      setTodayRecord({ date: today, study_minutes: studyMinutes, questions_done: 0, note });
+      const nextStudyMinutes = studyMinutes + elapsedFullMinutes;
+      setTodayRecord({ date: today, study_minutes: nextStudyMinutes, questions_done: 0, note });
+      setStudyMinutes(nextStudyMinutes);
+      resetTimer();
     } catch (e) {
       console.error(e);
     }
   }, [
     addDailyRecord,
     today,
+    timerStartedAt,
+    elapsedFullMinutes,
     studyMinutes,
     note,
     examConfigQuery.data,
     examName,
     examDate,
     updateExamConfig,
+    resetTimer,
   ]);
 
   const studyDisplay = useMemo(
-    () => (studyMinutes >= 60 ? `${(studyMinutes / 60).toFixed(1)}h` : `${studyMinutes}m`),
-    [studyMinutes]
+    () => formatStudyMinutes(studyMinutes + elapsedFullMinutes),
+    [elapsedFullMinutes, studyMinutes]
   );
 
   const isCheckedIn = !!todayRecord;
-  const canCheckin = studyMinutes > 0;
+  const canCheckin = !!timerStartedAt && elapsedFullMinutes > 0 && !addDailyRecord.isPending;
 
   return (
     <div className="p-6 space-y-6">
@@ -287,7 +321,69 @@ const DailyCheckin: React.FC = () => {
             今日打卡
           </h2>
           <div className="space-y-4">
-            <TimeSelector value={studyMinutes} onChange={setStudyMinutes} />
+            <div className="rounded-xl border border-surface-200 bg-surface-50 p-4 dark:border-surface-700 dark:bg-surface-900/40">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">开始时间</p>
+                  <p className="mt-1 text-sm font-semibold text-surface-900 dark:text-surface-0">
+                    {timerStartedAt ? dayjs(timerStartedAt).format('HH:mm:ss') : '--:--:--'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">系统时间</p>
+                  <p className="mt-1 text-sm font-semibold text-surface-900 dark:text-surface-0">
+                    {dayjs(nowMs).format('HH:mm:ss')}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-surface-400">本次学习</p>
+                  <p className="mt-1 font-mono text-lg font-bold text-brand-600 dark:text-brand-400">
+                    {formatElapsedTime(elapsedSeconds)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                {!timerStartedAt ? (
+                  <button
+                    type="button"
+                    onClick={startTimer}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-500 px-4 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:bg-brand-600 active:scale-[0.98]"
+                  >
+                    <Play className="h-4 w-4" />
+                    开始学习
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleCheckin}
+                      disabled={!canCheckin}
+                      className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                        !canCheckin
+                          ? 'cursor-not-allowed bg-surface-100 text-surface-400 dark:bg-surface-700'
+                          : 'bg-brand-500 text-white shadow-md hover:bg-brand-600 active:scale-[0.98]'
+                      }`}
+                    >
+                      <Square className="h-4 w-4" />
+                      {addDailyRecord.isPending ? '保存中' : isCheckedIn ? '结束并追加' : '结束并打卡'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={resetTimer}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-surface-200 px-4 py-3 text-sm font-semibold text-surface-600 transition-colors hover:bg-white dark:border-surface-700 dark:text-surface-300 dark:hover:bg-surface-800"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      重置
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {timerStartedAt && elapsedFullMinutes === 0 && (
+                <p className="mt-3 text-xs text-surface-400">满 1 分钟后可打卡。</p>
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-semibold text-surface-900 dark:text-surface-0 mb-1">今日总结</label>
@@ -319,23 +415,6 @@ const DailyCheckin: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={handleCheckin}
-              disabled={!canCheckin}
-              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-200 ${
-                !canCheckin
-                  ? 'bg-surface-50 dark:bg-surface-700 text-surface-400 cursor-not-allowed'
-                  : 'bg-brand-500 hover:bg-brand-600 text-white shadow-md active:scale-[0.98]'
-              }`}
-            >
-              {isCheckedIn ? (
-                <span className="flex items-center justify-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" /> 追加学习时长
-                </span>
-              ) : (
-                '立即打卡'
-              )}
-            </button>
           </div>
         </div>
 

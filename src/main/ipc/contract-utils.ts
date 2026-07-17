@@ -308,6 +308,20 @@ export function toLegacyFlashcard(row: LegacyLikeRecord | null | undefined) {
   };
 }
 
+export function toLegacyKnowledgePoint(row: LegacyLikeRecord | null | undefined) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    title: row.title,
+    category: row.category ?? 'formula',
+    content: row.content,
+    tags: row.tags ?? '',
+    created_at: getValue<string>(row, 'createdAt', 'created_at') ?? null,
+    updated_at: getValue<string>(row, 'updatedAt', 'updated_at') ?? null,
+  };
+}
+
 export function toLegacyExamConfig(row: LegacyLikeRecord | null | undefined) {
   if (!row) return null;
 

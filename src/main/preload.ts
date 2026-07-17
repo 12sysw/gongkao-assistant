@@ -77,6 +77,12 @@ const api: Api = {
     add: (event) => ipcRenderer.invoke(IPC.RECOMMENDATION_EVENT_ADD, event),
     getRecent: (days: number) => ipcRenderer.invoke(IPC.RECOMMENDATION_EVENT_GET_RECENT, days),
   },
+  knowledgePoint: {
+    add: (point) => ipcRenderer.invoke(IPC.KNOWLEDGE_POINT_ADD, point),
+    getAll: () => ipcRenderer.invoke(IPC.KNOWLEDGE_POINT_GET_ALL),
+    update: (point) => ipcRenderer.invoke(IPC.KNOWLEDGE_POINT_UPDATE, point),
+    delete: (id: number) => ipcRenderer.invoke(IPC.KNOWLEDGE_POINT_DELETE, id),
+  },
   data: {
     export: () => ipcRenderer.invoke(IPC.DATA_EXPORT),
     import: () => ipcRenderer.invoke(IPC.DATA_IMPORT),

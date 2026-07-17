@@ -158,6 +158,17 @@ export const ragMessages = sqliteTable('rag_messages', {
   createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
 });
 
+// ==================== 用户知识点 ====================
+export const knowledgePoints = sqliteTable('knowledge_points', {
+  id: integer('id', { mode: 'number' }).primaryKey({ autoIncrement: true }),
+  title: text('title').notNull(),
+  category: text('category').default('formula'),
+  content: text('content').notNull(),
+  tags: text('tags').default(''),
+  createdAt: text('created_at').default(sql`(datetime('now', 'localtime'))`),
+  updatedAt: text('updated_at').default(sql`(datetime('now', 'localtime'))`),
+});
+
 // ==================== 类型导出 ====================
 export type Question = typeof questions.$inferSelect;
 export type NewQuestion = typeof questions.$inferInsert;
@@ -187,6 +198,8 @@ export type RagSession = typeof ragSessions.$inferSelect;
 export type NewRagSession = typeof ragSessions.$inferInsert;
 export type RagMessage = typeof ragMessages.$inferSelect;
 export type NewRagMessage = typeof ragMessages.$inferInsert;
+export type KnowledgePoint = typeof knowledgePoints.$inferSelect;
+export type NewKnowledgePoint = typeof knowledgePoints.$inferInsert;
 
 // ==================== 知识图谱 ====================
 export const kgNodes = sqliteTable('kg_nodes', {

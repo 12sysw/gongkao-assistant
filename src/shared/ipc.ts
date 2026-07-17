@@ -67,6 +67,12 @@ export const IPC = {
   RECOMMENDATION_EVENT_ADD: 'recommendation-event:add',
   RECOMMENDATION_EVENT_GET_RECENT: 'recommendation-event:get-recent',
 
+  // 用户知识点
+  KNOWLEDGE_POINT_ADD: 'knowledge-point:add',
+  KNOWLEDGE_POINT_GET_ALL: 'knowledge-point:get-all',
+  KNOWLEDGE_POINT_UPDATE: 'knowledge-point:update',
+  KNOWLEDGE_POINT_DELETE: 'knowledge-point:delete',
+
   // 数据导入导出
   DATA_EXPORT: 'data:export',
   DATA_IMPORT: 'data:import',
@@ -327,6 +333,9 @@ export interface PomodoroRecord {
   date: string;
   duration: number;
   mode: string;
+  real_focus_seconds?: number;
+  total_seconds?: number;
+  focus_rate?: number;
   created_at: string | null;
 }
 
@@ -368,6 +377,19 @@ export interface RecommendationEventRecord {
 }
 
 export type RecommendationEventInput = Omit<RecommendationEventRecord, 'id' | 'created_at'>;
+
+export interface KnowledgePointRecord {
+  id: number;
+  title: string;
+  category: string;
+  content: string;
+  tags: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export type KnowledgePointInput = Omit<KnowledgePointRecord, 'id' | 'created_at' | 'updated_at'>;
+export type KnowledgePointUpdate = Partial<KnowledgePointInput> & { id: number };
 
 export interface RagDoc {
   id: number;
@@ -433,6 +455,7 @@ export interface RagImportResult {
   errors: number;
   questionsImported?: number;
   questionsSkipped?: number;
+  questionsUpdated?: number;
   questionsUnanswered?: number;
   message?: string;
 }
@@ -441,6 +464,7 @@ export interface RagSyncQuestionsResult {
   synced: number;
   questionsImported?: number;
   questionsSkipped?: number;
+  questionsUpdated?: number;
   questionsUnanswered?: number;
 }
 
@@ -651,6 +675,12 @@ export interface Api {
   recommendationEvent: {
     add: (event: RecommendationEventInput) => Promise<DeleteResult>;
     getRecent: (days: number) => Promise<RecommendationEventRecord[]>;
+  };
+  knowledgePoint: {
+    add: (point: KnowledgePointInput) => Promise<KnowledgePointRecord>;
+    getAll: () => Promise<KnowledgePointRecord[]>;
+    update: (point: KnowledgePointUpdate) => Promise<KnowledgePointRecord | null>;
+    delete: (id: number) => Promise<DeleteResult>;
   };
   data: {
     export: () => Promise<DataExportResult>;

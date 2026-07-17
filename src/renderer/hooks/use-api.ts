@@ -9,6 +9,8 @@ import type {
   FlashcardInput,
   FlashcardReviewParams,
   FlashcardUpdate,
+  KnowledgePointInput,
+  KnowledgePointUpdate,
   MindMapInput,
   PomodoroRecordInput,
   QuestionFilters,
@@ -185,11 +187,44 @@ export function useAddRecommendationEvent() {
   });
 }
 
+// ==================== 用户知识点 ====================
+export function useKnowledgePoints() {
+  return useQuery({
+    queryKey: ['knowledgePoints'],
+    queryFn: () => api.knowledgePoint.getAll(),
+  });
+}
+
+export function useAddKnowledgePoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (point: KnowledgePointInput) => api.knowledgePoint.add(point),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['knowledgePoints'] }),
+  });
+}
+
+export function useUpdateKnowledgePoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (point: KnowledgePointUpdate) => api.knowledgePoint.update(point),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['knowledgePoints'] }),
+  });
+}
+
+export function useDeleteKnowledgePoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => api.knowledgePoint.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['knowledgePoints'] }),
+  });
+}
+
 // ==================== RAG 知识库 ====================
-export function useRagDocs() {
+export function useRagDocs(enabled = true) {
   return useQuery({
     queryKey: ['ragDocs'],
     queryFn: () => api.rag.docGetAll(),
+    enabled,
   });
 }
 

@@ -10,6 +10,7 @@ const {
   sanitizeExportFileName,
   sortStudyPlans,
   toLegacyFlashcard,
+  toLegacyKnowledgePoint,
   toLegacyWrongRecord,
 } = require('../dist/main/main/ipc/contract-utils.js');
 const {
@@ -99,6 +100,29 @@ run('flashcard serializer keeps snake_case contract', () => {
       mastered: 0,
       next_review: '2026-04-30',
       created_at: '2026-04-28 10:00:00',
+    }
+  );
+});
+
+run('knowledge point serializer keeps snake_case contract', () => {
+  assert.deepEqual(
+    toLegacyKnowledgePoint({
+      id: 12,
+      title: '资料分析-基期比重',
+      category: 'formula',
+      content: '先找现期比重，再用增长率修正。',
+      tags: '资料分析 比重 易错',
+      createdAt: '2026-05-29 09:10:00',
+      updatedAt: '2026-05-29 09:20:00',
+    }),
+    {
+      id: 12,
+      title: '资料分析-基期比重',
+      category: 'formula',
+      content: '先找现期比重，再用增长率修正。',
+      tags: '资料分析 比重 易错',
+      created_at: '2026-05-29 09:10:00',
+      updated_at: '2026-05-29 09:20:00',
     }
   );
 });

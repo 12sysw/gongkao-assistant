@@ -21,12 +21,15 @@ import type { RagConfig, RagMessage } from '../../shared/ipc';
 type ChatMessage = RagMessage;
 type RagSettings = RagConfig;
 
-function formatQuestionSyncSummary(result: { questionsImported?: number; questionsSkipped?: number; questionsUnanswered?: number }) {
+function formatQuestionSyncSummary(result: { questionsImported?: number; questionsSkipped?: number; questionsUpdated?: number; questionsUnanswered?: number }) {
   if (result.questionsImported === undefined) return '';
+  const updatedText = result.questionsUpdated
+    ? `，更新 ${result.questionsUpdated} 题`
+    : '';
   const unansweredText = result.questionsUnanswered
     ? `，其中 ${result.questionsUnanswered} 题未识别答案`
     : '';
-  return `\n同步可测评题目：新增 ${result.questionsImported} 题，跳过 ${result.questionsSkipped ?? 0} 题${unansweredText}`;
+  return `\n同步可测评题目：新增 ${result.questionsImported} 题${updatedText}，跳过 ${result.questionsSkipped ?? 0} 题${unansweredText}`;
 }
 
 /* ─── RAG Settings Modal ─── */
