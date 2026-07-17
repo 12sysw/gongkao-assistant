@@ -13,6 +13,12 @@ const {
   toLegacyKnowledgePoint,
   toLegacyWrongRecord,
 } = require('../dist/main/main/ipc/contract-utils.js');
+const { parsePaperText, validateDraft } = require('../dist/main/shared/paper-import-parser.js');
+const { buildGongkaoEssayReviewPrompt } = require('../dist/main/main/ipc/gongkao-skill.js');
+const { buildEssayPaperHtml } = require('../dist/main/main/ipc/essay-paper.js');
+const { IPC } = require('../dist/main/shared/ipc.js');
+const fs = require('node:fs');
+const path = require('node:path');
 const {
   addDaysAsLocalDate,
   getNextFlashcardReview,
@@ -272,7 +278,65 @@ run('review schedule uses one local-date interval policy', () => {
   );
 });
 
-if (process.exitCode && process.exitCode !== 0) {
+run('paper import parser extracts editable questions and answers', () => {
+  const drafts = parsePaperText(`\u7b2c\u4e00\u90e8\u5206 \u8a00\u8bed\u7406\u89e3
+1. \u4e0b\u5217\u8bcd\u8bed\u586b\u5165\u6700\u6070\u5f53\u7684\u662f\uff1a
+A. \u7532
+B. \u4e59
+C. \u4e19
+D. \u4e01
+\u7b54\u6848\uff1aB
+
+2. \u6587\u6bb5\u610f\u5728\u8bf4\u660e\uff1a
+A. \u6625
+B. \u590f
+C. \u79cb
+D. \u51ac
+\u7b54\u6848\uff1aC`);
+
+  assert.equal(drafts.length, 2);
+  assert.equal(drafts[0].number, '1');
+  assert.equal(drafts[0].answer, 'B');
+  assert.equal(drafts[0].options.length, 4);
+  assert.equal(drafts[0].type, '\u884c\u6d4b-\u8a00\u8bed\u7406\u89e3');
+  assert.deepEqual(validateDraft(drafts[0]), []);
+});
+
+run('essay review prompt enforces timing review and rewrite checklist', () => {
+  const prompt = buildGongkaoEssayReviewPrompt({
+    typeLabel: '\u6982\u62ec\u5f52\u7eb3\u9898',
+    topic: '\u6982\u62ec\u4e3b\u8981\u95ee\u9898\u3002\u5efa\u8bae\u7528\u65f6 20 \u5206\u949f\uff0c\u5b9e\u9645\u7528\u65f6 28 \u5206\u949f\u3002',
+    answer: '\u4f5c\u7b54\u5185\u5bb9',
+  });
+  assert.equal(prompt.includes('\u7528\u65f6\u590d\u76d8'), true);
+  assert.equal(prompt.includes('\u6539\u5199\u6e05\u5355'), true);
+});
+
+
+run('essay answer sheet HTML escapes input and creates exact grids', () => {
+  const html = buildEssayPaperHtml({
+    title: '<script>\u7533\u8bba</script>',
+    candidate_info: true,
+    format: 'pdf',
+    questions: [{ title: '\u7b2c\u4e00\u9898', word_count: 100, suggested_minutes: 20 }],
+  });
+  assert.equal(html.includes('<script>\u7533\u8bba</script>'), false);
+  assert.equal(html.includes('&lt;script&gt;\u7533\u8bba&lt;/script&gt;'), true);
+  assert.equal((html.match(/<i>/g) || []).length, 100);
+});
+
+run('essay answer sheet IPC is registered', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'ipc', 'index.ts'), 'utf8');
+  assert.equal(source.includes('registerEssayPaperHandler();'), true);
+});
+
+run('PDF OCR fallback IPC is declared and registered', () => {
+  assert.equal(IPC.RAG_RENDER_PDF, 'rag:render-pdf');
+  const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'ipc', 'index.ts'), 'utf8');
+  assert.equal(source.includes('ipcMain.handle(IPC.RAG_RENDER_PDF'), true);
+});
+
+if (process.exitCode) {
   process.exit(process.exitCode);
 }
 

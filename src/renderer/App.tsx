@@ -37,9 +37,12 @@ const RagChatNew = lazy(() => import('./pages/RagChatNew'));
 const QuestionBank = lazy(() => import('./pages/QuestionBank'));
 const QuestionBankNew = lazy(() => import('./pages/QuestionBankNew'));
 const RealPapers = lazy(() => import('./pages/RealPapers'));
+const PaperImportWorkbench = lazy(() => import('./pages/PaperImportWorkbench'));
 const EssayReview = lazy(() => import('./pages/EssayReview'));
+const EssayPractice = lazy(() => import('./pages/EssayPractice'));
 const KnowledgeGraph = lazy(() => import('./pages/KnowledgeGraph'));
 const KnowledgeGraphNew = lazy(() => import('./pages/KnowledgeGraphNew'));
+const SkillTree = lazy(() => import('./pages/SkillTree'));
 const BrutalReport = lazy(() => import('./pages/BrutalReport'));
 const ComponentShowcase = lazy(() => import('./pages/ComponentShowcase'));
 
@@ -139,8 +142,8 @@ const App: React.FC = () => {
                 <Route path="/" element={<AnimatedPage><DashboardNew /></AnimatedPage>} />
                 <Route path="/dashboard-old" element={<AnimatedPage><Dashboard /></AnimatedPage>} />
                 <Route path="/review" element={<AnimatedPage><ReviewHub /></AnimatedPage>} />
-                <Route path="/mock-exam" element={<AnimatedPage><MockExamNew /></AnimatedPage>} />
-                <Route path="/mock-exam-old" element={<AnimatedPage><MockExam /></AnimatedPage>} />
+                <Route path="/mock-exam" element={<AnimatedPage><MockExam /></AnimatedPage>} />
+                <Route path="/mock-exam-new" element={<AnimatedPage><MockExamNew /></AnimatedPage>} />
                 <Route path="/exam" element={<AnimatedPage><ExamPage /></AnimatedPage>} />
                 <Route path="/exam-result" element={<AnimatedPage><ExamResult /></AnimatedPage>} />
                 <Route path="/wrong-book" element={<AnimatedPage><WrongBookNew /></AnimatedPage>} />
@@ -165,8 +168,11 @@ const App: React.FC = () => {
                 <Route path="/question-bank" element={<AnimatedPage><QuestionBankNew /></AnimatedPage>} />
                 <Route path="/question-bank-old" element={<AnimatedPage><QuestionBank /></AnimatedPage>} />
                 <Route path="/real-papers" element={<AnimatedPage><RealPapers /></AnimatedPage>} />
+                <Route path="/paper-import" element={<AnimatedPage><PaperImportWorkbench /></AnimatedPage>} />
                 <Route path="/essay-review" element={<AnimatedPage><EssayReview /></AnimatedPage>} />
+                <Route path="/essay-practice" element={<AnimatedPage><EssayPractice /></AnimatedPage>} />
                 <Route path="/knowledge-graph" element={<AnimatedPage><KnowledgeGraphNew /></AnimatedPage>} />
+                <Route path="/skill-tree" element={<AnimatedPage><SkillTree /></AnimatedPage>} />
                 <Route path="/knowledge-graph-old" element={<AnimatedPage><KnowledgeGraph /></AnimatedPage>} />
                 <Route path="/essay-review" element={<AnimatedPage><EssayReview /></AnimatedPage>} />
                 <Route path="/knowledge-graph" element={<AnimatedPage><KnowledgeGraph /></AnimatedPage>} />

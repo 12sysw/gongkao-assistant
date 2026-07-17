@@ -43,6 +43,8 @@ interface ExamReport {
   weaknesses: any[];
   suggestions: string[];
   aiAnalysis?: string;
+  pauseCount: number;
+  pauseSeconds: number;
 }
 
 interface MockExamState {
@@ -65,6 +67,13 @@ interface MockExamState {
   timeLeft: number;
   setTimeLeft: (time: number) => void;
   decrementTime: () => void;
+  isPaused: boolean;
+  pauseCount: number;
+  pauseSeconds: number;
+  pauseStartedAt: number | null;
+  togglePause: () => void;
+  resetPauseStats: () => void;
+  getPauseSeconds: () => number;
 
   // 报告
   report: ExamReport | null;
@@ -120,7 +129,26 @@ export const useMockExamStore = create<MockExamState>((set, get) => ({
 
   timeLeft: 120 * 60,
   setTimeLeft: (time) => set({ timeLeft: time }),
-  decrementTime: () => set({ timeLeft: get().timeLeft - 1 }),
+  decrementTime: () => set({ timeLeft: Math.max(0, get().timeLeft - 1) }),
+  isPaused: false,
+  pauseCount: 0,
+  pauseSeconds: 0,
+  pauseStartedAt: null,
+  togglePause: () => {
+    const state = get();
+    if (state.isPaused) {
+      const extra = state.pauseStartedAt ? Math.max(0, Math.floor((Date.now() - state.pauseStartedAt) / 1000)) : 0;
+      set({ isPaused: false, pauseStartedAt: null, pauseSeconds: state.pauseSeconds + extra });
+    } else {
+      set({ isPaused: true, pauseStartedAt: Date.now(), pauseCount: state.pauseCount + 1 });
+    }
+  },
+  resetPauseStats: () => set({ isPaused: false, pauseCount: 0, pauseSeconds: 0, pauseStartedAt: null }),
+  getPauseSeconds: () => {
+    const state = get();
+    const running = state.isPaused && state.pauseStartedAt ? Math.max(0, Math.floor((Date.now() - state.pauseStartedAt) / 1000)) : 0;
+    return state.pauseSeconds + running;
+  },
 
   report: null,
   setReport: (report) => set({ report }),

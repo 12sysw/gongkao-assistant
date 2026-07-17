@@ -10,6 +10,7 @@ import path from 'path';
 import { PDFParse } from 'pdf-parse';
 import { enhancedSyncPdfToQuestions } from './enhanced-parser';
 import { buildGongkaoChatSystemPrompt, buildGongkaoEssayReviewPrompt } from './gongkao-skill';
+import { registerEssayPaperHandler } from './essay-paper';
 import { getNextFlashcardReview, getNextWrongReview } from '../../shared/review-schedule';
 import type { ExportPdfParams } from '../../shared/ipc';
 import {
@@ -680,6 +681,7 @@ function syncPdfDocsToQuestions() {
 }
 
 export function registerIpcHandlers() {
+  registerEssayPaperHandler();
   // Helper: wrap sync IPC handler with try/catch, return error on failure
   const safe = <T extends any[]>(fn: (...args: T) => any) => (_: any, ...args: T) => {
     try {
@@ -2423,6 +2425,33 @@ ${Object.entries(wrongByType).map(([type, stat]) => `- ${type}ï¼š${stat.total}é¢
     } catch (err: any) {
       console.error('[PDF Parse] Error:', err);
       return { text: '', error: err.message };
+    }
+  });
+
+  // ==================== PDF page rendering for OCR fallback ====================
+  ipcMain.handle(IPC.RAG_RENDER_PDF, async (_event, buffer: ArrayBuffer, first = 12) => {
+    const pdfParser = new PDFParse(new Uint8Array(buffer));
+    try {
+      const result = await pdfParser.getScreenshot({
+        first: Math.max(1, Math.min(Number(first) || 12, 30)),
+        desiredWidth: 1800,
+        imageDataUrl: true,
+        imageBuffer: false,
+      });
+      return {
+        total: result.total,
+        pages: result.pages.map((page) => ({
+          page_number: page.pageNumber,
+          data_url: page.dataUrl,
+          width: page.width,
+          height: page.height,
+        })),
+      };
+    } catch (err: any) {
+      console.error('[PDF Render] Error:', err);
+      return { total: 0, pages: [], error: err.message };
+    } finally {
+      await pdfParser.destroy();
     }
   });
 

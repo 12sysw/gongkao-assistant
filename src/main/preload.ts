@@ -87,6 +87,7 @@ const api: Api = {
     export: () => ipcRenderer.invoke(IPC.DATA_EXPORT),
     import: () => ipcRenderer.invoke(IPC.DATA_IMPORT),
     exportPdf: (params) => ipcRenderer.invoke(IPC.EXPORT_PDF, params),
+    exportEssayPaper: (params) => ipcRenderer.invoke(IPC.ESSAY_PAPER_EXPORT, params),
   },
   chat: {
     generateUserSig: (userID: string) => ipcRenderer.invoke(IPC.CHAT_GENERATE_USER_SIG, userID),
@@ -122,6 +123,7 @@ const api: Api = {
     onEssayStreamEnd: (cb: () => void) => onChannel(IPC.RAG_ESSAY_STREAM_END, cb),
     parsePdf: (buffer: ArrayBuffer) => ipcRenderer.invoke(IPC.RAG_PARSE_PDF, buffer),
     parsePdfAi: (text: string) => ipcRenderer.invoke(IPC.RAG_PARSE_PDF_AI, text),
+    renderPdf: (buffer: ArrayBuffer, first?: number) => ipcRenderer.invoke(IPC.RAG_RENDER_PDF, buffer, first),
   },
   ai: {
     ocrImage: (base64Data: string) => ipcRenderer.invoke(IPC.AI_OCR_IMAGE, base64Data),

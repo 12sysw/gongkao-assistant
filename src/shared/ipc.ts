@@ -77,6 +77,7 @@ export const IPC = {
   DATA_EXPORT: 'data:export',
   DATA_IMPORT: 'data:import',
   EXPORT_PDF: 'export:pdf',
+  ESSAY_PAPER_EXPORT: 'essay-paper:export',
 
   // 聊天室
   CHAT_GENERATE_USER_SIG: 'chat:generate-user-sig',
@@ -113,6 +114,7 @@ export const IPC = {
   RAG_ESSAY_STREAM_END: 'rag:essay-stream-end',
   RAG_PARSE_PDF: 'rag:parse-pdf',
   RAG_PARSE_PDF_AI: 'rag:parse-pdf-ai',
+  RAG_RENDER_PDF: 'rag:render-pdf',
 
   // 知识图谱
   KG_GET_GRAPH: 'kg:get-graph',
@@ -547,6 +549,20 @@ export interface ExportPdfColumn {
   label: string;
 }
 
+
+export interface EssayPaperQuestionInput {
+  title: string;
+  word_count: number;
+  suggested_minutes: number;
+}
+
+export interface EssayPaperExportParams {
+  title: string;
+  candidate_info: boolean;
+  format: 'pdf' | 'png';
+  questions: EssayPaperQuestionInput[];
+}
+
 export interface ExportPdfParams {
   title: string;
   columns: ExportPdfColumn[];
@@ -579,6 +595,19 @@ export interface RagParsedQuestion {
 export interface RagParsedSection {
   title: string;
   questions: RagParsedQuestion[];
+}
+
+export interface RagPdfPageImage {
+  page_number: number;
+  data_url: string;
+  width: number;
+  height: number;
+}
+
+export interface RagRenderPdfResult {
+  pages: RagPdfPageImage[];
+  total: number;
+  error?: string;
 }
 
 export interface RagParsePdfAiResult {
@@ -686,6 +715,7 @@ export interface Api {
     export: () => Promise<DataExportResult>;
     import: () => Promise<DataImportResult>;
     exportPdf: (params: ExportPdfParams) => Promise<ExportPdfResult>;
+    exportEssayPaper: (params: EssayPaperExportParams) => Promise<ExportPdfResult>;
   };
   chat: {
     generateUserSig: (userID: string) => Promise<string>;
@@ -721,6 +751,7 @@ export interface Api {
     onEssayStreamEnd: (cb: () => void) => Unsubscribe;
     parsePdf: (buffer: ArrayBuffer) => Promise<{ text: string; error?: string }>;
     parsePdfAi: (text: string) => Promise<RagParsePdfAiResult>;
+    renderPdf: (buffer: ArrayBuffer, first?: number) => Promise<RagRenderPdfResult>;
   };
   ai: {
     ocrImage: (base64Data: string) => Promise<{ text: string; error?: string }>;

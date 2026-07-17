@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Upload, FileText, CheckCircle2, Image, Loader2, RotateCcw, Send } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Clock3, Image, Loader2, RotateCcw, Send } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useEssayReview, useEssayReviewStream } from '../hooks/use-api';
 
@@ -132,6 +132,8 @@ export default function EssayReview() {
   const [reviewing, setReviewing] = useState(false);
   const [reviewContent, setReviewContent] = useState('');
   const [showResult, setShowResult] = useState(false);
+  const [suggestedMinutes, setSuggestedMinutes] = useState(25);
+  const [actualMinutes, setActualMinutes] = useState(0);
   const resultRef = useRef<HTMLDivElement>(null);
   const essayReview = useEssayReview();
 
@@ -180,6 +182,8 @@ export default function EssayReview() {
     setStdAnswerText('');
     setReviewContent('');
     setShowResult(false);
+    setSuggestedMinutes(25);
+    setActualMinutes(0);
   };
 
   /* ─── Result View ─── */
@@ -198,6 +202,10 @@ export default function EssayReview() {
         </div>
         <div className="flex-1 overflow-y-auto p-6" ref={resultRef}>
           <div className="max-w-3xl mx-auto space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-violet-200 bg-violet-50 p-3 dark:border-violet-500/20 dark:bg-violet-500/10"><p className="text-xs font-medium text-violet-700 dark:text-violet-300">????</p><p className="mt-1 text-lg font-bold text-violet-800 dark:text-violet-200">{suggestedMinutes} ??</p></div>
+              <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-3 dark:border-cyan-500/20 dark:bg-cyan-500/10"><p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">????</p><p className="mt-1 text-lg font-bold text-cyan-800 dark:text-cyan-200">{actualMinutes > 0 ? `${actualMinutes} ??` : '???'}</p></div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-200 dark:border-blue-500/20">
                 <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">我的答案</p>
@@ -269,6 +277,14 @@ export default function EssayReview() {
             onChange={setStdAnswerText}
             placeholder="拍照上传标准答案（可选）"
           />
+
+          <div className="rounded-xl border border-surface-200 bg-white p-4 dark:border-surface-700 dark:bg-surface-800">
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-surface-900 dark:text-white"><Clock3 className="h-4 w-4 text-brand-500" />????</div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-1"><span className="text-xs text-surface-500">??????????</span><input type="number" min={1} max={180} value={suggestedMinutes} onChange={(event) => setSuggestedMinutes(Math.max(1, Number(event.target.value)))} className="w-full rounded-lg border border-surface-200 bg-transparent px-3 py-2 text-sm dark:border-surface-700" /></label>
+              <label className="space-y-1"><span className="text-xs text-surface-500">????????</span><input type="number" min={0} max={300} value={actualMinutes} onChange={(event) => setActualMinutes(Math.max(0, Number(event.target.value)))} className="w-full rounded-lg border border-surface-200 bg-transparent px-3 py-2 text-sm dark:border-surface-700" /></label>
+            </div>
+          </div>
 
           <div className="flex gap-3 pt-2">
             <button

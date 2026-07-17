@@ -7,10 +7,13 @@ import {
   AlertTriangle,
   RefreshCw,
   ChevronRight,
+  Pause,
+  Play,
 } from 'lucide-react';
 import { useMockExamStore } from '../stores/mock-exam-store';
 import { useQuestions, useRagConfig } from '../hooks/use-api';
 import type { QuestionRecord } from '../../shared/ipc';
+import { toast } from 'sonner';
 
 // ==================== 题目生成 ====================
 const QUESTION_TYPES = ['常识判断', '言语理解', '数量关系', '判断推理', '资料分析'];
@@ -609,7 +612,7 @@ export default function MockExam() {
 
   // 正式考试计时器
   useEffect(() => {
-    if (store.step === 'exam' && !store.challengeMode && store.timeLeft > 0) {
+    if (store.step === 'exam' && !store.challengeMode && !store.isPaused && store.timeLeft > 0) {
       const timer = setInterval(() => {
         if (store.timeLeft <= 1) {
           handleSubmit();
@@ -619,7 +622,7 @@ export default function MockExam() {
       }, 1000);
       return () => clearInterval(timer);
     }
-  }, [store.step, store.challengeMode, store.timeLeft]);
+  }, [store.step, store.challengeMode, store.isPaused, store.timeLeft]);
 
   // 挑战模式倒计时
   useEffect(() => {
@@ -662,6 +665,7 @@ export default function MockExam() {
     store.clearAnswers();
     store.setCurrentIndex(0);
     store.setTimeLeft(120 * 60);
+    store.resetPauseStats();
     const allQuestions = await loadQuestionData();
     const questions = loadExamQuestions(allQuestions, selectedPaperKey, skipDataAnalysis);
     store.setQuestions(questions);
@@ -737,6 +741,7 @@ export default function MockExam() {
     const unansweredCount = totalQuestions - totalAnswered;
     const accuracy = totalAnswered > 0 ? (correctCount / totalAnswered * 100).toFixed(1) : '0';
     const timeUsed = 120 * 60 - store.timeLeft;
+    const pauseSeconds = store.getPauseSeconds();
 
     // 按题型统计
     const typeStats: Record<string, { correct: number; total: number; unanswered: number }> = {};
@@ -754,7 +759,7 @@ export default function MockExam() {
 
     const suggestions = generateSuggestions(weaknesses, unansweredCount, timeUsed);
 
-    const report = { totalQuestions, totalAnswered, correctCount, unansweredCount, accuracy, timeUsed, typeStats, weaknesses, suggestions, aiAnalysis: undefined };
+    const report = { totalQuestions, totalAnswered, correctCount, unansweredCount, accuracy, timeUsed, pauseCount: store.pauseCount, pauseSeconds, typeStats, weaknesses, suggestions, aiAnalysis: undefined };
     store.setReport(report);
     store.setStep('result');
 
@@ -767,7 +772,7 @@ export default function MockExam() {
       }
       store.setAiAnalyzing(false);
     }).catch(() => store.setAiAnalyzing(false));
-  }, [ragConfig, store.answers, store.questions, store.timeLeft]);
+  }, [ragConfig, store.answers, store.questions, store.timeLeft, store.pauseCount]);
 
   // 重置考试
   const resetExam = useCallback(() => {
@@ -787,7 +792,7 @@ export default function MockExam() {
 
   // 答题界面
   if (step === 'exam') {
-    return <ExamPage questions={questions} currentIndex={currentIndex} answers={answers} timeLeft={timeLeft} challengeMode={challengeMode} challengeTimeLeft={challengeTimeLeft} handleAnswer={handleAnswer} handleSubmit={handleSubmit} showConfirm={showConfirm} confirmSubmit={confirmSubmit} setShowConfirm={store.setShowConfirm} setCurrentIndex={store.setCurrentIndex} />;
+    return <ExamPage questions={questions} currentIndex={currentIndex} answers={answers} timeLeft={timeLeft} isPaused={store.isPaused} togglePause={store.togglePause} challengeMode={challengeMode} challengeTimeLeft={challengeTimeLeft} handleAnswer={handleAnswer} handleSubmit={handleSubmit} showConfirm={showConfirm} confirmSubmit={confirmSubmit} setShowConfirm={store.setShowConfirm} setCurrentIndex={store.setCurrentIndex} />;
   }
 
   // 结果界面
@@ -895,7 +900,7 @@ function SelectPage({ startExam, startChallenge, challengeCountdown, challengeRe
 }
 
 // ==================== 答题页面 ====================
-function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, challengeTimeLeft, handleAnswer, handleSubmit, showConfirm, confirmSubmit, setShowConfirm, setCurrentIndex }: any) {
+function ExamPage({ questions, currentIndex, answers, timeLeft, isPaused, togglePause, challengeMode, challengeTimeLeft, handleAnswer, handleSubmit, showConfirm, confirmSubmit, setShowConfirm, setCurrentIndex }: any) {
   const q = questions[currentIndex];
   const progress = ((currentIndex + 1) / questions.length) * 100;
 
@@ -964,6 +969,10 @@ function ExamPage({ questions, currentIndex, answers, timeLeft, challengeMode, c
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium text-surface-500 dark:text-surface-400">已答 {answers.size} 题</span>
+            <button onClick={togglePause} className="inline-flex items-center gap-1.5 rounded-lg border border-surface-200 px-3 py-1.5 text-sm font-semibold text-surface-700 hover:bg-surface-50 dark:border-surface-700 dark:text-surface-200 dark:hover:bg-surface-700">
+              {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+              {isPaused ? '??' : '??'}
+            </button>
             <div className={`flex items-center gap-1 font-mono text-lg ${timeLeft < 600 ? 'text-danger' : 'text-surface-900 dark:text-surface-0'}`}>
               <Clock className="w-4 h-4" />
               {formatTime(timeLeft)}
@@ -1064,7 +1073,7 @@ function ResultPage({ report, aiAnalyzing, aiAnalysisText, resetExam }: any) {
       </div>
 
       {/* 核心数据 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
         <div className="bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700 rounded-xl p-4 text-center hover:shadow-card-hover transition-all">
           <p className="text-3xl font-bold text-surface-900 dark:text-surface-0 font-display">{report.correctCount}</p>
           <p className="text-sm font-medium text-surface-500 dark:text-surface-400 mt-1">正确题数</p>
