@@ -10,9 +10,10 @@ import path from 'path';
 import { PDFParse } from 'pdf-parse';
 import { enhancedSyncPdfToQuestions } from './enhanced-parser';
 import { buildGongkaoChatSystemPrompt, buildGongkaoEssayReviewPrompt } from './gongkao-skill';
+import { buildHuasheng13SystemPrompt, getHuasheng13Catalog, getHuasheng13Context } from './huasheng13';
 import { registerEssayPaperHandler } from './essay-paper';
 import { getNextFlashcardReview, getNextWrongReview } from '../../shared/review-schedule';
-import type { ExportPdfParams } from '../../shared/ipc';
+import type { ExportPdfParams, RagChatOptions, TeacherMode } from '../../shared/ipc';
 import {
   applyFlashcardFilters,
   applyQuestionFilters,
@@ -1795,7 +1796,9 @@ export function registerIpcHandlers() {
   });
 
   // LLM 问答 (带流式推送)
-  ipcMain.handle(IPC.RAG_CHAT, async (event, sessionId: number, message: string) => {
+  ipcMain.handle(IPC.HUASHENG_CATALOG_GET, () => getHuasheng13Catalog());
+
+  ipcMain.handle(IPC.RAG_CHAT, async (event, sessionId: number, message: string, options: RagChatOptions = {}) => {
     const config = getRagConfig();
     if (!config.llmApiUrl || !config.llmApiKey) {
       event.sender.send(IPC.RAG_STREAM_END);
@@ -1864,7 +1867,11 @@ export function registerIpcHandlers() {
     })();
 
     // 构建上下文
-    const context = searchResults.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join('\n\n---\n\n');
+    const context = searchResults.map((r, i) => `[??${i + 1}] ${r.title}\n${r.content}`).join('\n\n---\n\n');
+    const teacherMode: TeacherMode = options.teacher_mode ?? 'general';
+    const huasheng = getHuasheng13Context(message, teacherMode);
+    const ragSources = searchResults.map((r) => ({ id: Number(r.id), title: r.title, source: r.source ?? 'rag' }));
+    const combinedSources = [...huasheng.sources, ...ragSources];
 
     // 获取历史消息
     const history = db.select().from(schema.ragMessages)
@@ -1874,7 +1881,9 @@ export function registerIpcHandlers() {
       .slice(-10);
 
     const messages = [
-      { role: 'system', content: buildGongkaoChatSystemPrompt(context) },
+      { role: 'system', content: teacherMode === 'general'
+        ? buildGongkaoChatSystemPrompt(context)
+        : buildHuasheng13SystemPrompt(teacherMode, huasheng.context, context) },
       ...history.map((m) => ({ role: m.role, content: m.content })),
     ];
 
@@ -1888,7 +1897,7 @@ export function registerIpcHandlers() {
         body: JSON.stringify({
           model: config.llmModel || 'deepseek-chat',
           messages,
-          max_tokens: 2000,
+          max_tokens: teacherMode === 'general' ? 2000 : 3200,
           stream: true,
         }),
       });
@@ -1942,7 +1951,7 @@ export function registerIpcHandlers() {
         sessionId,
         role: 'assistant',
         content: answer,
-        sources: JSON.stringify(searchResults.map((r) => ({ id: r.id, title: r.title }))),
+        sources: JSON.stringify(combinedSources),
       }).returning().get();
     }
 
@@ -1954,7 +1963,7 @@ export function registerIpcHandlers() {
 
     event.sender.send(IPC.RAG_STREAM_END);
 
-    return { answer, sources: searchResults.map((r) => ({ id: r.id, title: r.title, source: r.source })) };
+    return { answer, sources: combinedSources };
   });
 
   // 错题 AI 分析 (RAG + LLM)
@@ -1982,7 +1991,10 @@ export function registerIpcHandlers() {
       ? relatedDocs.map((r, i) => `[${i + 1}] ${r.title}\n${r.content}`).join('\n\n')
       : '无相关参考资料';
 
-    const prompt = `你是公务员考试辅导专家。请分析以下错题并给出学习建议。
+    const huashengWrong = getHuasheng13Context(`${question.type}\n${question.content}`, 'wrong-review');
+    const wrongSystemPrompt = buildHuasheng13SystemPrompt('wrong-review', huashengWrong.context, context);
+
+    const prompt = `???????????????????
 
 题目类型：${question.type}
 题目内容：${question.content}
@@ -2009,7 +2021,7 @@ ${context}
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.llmApiKey}` },
         body: JSON.stringify({
           model: config.llmModel || 'deepseek-chat',
-          messages: [{ role: 'user', content: prompt }],
+          messages: [{ role: 'system', content: wrongSystemPrompt }, { role: 'user', content: prompt }],
           max_tokens: 2000,
           stream: true,
         }),
@@ -2343,9 +2355,11 @@ ${Object.entries(wrongByType).map(([type, stat]) => `- ${type}：${stat.total}�
       `).all();
     } catch (_) { /* ignore */ }
 
-    const referenceContext = relatedDocs.length > 0
-      ? relatedDocs.map((r, i) => `[${i + 1}] ${r.title}\n${r.content.slice(0, 500)}`).join('\n\n')
+    const userReferenceContext = relatedDocs.length > 0
+      ? relatedDocs.map((r, i) => `[??${i + 1}] ${r.title}\n${r.content.slice(0, 500)}`).join('\n\n')
       : '';
+    const huashengEssay = getHuasheng13Context(`${type}\n${topic}\n${material}`, 'essay');
+    const referenceContext = [huashengEssay.context, userReferenceContext].filter(Boolean).join('\n\n---\n\n');
 
     const typeLabel = type === 'summary' ? '概括归纳题' :
       type === 'analysis' ? '综合分析题' :

@@ -102,6 +102,7 @@ export const IPC = {
   RAG_SESSION_ADD_MESSAGE: 'rag:session:add-message',
   RAG_SESSION_GET_MESSAGES: 'rag:session:get-messages',
   RAG_CHAT: 'rag:chat',
+  HUASHENG_CATALOG_GET: 'huasheng13:catalog:get',
   RAG_STREAM_CHUNK: 'rag:stream-chunk',
   RAG_STREAM_END: 'rag:stream-end',
   RAG_IMPORT_PDFS: 'rag:import-pdfs',
@@ -445,6 +446,27 @@ export interface RagConfig {
   llmModel: string;
 }
 
+export type TeacherMode = 'general' | 'huasheng-auto' | 'xingce-speed' | 'foundation' | 'essay' | 'wrong-review' | 'planning';
+
+export interface RagChatOptions {
+  teacher_mode?: TeacherMode;
+}
+
+export interface HuashengCatalogReference {
+  id: string;
+  title: string;
+  category: string;
+  file: string;
+}
+
+export interface HuashengCatalogResult {
+  available: boolean;
+  name: string;
+  version: string;
+  modes: Array<{ id: TeacherMode; label: string }>;
+  references: HuashengCatalogReference[];
+}
+
 export interface RagChatResult {
   answer?: string;
   sources?: RagSource[];
@@ -738,7 +760,8 @@ export interface Api {
     sessionDelete: (id: number) => Promise<DeleteResult>;
     sessionAddMessage: (msg: RagMessageInput) => Promise<RagMessage>;
     sessionGetMessages: (sessionId: number) => Promise<RagMessage[]>;
-    chat: (sessionId: number, message: string) => Promise<RagChatResult>;
+    chat: (sessionId: number, message: string, options?: RagChatOptions) => Promise<RagChatResult>;
+    huashengCatalog: () => Promise<HuashengCatalogResult>;
     onStreamChunk: (cb: (chunk: string) => void) => Unsubscribe;
     onStreamEnd: (cb: () => void) => Unsubscribe;
     importPdfs: (dirPath: string) => Promise<RagImportResult>;

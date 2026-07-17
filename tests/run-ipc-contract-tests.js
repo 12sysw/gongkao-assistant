@@ -16,6 +16,7 @@ const {
 const { parsePaperText, validateDraft } = require('../dist/main/shared/paper-import-parser.js');
 const { buildGongkaoEssayReviewPrompt } = require('../dist/main/main/ipc/gongkao-skill.js');
 const { buildEssayPaperHtml } = require('../dist/main/main/ipc/essay-paper.js');
+const { buildHuasheng13SystemPrompt, getHuasheng13Catalog, getHuasheng13Context } = require('../dist/main/main/ipc/huasheng13.js');
 const { IPC } = require('../dist/main/shared/ipc.js');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -334,6 +335,37 @@ run('PDF OCR fallback IPC is declared and registered', () => {
   assert.equal(IPC.RAG_RENDER_PDF, 'rag:render-pdf');
   const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'ipc', 'index.ts'), 'utf8');
   assert.equal(source.includes('ipcMain.handle(IPC.RAG_RENDER_PDF'), true);
+});
+
+
+run('huasheng13 bundled skill catalog is available', () => {
+  const catalog = getHuasheng13Catalog();
+  assert.equal(catalog.available, true);
+  assert.equal(catalog.references.length >= 25, true);
+  assert.equal(catalog.modes.some((mode) => mode.id === 'xingce-speed'), true);
+});
+
+run('huasheng13 routes speed questions to method references', () => {
+  const result = getHuasheng13Context('\u589e\u957f\u91cf\u600e\u4e48\u7528 415 \u4efd\u6570\u6cd5\u901f\u7b97', 'xingce-speed');
+  assert.equal(result.context.includes('415'), true);
+  assert.equal(result.sources.some((source) => source.source.includes('ziliao')), true);
+  const prompt = buildHuasheng13SystemPrompt('xingce-speed', result.context, '');
+  assert.equal(prompt.includes('\u9898\u578b\u8bc6\u522b'), true);
+  assert.equal(prompt.includes('\u6613\u9519\u70b9'), true);
+});
+
+run('huasheng13 routes essay mode without full essay ghostwriting', () => {
+  const result = getHuasheng13Context('\u7533\u8bba\u5927\u4f5c\u6587\u5982\u4f55\u5ba1\u9898\u7acb\u610f', 'essay');
+  assert.equal(result.sources.some((source) => source.source.includes('shenlun')), true);
+  const prompt = buildHuasheng13SystemPrompt('essay', result.context, '');
+  assert.equal(prompt.includes('\u4e0d\u5f97\u4ee3\u5199\u5b8c\u6574\u8303\u6587'), true);
+});
+
+run('huasheng13 catalog IPC and preload bridge are registered', () => {
+  const mainSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'ipc', 'index.ts'), 'utf8');
+  const preloadSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'preload.ts'), 'utf8');
+  assert.equal(mainSource.includes('IPC.HUASHENG_CATALOG_GET'), true);
+  assert.equal(preloadSource.includes('huashengCatalog'), true);
 });
 
 if (process.exitCode) {

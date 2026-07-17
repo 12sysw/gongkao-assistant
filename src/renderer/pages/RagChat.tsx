@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageSquare, Plus, Trash2, Send, Loader2, BookOpen, Settings, ChevronDown, ChevronRight, FileText, Database } from 'lucide-react';
+import { MessageSquare, Plus, Trash2, Send, Loader2, BookOpen, Settings, ChevronDown, ChevronRight, FileText, Database, Sparkles } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '../lib/utils';
 import {
@@ -15,11 +15,30 @@ import {
   useImportPdfs,
   useRagStream,
   useSendRagChat,
+  useHuashengCatalog,
 } from '../hooks/use-api';
-import type { RagConfig, RagMessage } from '../../shared/ipc';
+import type { RagConfig, RagMessage, TeacherMode } from '../../shared/ipc';
 
 type ChatMessage = RagMessage;
 type RagSettings = RagConfig;
+
+const TEACHER_MODE_OPTIONS: Array<{ id: TeacherMode; label: string; hint: string }> = [
+  { id: 'huasheng-auto', label: '花生十三·自动识别', hint: '自动识别题型并调用对应方法' },
+  { id: 'xingce-speed', label: '行测速解', hint: '速算、选项排除和考场用时' },
+  { id: 'foundation', label: '基础讲解', hint: '先讲原理和识别标志' },
+  { id: 'essay', label: '申论审题', hint: '审题、找点、加工和修改建议' },
+  { id: 'wrong-review', label: '错因复盘', hint: '四类错因与下次提醒' },
+  { id: 'planning', label: '备考规划', hint: '基础、强化、冲刺三阶段' },
+  { id: 'general', label: '通用 RAG', hint: '仅使用用户知识库' },
+];
+
+const MODE_PROMPTS: Partial<Record<TeacherMode, string[]>> = {
+  'huasheng-auto': ['资料分析怎么提速到 25 分钟？', '帮我识别这道题的题型和速解方法'],
+  'xingce-speed': ['讲解截位直除和 415 份数法', '数量关系应该选做哪些题？'],
+  essay: ['帮我审申论题，只给框架不代写', '如何从材料中找点并分类？'],
+  'wrong-review': ['按知识盲区、技巧不熟、粗心、时间不够复盘这道错题'],
+  planning: ['我还有 60 天备考，每天 3 小时，怎么安排？'],
+};
 
 function formatQuestionSyncSummary(result: { questionsImported?: number; questionsSkipped?: number; questionsUpdated?: number; questionsUnanswered?: number }) {
   if (result.questionsImported === undefined) return '';
@@ -334,11 +353,16 @@ const RagChat: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [pendingMessages, setPendingMessages] = useState<ChatMessage[]>([]);
+  const [teacherMode, setTeacherMode] = useState<TeacherMode>(() => {
+    const saved = localStorage.getItem('gongkao-teacher-mode') as TeacherMode | null;
+    return TEACHER_MODE_OPTIONS.some((item) => item.id === saved) ? saved! : 'huasheng-auto';
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: sessions = [] } = useRagSessions();
   const { data: messages = [] } = useRagMessages(activeSessionId);
   const { data: ragConfig } = useRagConfig();
+  const { data: huashengCatalog } = useHuashengCatalog();
   const createSession = useCreateRagSession();
   const deleteSession = useDeleteRagSession();
   const saveConfig = useSaveRagConfig();
@@ -346,6 +370,7 @@ const RagChat: React.FC = () => {
 
   // Keep ref in sync so stream callbacks can access current sessionId
   useEffect(() => { sessionIdRef.current = activeSessionId; }, [activeSessionId]);
+  useEffect(() => { localStorage.setItem('gongkao-teacher-mode', teacherMode); }, [teacherMode]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -397,7 +422,7 @@ const RagChat: React.FC = () => {
     setPendingMessages((prev) => [...prev, optimisticUserMsg]);
 
     try {
-      await sendRagChat.mutateAsync({ sessionId: activeSessionId, message: question });
+      await sendRagChat.mutateAsync({ sessionId: activeSessionId, message: question, options: { teacher_mode: teacherMode } });
     } catch (err) {
       console.error('[RAG Chat] Error:', err);
       setStreaming(false);
@@ -486,12 +511,17 @@ const RagChat: React.FC = () => {
               智能问答
             </h1>
           </div>
-          <button
-            onClick={() => setShowSettings(true)}
-            className="p-2 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Sparkles className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-violet-500" />
+              <select value={teacherMode} onChange={(event) => setTeacherMode(event.target.value as TeacherMode)} disabled={streaming} className="rounded-lg border border-violet-200 bg-violet-50 py-1.5 pl-8 pr-8 text-xs font-semibold text-violet-700 outline-none dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-300">
+                {TEACHER_MODE_OPTIONS.map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}
+              </select>
+            </div>
+            <button onClick={() => setShowSettings(true)} className="p-2 text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-700">
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* 消息列表 */}
@@ -531,6 +561,11 @@ const RagChat: React.FC = () => {
         {/* 输入框 */}
         {activeSessionId && (
           <div className="shrink-0 px-4 pb-4">
+            <div className="mx-auto mb-2 flex max-w-3xl flex-wrap items-center gap-2">
+              <span className="rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-semibold text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">{TEACHER_MODE_OPTIONS.find((item) => item.id === teacherMode)?.label}</span>
+              <span className="text-[11px] text-surface-500">{TEACHER_MODE_OPTIONS.find((item) => item.id === teacherMode)?.hint}</span>
+              {(MODE_PROMPTS[teacherMode] ?? []).map((prompt) => <button key={prompt} onClick={() => setInput(prompt)} className="rounded-full border border-surface-200 px-2.5 py-1 text-[11px] text-surface-500 hover:border-violet-300 hover:text-violet-600 dark:border-surface-700">{prompt}</button>)}
+            </div>
             <div className="flex gap-2 items-end max-w-3xl mx-auto">
               <textarea
                 value={input}

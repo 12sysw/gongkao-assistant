@@ -24,6 +24,7 @@ import type {
   WrongBookFilters,
   WrongBookInput,
   WrongBookUpdate,
+  RagChatOptions,
 } from '../../shared/ipc';
 
 const api = window.api;
@@ -263,8 +264,16 @@ export function useRagStream(callbacks: StreamCallbacks) {
 
 export function useSendRagChat() {
   return useMutation({
-    mutationFn: ({ sessionId, message }: { sessionId: number; message: string }) =>
-      api.rag.chat(sessionId, message),
+    mutationFn: ({ sessionId, message, options }: { sessionId: number; message: string; options?: RagChatOptions }) =>
+      api.rag.chat(sessionId, message, options),
+  });
+}
+
+export function useHuashengCatalog() {
+  return useQuery({
+    queryKey: ['huashengCatalog'],
+    queryFn: () => api.rag.huashengCatalog(),
+    staleTime: Infinity,
   });
 }
 

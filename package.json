@@ -11,13 +11,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:main": "tsc -p tsconfig.main.json && npm run copy:font",
+    "build:main": "tsc -p tsconfig.main.json && npm run copy:font && npm run copy:skills",
     "copy:font": "node -e \"require('fs').mkdirSync('dist/main/fonts', {recursive:true}); require('fs').copyFileSync('src/main/fonts/simhei.ttf', 'dist/main/fonts/simhei.ttf')\"",
     "build:all": "npm run build && npm run build:main",
     "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && cross-env NODE_ENV=development electron .\"",
     "electron:build": "npm run build:all && electron-builder",
     "lint": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit",
-    "test": "npm run build:main && node tests/run-ipc-contract-tests.js"
+    "test": "npm run build:main && node tests/run-ipc-contract-tests.js",
+    "copy:skills": "node scripts/copy-skills.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
