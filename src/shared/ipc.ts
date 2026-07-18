@@ -103,6 +103,12 @@ export const IPC = {
   RAG_SESSION_GET_MESSAGES: 'rag:session:get-messages',
   RAG_CHAT: 'rag:chat',
   HUASHENG_CATALOG_GET: 'huasheng13:catalog:get',
+
+  // Bundled kaogong-study-tracker snapshot (core desktop flow only)
+  STUDY_TRACKER_STATUS: 'study-tracker:status',
+  STUDY_TRACKER_RECORD: 'study-tracker:record',
+  STUDY_TRACKER_SUMMARY: 'study-tracker:summary',
+  STUDY_TRACKER_REVIEW: 'study-tracker:review',
   RAG_STREAM_CHUNK: 'rag:stream-chunk',
   RAG_STREAM_END: 'rag:stream-end',
   RAG_IMPORT_PDFS: 'rag:import-pdfs',
@@ -658,6 +664,23 @@ export interface UpdateCheckResult {
   message: string;
 }
 
+export interface StudyTrackerStatus {
+  available: boolean;
+  total_days_studied: number;
+  streak: number;
+  module_accuracy: Record<string, number>;
+  pending_review_count: number;
+}
+
+export interface StudyTrackerActionResult {
+  success: boolean;
+  kind: string;
+  message: string;
+  parsed?: Record<string, unknown>;
+  record?: Record<string, unknown>;
+  status?: StudyTrackerStatus;
+}
+
 export interface Api {
   question: {
     add: (q: QuestionInput) => Promise<QuestionRecord>;
@@ -775,6 +798,12 @@ export interface Api {
     parsePdf: (buffer: ArrayBuffer) => Promise<{ text: string; error?: string }>;
     parsePdfAi: (text: string) => Promise<RagParsePdfAiResult>;
     renderPdf: (buffer: ArrayBuffer, first?: number) => Promise<RagRenderPdfResult>;
+  };
+  studyTracker: {
+    status: () => Promise<StudyTrackerStatus>;
+    record: (text: string) => Promise<StudyTrackerActionResult>;
+    summary: () => Promise<StudyTrackerActionResult>;
+    review: () => Promise<StudyTrackerActionResult>;
   };
   ai: {
     ocrImage: (base64Data: string) => Promise<{ text: string; error?: string }>;

@@ -18,7 +18,9 @@
     "electron:build": "npm run build:all && electron-builder",
     "lint": "tsc --noEmit && tsc -p tsconfig.main.json --noEmit",
     "test": "npm run build:main && node tests/run-ipc-contract-tests.js",
-    "copy:skills": "node scripts/copy-skills.js"
+    "copy:skills": "node scripts/copy-skills.js",
+    "verify:study-tracker": "node scripts/verify-kaogong-study-tracker.js",
+    "verify:study-tracker:package": "node scripts/verify-packaged-study-tracker.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -78,7 +80,14 @@
       "output": "release"
     },
     "files": [
-      "dist/**/*"
+      "dist/**/*",
+      {
+        "from": "dist/main/skills/kaogong-study-tracker",
+        "to": "dist/main/skills/kaogong-study-tracker",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "win": {
       "target": [

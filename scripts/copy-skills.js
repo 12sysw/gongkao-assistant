@@ -1,5 +1,6 @@
 ﻿const fs = require('node:fs');
 const path = require('node:path');
+const { verifySnapshot } = require('./verify-kaogong-study-tracker');
 
 const source = path.resolve(__dirname, '../src/main/skills');
 const destination = path.resolve(__dirname, '../dist/main/skills');
@@ -22,5 +23,9 @@ if (!fs.existsSync(source)) {
   process.exit(0);
 }
 
+const trackerSource = path.join(source, 'kaogong-study-tracker');
+const trackerDestination = path.join(destination, 'kaogong-study-tracker');
+verifySnapshot(trackerSource);
 copyDirectory(source, destination);
+verifySnapshot(trackerDestination);
 console.log(`[copy-skills] copied ${source} -> ${destination}`);

@@ -43,6 +43,7 @@ const EssayPractice = lazy(() => import('./pages/EssayPractice'));
 const KnowledgeGraph = lazy(() => import('./pages/KnowledgeGraph'));
 const KnowledgeGraphNew = lazy(() => import('./pages/KnowledgeGraphNew'));
 const SkillTree = lazy(() => import('./pages/SkillTree'));
+const StudyTracker = lazy(() => import('./pages/StudyTracker'));
 const BrutalReport = lazy(() => import('./pages/BrutalReport'));
 const ComponentShowcase = lazy(() => import('./pages/ComponentShowcase'));
 
@@ -173,6 +174,7 @@ const App: React.FC = () => {
                 <Route path="/essay-practice" element={<AnimatedPage><EssayPractice /></AnimatedPage>} />
                 <Route path="/knowledge-graph" element={<AnimatedPage><KnowledgeGraphNew /></AnimatedPage>} />
                 <Route path="/skill-tree" element={<AnimatedPage><SkillTree /></AnimatedPage>} />
+                <Route path="/study-tracker" element={<AnimatedPage><StudyTracker /></AnimatedPage>} />
                 <Route path="/knowledge-graph-old" element={<AnimatedPage><KnowledgeGraph /></AnimatedPage>} />
                 <Route path="/essay-review" element={<AnimatedPage><EssayReview /></AnimatedPage>} />
                 <Route path="/knowledge-graph" element={<AnimatedPage><KnowledgeGraph /></AnimatedPage>} />

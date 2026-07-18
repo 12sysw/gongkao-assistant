@@ -20,6 +20,7 @@ const { buildHuasheng13SystemPrompt, getHuasheng13Catalog, getHuasheng13Context 
 const { IPC } = require('../dist/main/shared/ipc.js');
 const fs = require('node:fs');
 const path = require('node:path');
+const { verifySnapshot } = require('../scripts/verify-kaogong-study-tracker.js');
 const {
   addDaysAsLocalDate,
   getNextFlashcardReview,
@@ -366,6 +367,55 @@ run('huasheng13 catalog IPC and preload bridge are registered', () => {
   const preloadSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'preload.ts'), 'utf8');
   assert.equal(mainSource.includes('IPC.HUASHENG_CATALOG_GET'), true);
   assert.equal(preloadSource.includes('huashengCatalog'), true);
+});
+
+
+run('kaogong-study-tracker source and build snapshots are byte-identical', () => {
+  const projectRoot = path.join(__dirname, '..');
+  const sourceResult = verifySnapshot(path.join(projectRoot, 'src', 'main', 'skills', 'kaogong-study-tracker'));
+  const buildResult = verifySnapshot(path.join(projectRoot, 'dist', 'main', 'skills', 'kaogong-study-tracker'));
+  const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
+  const packagedSnapshotRule = packageJson.build.files.find(
+    (entry) =>
+      typeof entry === 'object' &&
+      entry.from === 'dist/main/skills/kaogong-study-tracker' &&
+      entry.to === 'dist/main/skills/kaogong-study-tracker'
+  );
+
+  assert.equal(sourceResult.fileCount, 28);
+  assert.equal(buildResult.fileCount, 28);
+  assert.equal(sourceResult.commit, 'cf9fafd3c607650f48470c0faced14a2d165cf39');
+  assert.equal(buildResult.commit, sourceResult.commit);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'dist', 'main', 'skills', 'kaogong-study-tracker', 'SKILL.md')), true);
+  assert.deepEqual(packagedSnapshotRule?.filter, ['**/*']);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'scripts', 'verify-packaged-study-tracker.js')), true);
+});
+
+run('study tracker exposes only the four core desktop actions', () => {
+  assert.equal(IPC.STUDY_TRACKER_STATUS, 'study-tracker:status');
+  assert.equal(IPC.STUDY_TRACKER_RECORD, 'study-tracker:record');
+  assert.equal(IPC.STUDY_TRACKER_SUMMARY, 'study-tracker:summary');
+  assert.equal(IPC.STUDY_TRACKER_REVIEW, 'study-tracker:review');
+  assert.equal(IPC.STUDY_TRACKER_EXPORT, undefined);
+  assert.equal(IPC.STUDY_TRACKER_OPEN_DATA, undefined);
+  assert.equal(IPC.STUDY_TRACKER_OPEN_SOURCE, undefined);
+
+  const mainSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'ipc', 'index.ts'), 'utf8');
+  const adapterSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'ipc', 'study-tracker.ts'), 'utf8');
+  const preloadSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'main', 'preload.ts'), 'utf8');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'App.tsx'), 'utf8');
+  const sidebarSource = fs.readFileSync(path.join(__dirname, '..', 'src', 'renderer', 'components', 'Sidebar.tsx'), 'utf8');
+
+  assert.equal(mainSource.includes('registerStudyTrackerHandlers();'), true);
+  assert.equal(adapterSource.includes("ipcMain.handle(IPC.STUDY_TRACKER_STATUS"), true);
+  assert.equal(adapterSource.includes("ipcMain.handle(IPC.STUDY_TRACKER_RECORD"), true);
+  assert.equal(adapterSource.includes("ipcMain.handle(IPC.STUDY_TRACKER_SUMMARY"), true);
+  assert.equal(adapterSource.includes("ipcMain.handle(IPC.STUDY_TRACKER_REVIEW"), true);
+  assert.equal(preloadSource.includes('exportWorkbook'), false);
+  assert.equal(preloadSource.includes('openData'), false);
+  assert.equal(preloadSource.includes('openSource'), false);
+  assert.equal(appSource.includes('path="/study-tracker"'), true);
+  assert.equal(sidebarSource.includes("path: '/study-tracker'"), true);
 });
 
 if (process.exitCode) {

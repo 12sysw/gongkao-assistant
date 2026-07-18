@@ -126,6 +126,12 @@ const api: Api = {
     parsePdfAi: (text: string) => ipcRenderer.invoke(IPC.RAG_PARSE_PDF_AI, text),
     renderPdf: (buffer: ArrayBuffer, first?: number) => ipcRenderer.invoke(IPC.RAG_RENDER_PDF, buffer, first),
   },
+  studyTracker: {
+    status: () => ipcRenderer.invoke(IPC.STUDY_TRACKER_STATUS),
+    record: (text: string) => ipcRenderer.invoke(IPC.STUDY_TRACKER_RECORD, text),
+    summary: () => ipcRenderer.invoke(IPC.STUDY_TRACKER_SUMMARY),
+    review: () => ipcRenderer.invoke(IPC.STUDY_TRACKER_REVIEW),
+  },
   ai: {
     ocrImage: (base64Data: string) => ipcRenderer.invoke(IPC.AI_OCR_IMAGE, base64Data),
   },

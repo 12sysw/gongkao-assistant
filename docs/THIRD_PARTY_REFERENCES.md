@@ -1,8 +1,8 @@
 # 第三方功能参考与许可边界
 
-更新日期：2026-07-17
+更新日期：2026-07-18
 
-公考小助手不会复制第三方项目的题库、课程材料、受版权保护的解析文本或完整应用源码。以下项目仅用于产品流程、信息架构和开源实现方式的对标。
+公考小助手不会复制第三方项目的题库、付费课程材料或受版权保护的解析文本。除下文明确标注的 MIT 许可快照外，其他项目仅用于产品流程、信息架构和开源实现方式的对标。
 
 ## human-skill-tree
 
@@ -15,10 +15,13 @@
 ## kaogong-study-tracker
 
 - 项目：https://github.com/KaguraNanaga/kaogong-study-tracker
-- 当前仓库许可证：MIT（以其仓库最新 LICENSE 为准）
-- 本项目使用方式：借鉴“错题状态、二刷/掌握闭环、时间趋势、弱项优先级”的产品思路。
-- 未使用内容：未复制其源码、截图、数据文件或项目品牌素材。
-- 本项目重新实现：能力追踪页直接读取公考小助手已有的题库、错题和复习日期，通过本地统计生成今日建议。
+- 许可证：MIT，原版 `LICENSE` 与快照一同打包。
+- 上游版本：`0.1.0`，Commit `cf9fafd3c607650f48470c0faced14a2d165cf39`。
+- 原版快照：上游 Git 跟踪的 28 个文件完整放在 `src/main/skills/kaogong-study-tracker/`，不修改该目录内任何源码或素材。
+- 完整性证据：`docs/KAOGONG_STUDY_TRACKER_SNAPSHOT.json` 记录全部 28 个文件的 SHA-256；`copy-skills.js` 会在复制前和复制到 `dist` 后各校验一次。
+- 外置适配：Electron IPC 位于 `src/main/ipc/study-tracker.ts`，桌面页面位于 `src/renderer/pages/StudyTracker.tsx`，均在快照目录之外。
+- 精简范围：桌面端只开放快速打卡、核心统计、每日总结和二刷提醒；不对外暴露 Excel 高级筛选、数据目录和源码链接等低频入口。上游快照本身仍完整保留。
+- 数据位置：继续使用上游默认的 `~/.kaogong-study-tracker/data` 本地目录。
 
 ## 公考教学内容边界
 

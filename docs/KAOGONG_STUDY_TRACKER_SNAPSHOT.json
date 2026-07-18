@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "repository": "https://github.com/KaguraNanaga/kaogong-study-tracker",
+  "upstream_commit": "cf9fafd3c607650f48470c0faced14a2d165cf39",
+  "upstream_version": "0.1.0",
+  "license": "MIT",
+  "snapshot_root": "src/main/skills/kaogong-study-tracker",
+  "file_count": 28,
+  "hash_algorithm": "SHA-256",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "9fb4429249ede53810611ee25078a66cad7fc130e3d3bfc894c22aebfe918115"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "4eb223c7a8b10acb05298920c8f9e8e4bb5baeddd207f82d6ba29657bac8bae3"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "36c353a2cf307ccd03c2e35b6e7b166477a69110206a4164b471526bae50b9d5"
+    },
+    {
+      "path": "README.md",
+      "sha256": "9e10a7d54264a52a4ae71232affd50aabd2ddaa1d3f5fbddd092a0d00b996311"
+    },
+    {
+      "path": "SKILL.md",
+      "sha256": "4c9af9023d9e3142fa233a08cd15554c9f2cae241e0d52d16fabba16144f4992"
+    },
+    {
+      "path": "assets/config.example.json",
+      "sha256": "9a90f6e10b72dc76afc78cab67860fe91bfbd3cb8e9dc29b7a1261b7d920999a"
+    },
+    {
+      "path": "assets/crane_zhupi.png",
+      "sha256": "f06ff2a3bca39a35b1f11767e41f27a4e3e4339a22dbdf40e183c2505677297e"
+    },
+    {
+      "path": "assets/module_map.json",
+      "sha256": "37fc0f311cde4c42495b4bed2450492424398ea402fc06f29f51275abaccb504"
+    },
+    {
+      "path": "assets/workspace-example.yaml",
+      "sha256": "800153a838bb481251af403b9c04213efdeede1997f05336ad9365cc2c1fe437"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "3aadf0f7b50fc11f5eeaec9c7635a23eb7ad4f9957cc3d5ac8a4af1f9fab2936"
+    },
+    {
+      "path": "package.json",
+      "sha256": "39612e31ef2c39e5449dd162e49ef55e6f52d6f0cb9e41b50a044f6a22b476c9"
+    },
+    {
+      "path": "promo/01-cover.png",
+      "sha256": "87dbedc59e0cdc5f48cc37287393ffaf142aee12fe08c5b884a2b0ccadae33b3"
+    },
+    {
+      "path": "promo/02-chat-flow.png",
+      "sha256": "3422b876c8dc94396edc38a5800e56c1bd932a1af9afc55ab9073f1ac0f35cde"
+    },
+    {
+      "path": "promo/03-workbook.png",
+      "sha256": "7067c04e0a8d8db97edfc76b9bf69fd55f3d5fe4cce8462b3c66f28143bc9c05"
+    },
+    {
+      "path": "promo/04-review-reminder.png",
+      "sha256": "8dc6193d64bcaf601995d619f4719dbb8d10e562c3636805562d8a7cb1beb6bb"
+    },
+    {
+      "path": "promo/generate_promo_images.py",
+      "sha256": "f24beeb841916afccd10c8170cf231bcf17fd0ff566dd5f99f7de56c40a9f400"
+    },
+    {
+      "path": "promo/xiaohongshu-copy.md",
+      "sha256": "416eb91c2fa7f51ab0c419a55c2eb9f183666fb28bc39fa6b88caca83bf21683"
+    },
+    {
+      "path": "references/reply_templates.md",
+      "sha256": "a3949797a5d84eff5fc5d58a30a02919224a371d56c30fba506ffbc1bb0d3bcd"
+    },
+    {
+      "path": "references/tone_guide.md",
+      "sha256": "57b26414e08d87511c888bf4dccb82808dd5c9512a8b847fa76380809a4818a8"
+    },
+    {
+      "path": "scripts/daily_summary.js",
+      "sha256": "73979b723a8bd225ddb1a71ed814a2b40edeecb3707bd0cf57f49cd4bdc2ea0b"
+    },
+    {
+      "path": "scripts/export_xlsx.js",
+      "sha256": "1db4923754f5daafaa97fa6e714362969aba575b578f50a01ed23dad8591079d"
+    },
+    {
+      "path": "scripts/feishu_doc.js",
+      "sha256": "991f0809a854cb9b8b7a3b88c798ec719dd53e81cb9f90ee0684c6ca0109bb1f"
+    },
+    {
+      "path": "scripts/ocr_image.py",
+      "sha256": "99de8c26d78a84e1d779bb23cc511dba3649cc04b1f4e5cd9b29c2c6b6f4c9a4"
+    },
+    {
+      "path": "scripts/onboarding.js",
+      "sha256": "f5e330155b9565d8d66e0b8e4706598aa111c9c7c0cc80f80f843c19f34aae73"
+    },
+    {
+      "path": "scripts/parse_input.js",
+      "sha256": "accb682a29809e08175ac01453947f31e60b7613c3527308eb07c09008475da0"
+    },
+    {
+      "path": "scripts/paths.js",
+      "sha256": "168845354cc9191188eaf044291c9a88f244cb4f105195746b03520d8754b1a8"
+    },
+    {
+      "path": "scripts/review_reminder.js",
+      "sha256": "90808207622e67593a87a8f553ecdf0341f78cc3b95776e51fda324be7c677b5"
+    },
+    {
+      "path": "scripts/update_daily.js",
+      "sha256": "35e65b1b796db2d58f7b41bb88fff89210e4d21eab4666e8d7544413784d2010"
+    }
+  ]
+}

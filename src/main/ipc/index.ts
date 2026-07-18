@@ -12,6 +12,7 @@ import { enhancedSyncPdfToQuestions } from './enhanced-parser';
 import { buildGongkaoChatSystemPrompt, buildGongkaoEssayReviewPrompt } from './gongkao-skill';
 import { buildHuasheng13SystemPrompt, getHuasheng13Catalog, getHuasheng13Context } from './huasheng13';
 import { registerEssayPaperHandler } from './essay-paper';
+import { registerStudyTrackerHandlers } from './study-tracker';
 import { getNextFlashcardReview, getNextWrongReview } from '../../shared/review-schedule';
 import type { ExportPdfParams, RagChatOptions, TeacherMode } from '../../shared/ipc';
 import {
@@ -683,6 +684,7 @@ function syncPdfDocsToQuestions() {
 
 export function registerIpcHandlers() {
   registerEssayPaperHandler();
+  registerStudyTrackerHandlers();
   // Helper: wrap sync IPC handler with try/catch, return error on failure
   const safe = <T extends any[]>(fn: (...args: T) => any) => (_: any, ...args: T) => {
     try {
