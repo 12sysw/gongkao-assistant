@@ -20,10 +20,6 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
 
-          if (id.includes('@tencentcloud/chat') || id.includes('tim-upload-plugin')) {
-            return 'chat-sdk';
-          }
-
           if (id.includes('tesseract.js')) {
             return 'ocr-sdk';
           }
@@ -40,14 +36,10 @@ export default defineConfig({
 
           if (
             id.includes('lucide-react') ||
-            id.includes('@radix-ui') ||
             id.includes('class-variance-authority') ||
             id.includes('clsx') ||
             id.includes('tailwind-merge') ||
-            id.includes('sonner') ||
-            id.includes('react-hook-form') ||
-            id.includes('dayjs') ||
-            id.includes('zod')
+            id.includes('sonner')
           ) {
             return 'ui-vendor';
           }

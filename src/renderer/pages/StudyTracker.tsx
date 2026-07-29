@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BarChart3, BookOpenCheck, RefreshCw, RotateCcw, Send } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BarChart3, BookOpenCheck, GitBranch, RefreshCw, RotateCcw, Send } from 'lucide-react';
 import type { StudyTrackerActionResult, StudyTrackerStatus } from '../../shared/ipc';
 
 const MODULES = ['\u8a00\u8bed\u7406\u89e3', '\u6570\u91cf\u5173\u7cfb', '\u5224\u65ad\u63a8\u7406', '\u8d44\u6599\u5206\u6790', '\u7533\u8bba'];
@@ -99,12 +100,20 @@ const StudyTracker: React.FC = () => {
             </div>
             <h1 className="text-3xl font-bold text-surface-900 dark:text-surface-0">{TEXT.title}</h1>
           </div>
-          <button
-            onClick={() => void refresh()}
-            className="inline-flex self-start items-center gap-2 border border-surface-200 bg-white px-3 py-2 text-sm font-medium text-surface-700 transition-colors hover:border-brand-300 hover:text-brand-700 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-200"
-          >
-            <RefreshCw className="h-4 w-4" />{TEXT.refresh}
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              to="/skill-tree"
+              className="inline-flex items-center gap-2 border border-surface-200 bg-white px-3 py-2 text-sm font-medium text-surface-700 transition-colors hover:border-brand-300 hover:text-brand-700 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-200"
+            >
+              <GitBranch className="h-4 w-4" />能力树
+            </Link>
+            <button
+              onClick={() => void refresh()}
+              className="inline-flex items-center gap-2 border border-surface-200 bg-white px-3 py-2 text-sm font-medium text-surface-700 transition-colors hover:border-brand-300 hover:text-brand-700 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-200"
+            >
+              <RefreshCw className="h-4 w-4" />{TEXT.refresh}
+            </button>
+          </div>
         </header>
 
         {status && !status.available && (

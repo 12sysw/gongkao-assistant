@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Search,
@@ -6,7 +7,6 @@ import {
   ChevronRight,
   FileText,
   Tag,
-  Loader2,
   RefreshCw,
   Trash2,
   Layers,
@@ -18,7 +18,6 @@ import { SkeletonCard } from '../components/ui/Skeleton';
 import {
   useRagDocs,
   useDeleteRagDocBatch,
-  useImportPdfs,
   useSyncQuestions,
   useQuestions,
 } from '../hooks/use-api';
@@ -183,22 +182,19 @@ function QuestionPreview({ question }: { question: QuestionRecord }) {
 }
 
 const QuestionBank: React.FC = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedSource, setSelectedSource] = useState<string>('all');
   const [expandedQuestionId, setExpandedQuestionId] = useState<number | null>(null);
   const [expandedDocKey, setExpandedDocKey] = useState<string | null>(null);
   const [showSourceDocs, setShowSourceDocs] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false);
-  const [importPath, setImportPath] = useState('');
   const [visibleQuestionCount, setVisibleQuestionCount] = useState(QUESTION_VISIBLE_BATCH);
 
   const { data: docs = [], isLoading: docsLoading } = useRagDocs(showSourceDocs);
   const { data: questions = [], isLoading: questionsLoading } = useQuestions();
-  const importPdfs = useImportPdfs();
   const deleteDocBatch = useDeleteRagDocBatch();
   const syncMutation = useSyncQuestions();
-  const importing = importPdfs.isPending;
   const isLoading = questionsLoading;
 
   const sources = useMemo(
@@ -318,18 +314,6 @@ const QuestionBank: React.FC = () => {
     setExpandedQuestionId(null);
   }, [searchQuery, selectedSource, selectedType]);
 
-  const handleImportPdfs = async () => {
-    if (!importPath.trim()) return;
-    setShowImportDialog(false);
-    try {
-      const result = await importPdfs.mutateAsync(importPath);
-      alert(`导入完成：知识文档新增 ${result.imported} 条，跳过 ${result.skipped} 条，失败 ${result.errors} 条${formatQuestionSyncSummary(result)}`);
-      setImportPath('');
-    } catch (err) {
-      alert(`导入失败: ${err}`);
-    }
-  };
-
   const handleSyncQuestions = async () => {
     try {
       const result = await syncMutation.mutateAsync();
@@ -386,12 +370,18 @@ const QuestionBank: React.FC = () => {
               同步结构化题
             </button>
             <button
-              onClick={() => setShowImportDialog(true)}
-              disabled={importing}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
+              onClick={() => navigate('/real-papers')}
+              className="flex items-center gap-2 px-3 py-2 text-sm border border-surface-200 dark:border-surface-700 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-700 transition-colors"
             >
-              {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-              {importing ? '导入中...' : '导入PDF'}
+              <Database className="w-4 h-4" />
+              已导入真题
+            </button>
+            <button
+              onClick={() => navigate('/paper-import')}
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              PDF 真题导入
             </button>
           </div>
         </div>
@@ -601,38 +591,7 @@ const QuestionBank: React.FC = () => {
         )}
       </div>
 
-      {showImportDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-surface-800 rounded-2xl shadow-elevated w-full max-w-md p-6 space-y-4">
-            <h3 className="text-lg font-bold text-surface-900 dark:text-surface-0">导入PDF题库</h3>
-            <div>
-              <label className="block text-sm font-medium text-surface-600 dark:text-surface-400 mb-2">PDF 文件目录路径：</label>
-              <input
-                value={importPath}
-                onChange={(e) => setImportPath(e.target.value)}
-                placeholder="例如：E:\国考真题\公务员"
-                className="w-full px-3 py-2 border border-surface-200 dark:border-surface-600 dark:bg-surface-800 dark:text-surface-0 rounded-lg text-sm focus:outline-none focus:border-brand-500"
-              />
-              <p className="text-xs text-surface-400 dark:text-surface-400 mt-1">支持递归扫描子目录中的所有 PDF 文件</p>
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <button
-                onClick={() => setShowImportDialog(false)}
-                className="px-4 py-2 text-sm font-medium text-surface-500 dark:text-surface-400 hover:text-surface-700 dark:hover:text-surface-200"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleImportPdfs}
-                disabled={!importPath.trim() || importing}
-                className="px-5 py-2 bg-brand-500 text-white text-sm rounded-lg hover:bg-brand-600 transition-colors disabled:opacity-50"
-              >
-                {importing ? '导入中...' : '开始导入'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 };

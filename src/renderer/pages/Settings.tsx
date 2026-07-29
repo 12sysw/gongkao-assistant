@@ -365,7 +365,7 @@ const SettingsPage: React.FC = () => {
         <div className="flex items-center gap-2 mb-2">
           <Brain className="w-5 h-5 text-brand-500" />
           <h2 className="text-base font-semibold text-surface-900 dark:text-surface-0 font-display">AI 模型配置</h2>
-          <span className="text-xs text-surface-400 dark:text-surface-400 ml-auto">全局生效：套题测评、申论批改、知识图谱、PDF题目提取</span>
+          <span className="text-xs text-surface-400 dark:text-surface-400 ml-auto">全局生效：AI 名师、套题模考、申论训练、PDF 真题解析</span>
         </div>
 
         <FormSelect

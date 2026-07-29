@@ -1,719 +1,168 @@
-# 公考小助手 - 项目维护文档
+# 公考小助手 3.0.1 核心版技术文档
 
-> 版本：v1.2.18 | 最后更新：2026-05-24
+## 1. 目标
 
----
+公考小助手是本地优先的 Windows 公考学习桌面端。3.0.1 核心版不再追求页面数量，而是围绕五条高频链路组织功能：
 
-## 目录
+1. 真题导入 → 校对 → 题库 → 模考
+2. 做题 → 错题 → 今日复习 → 错因复盘
+3. 申论 OCR → 批改 → 用时记录 → 纸笔答题纸
+4. AI 名师/RAG → 题型化讲解 → 个人知识库
+5. 训练记录 → 备考追踪 → 能力树 → 薄弱项行动
 
-1. [项目概述](#项目概述)
-2. [技术架构](#技术架构)
-3. [目录结构](#目录结构)
-4. [开发环境搭建](#开发环境搭建)
-5. [常用命令](#常用命令)
-6. [功能模块说明](#功能模块说明)
-7. [知识图谱](#知识图谱)
-8. [申论 AI 批改](#申论-ai-批改)
-9. [RAG 知识库](#rag-知识库)
-10. [聊天室功能](#聊天室功能)
-11. [外部 API 接口](#外部-api-接口)
-12. [自动更新功能](#自动更新功能)
-13. [打包与发布](#打包与发布)
-14. [数据存储](#数据存储)
-15. [常见问题](#常见问题)
+## 2. 页面结构
 
----
+### 2.1 主导航
 
-## 项目概述
+| 路由 | 页面 | 职责 |
+| --- | --- | --- |
+| `/` | `DashboardNew.tsx` | 今日待办、连续学习和核心流程入口 |
+| `/review` | `ReviewHub.tsx` | 到期卡片与错题的统一复习 |
+| `/mock-exam` | `MockExam.tsx` | 套题、计时、答题报告和 AI 分析 |
+| `/question-bank` | `QuestionBank.tsx` | 结构化题目管理与真题流程入口 |
+| `/essay-review` | `EssayReview.tsx` | 申论 OCR、批改、用时与改写建议 |
+| `/rag-chat` | `RagChat.tsx` | 花生十三教学模式与通用 RAG |
+| `/study-tracker` | `StudyTracker.tsx` | 训练记录、总结与复盘 |
+| `/settings` | `Settings.tsx` | AI、备份、更新和主题配置 |
 
-公考小助手是一款基于 Electron 的桌面端公务员考试学习工具，集成了错题本、记忆卡片、思维导图、知识图谱、申论批改、RAG 知识库、学习计划、番茄钟、聊天室等功能。
+### 2.2 二级页面
 
-### 核心功能
+| 路由 | 页面 | 上级流程 |
+| --- | --- | --- |
+| `/wrong-book` | `WrongBook.tsx` | 今日复习 |
+| `/real-papers` | `RealPapers.tsx` | 真题题库 |
+| `/paper-import` | `PaperImportWorkbench.tsx` | 真题题库 |
+| `/essay-practice` | `EssayPractice.tsx` | 申论训练 |
+| `/skill-tree` | `SkillTree.tsx` | 备考追踪 |
 
-| 功能 | 说明 |
-|------|------|
-| 仪表盘 | 学习数据统计、考试倒计时、天气、每日语录、AI 推荐任务 |
-| 题库管理 | 题目导入/分类、OCR 图片识别 |
-| 错题本 | 错题收集管理，支持统一复习 |
-| 套题测评 | 模拟真实考试，AI 分析薄弱环节 |
-| 记忆卡片 | 间隔重复算法，科学记忆 |
-| 知识图谱 | LLM 驱动提取知识点，力导向布局可视化，缩放/搜索/交互 |
-| 知识库 | RAG 向量检索，ChromaDB 嵌入存储，智能问答 |
-| 申论批改 | 流式 AI 批改，逐段点评与改进建议 |
-| 思维导图 | 知识点可视化整理 |
-| 学习计划 | 目标管理与进度追踪、法定假日标记 |
-| 番茄钟 | 专注学习计时 |
-| 打卡系统 | 连续学习天数统计 |
-| AI 分析 | 接入多种 AI 服务商分析测评报告 |
-| 聊天室 | 多人在线交流，支持文字/图片/文件/撤回 |
-| 鼓励语录 | 随机语录、答案之书，备考激励 |
-| 自动更新 | 检测新版本，后台下载，一键安装 |
+历史路由 `/flashcards` 重定向到 `/review`，`/study-plan` 重定向到 `/study-tracker`。其他未知路由回首页。
 
----
+## 3. 已删除的桌面模块
 
-## 技术架构
+已删除番茄钟、成就页、聊天室、鼓励语录、思维导图、知识图谱、独立学习计划页、独立记忆卡片页、打卡倒计时、残酷报告、组件展示页，以及所有重复的新旧版页面壳。
 
-```
-┌─────────────────────────────────────────────┐
-│                  Electron                    │
-│  ┌──────────────┐  ┌──────────────────────┐  │
-│  │  主进程       │  │  渲染进程             │  │
-│  │  (Node.js)   │  │  (Chromium)          │  │
-│  │              │  │                      │  │
-│  │  - 数据库    │  │  - React 18          │  │
-│  │  - IPC 处理  │←→│  - Tailwind CSS      │  │
-│  │  - 自动更新  │  │  - Zustand 状态管理   │  │
-│  │  - 文件系统  │  │  - TanStack Query    │  │
-│  │  - ChromaDB  │  │                      │  │
-│  └──────────────┘  └──────────────────────┘  │
-└─────────────────────────────────────────────┘
-         ↕                    ↕
-   better-sqlite3       腾讯云 IM SDK
-   (本地数据库)          (聊天室)
-         ↕                    ↕
-   ChromaDB             腾讯云 SCF 云函数
-   (向量存储)            (UserSig 签发)
-                              ↕
-                        UAPI 公共接口平台
-                        (天气/语录/节假日/翻译)
+对应的腾讯云聊天前端封装、聊天 store、图表/弹窗孤立组件和专用依赖也已删除。历史数据库表与旧 IPC 暂时保留，仅承担旧数据兼容职责。
+
+## 4. 技术架构
+
+```mermaid
+flowchart LR
+  UI[React 渲染进程] -->|window.api| PRELOAD[Preload 安全桥]
+  PRELOAD -->|IPC invoke/on| MAIN[Electron 主进程]
+  MAIN --> DB[(SQLite)]
+  MAIN --> FILES[PDF / OCR / 导出文件]
+  MAIN --> SKILLS[花生十三与备考追踪 Skill]
+  UI --> AI[用户配置的 OpenAI 兼容接口]
 ```
 
-### 技术栈
+- Electron 主进程：`src/main/`
+- React 渲染进程：`src/renderer/`
+- IPC 契约：`src/shared/ipc.ts`
+- 数据库 Schema：`src/main/db/schema.ts`
+- 主 IPC 注册：`src/main/ipc/index.ts`
+- Preload：`src/main/preload.ts`
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| Electron | 33 | 桌面应用框架 |
-| React | 18.3 | 前端 UI |
-| TypeScript | 5.6 | 类型安全 |
-| Vite | 6.0 | 构建工具 |
-| better-sqlite3 | 12.9 | 本地数据库 |
-| Drizzle ORM | 0.45 | 数据库 ORM |
-| Zustand | 5.0 | 客户端状态管理 |
-| TanStack Query | 5.99 | 服务端状态管理 |
-| Tailwind CSS | 3.4 | 样式框架 |
-| @tencentcloud/chat | 3.6 | 腾讯云 IM SDK |
-| electron-updater | 6.8 | 自动更新 |
-| tesseract.js | 7.0 | OCR 图片识别 |
-| chromadb | 0.5 | 向量数据库 |
+安全边界：主窗口开启 `contextIsolation`，关闭 `nodeIntegration`；渲染进程不得直接访问 Node 文件系统。
 
----
+## 5. 真题导入工作台
 
-## 目录结构
+`PaperImportWorkbench.tsx` 负责导入、解析、分段、校对和确认。主进程相关能力包括 PDF 文本提取、OCR、试卷草稿解析和结构化导入。
 
-```
-gongkao-assistant/
-├── .github/
-│   └── workflows/
-│       └── build.yml          # GitHub Actions 自动打包
-│
-├── scf-usersig/               # 腾讯云 SCF 云函数
-│   ├── index.js               # 云函数入口
-│   ├── package.json           # 依赖
-│   └── scf_bootstrap          # Web 函数启动脚本
-│
-├── src/
-│   ├── main/                  # Electron 主进程
-│   │   ├── db/                # 数据库（better-sqlite3 + Drizzle ORM）
-│   │   │   ├── index.ts       # 数据库连接
-│   │   │   ├── schema.ts      # 表结构定义
-│   │   │   └── migrations.ts  # 数据库初始化
-│   │   │
-│   │   ├── ipc/               # 进程间通信
-│   │   │   ├── index.ts       # IPC 处理器注册
-│   │   │   └── contract-utils.ts # 数据转换工具
-│   │   │
-│   │   ├── main.ts            # 主进程入口
-│   │   ├── preload.ts         # 安全桥接脚本
-│   │   └── updater.ts         # 自动更新模块
-│   │
-│   ├── renderer/              # 前端页面
-│   │   ├── components/        # 公共组件
-│   │   │   ├── Sidebar.tsx    # 侧边栏导航
-│   │   │   └── UpdateNotification.tsx # 更新提示
-│   │   │
-│   │   ├── hooks/             # 数据获取 Hooks
-│   │   │   └── use-api.ts     # API 调用封装
-│   │   │
-│   │   ├── lib/               # 工具库
-│   │   │   ├── tencent-im.ts  # 腾讯云 IM SDK 封装
-│   │   │   ├── uapi.ts        # UAPI 外部接口封装
-│   │   │   └── utils.ts       # 通用工具函数
-│   │   │
-│   │   ├── pages/             # 功能页面
-│   │   │   ├── Dashboard.tsx       # 仪表盘
-│   │   │   ├── QuestionBank.tsx     # 题库管理
-│   │   │   ├── WrongBook.tsx       # 错题本
-│   │   │   ├── Flashcards.tsx      # 记忆卡片
-│   │   │   ├── KnowledgeGraph.tsx  # 知识图谱
-│   │   │   ├── KnowledgeBase.tsx   # RAG 知识库
-│   │   │   ├── EssayReview.tsx     # 申论批改
-│   │   │   ├── ReviewHub.tsx       # 统一复习
-│   │   │   ├── MockExam.tsx        # 套题测评
-│   │   │   ├── MindMap.tsx         # 思维导图
-│   │   │   ├── StudyPlan.tsx       # 学习计划
-│   │   │   ├── Pomodoro.tsx        # 番茄钟
-│   │   │   ├── DailyCheckin.tsx    # 打卡
-│   │   │   ├── ChatRoom.tsx        # 聊天室
-│   │   │   ├── RagChat.tsx         # RAG 问答
-│   │   │   ├── Achievements.tsx    # 成就
-│   │   │   ├── Encourage.tsx       # 鼓励语录
-│   │   │   └── Settings.tsx        # 设置
-│   │   │
-│   │   ├── stores/            # Zustand 状态管理
-│   │   │   ├── app-store.ts   # 全局 UI 状态
-│   │   │   ├── chat-store.ts  # 聊天室状态
-│   │   │   └── mock-exam-store.ts # 考试状态机
-│   │   │
-│   │   ├── App.tsx            # 路由配置
-│   │   ├── main.tsx           # 渲染进程入口
-│   │   └── vite-env.d.ts      # 类型声明
-│   │
-│   └── shared/                # 共享代码
-│       └── ipc.ts             # IPC 通道定义 + Api 类型
-│
-├── dist/                      # 编译输出（自动生成）
-├── release/                   # 打包输出（自动生成）
-├── package.json               # 项目配置
-├── tsconfig.json              # TypeScript 配置（渲染进程）
-├── tsconfig.main.json         # TypeScript 配置（主进程）
-├── vite.config.ts             # Vite 配置
-├── tailwind.config.js         # Tailwind CSS 配置
-├── CLAUDE.md                  # Claude Code 工作指引
-└── PROJECT_DOC.md             # 本文档
+关键约束：
+
+- 文本型 PDF 优先使用文本解析。
+- 扫描件进入 OCR 路径。
+- 入库前允许人工校对题号、题型、题干、选项和答案。
+- 确认后的题目可被题库与模考复用。
+- 不导入或分发第三方版权题库内容。
+
+## 6. 申论训练闭环
+
+- `EssayReview.tsx`：题目、作答与标准答案 OCR；AI 批改；建议用时和实际用时；修改清单。
+- `EssayPractice.tsx`：按题数、字数和用时生成标准答题格；支持 PDF/PNG。
+- `src/main/ipc/essay-paper.ts`：答题纸导出逻辑。
+- 花生十三申论模式只给审题框架与修改建议，不代写完整范文。
+
+## 7. AI 名师与 RAG
+
+`RagChat.tsx` 同时承载个人知识库检索和题型化教学。教学模式由 `src/main/ipc/huasheng13.ts` 选择匹配资料并构造系统提示词。
+
+核心模式：花生十三自动识别、行测速解、基础讲解、申论审题、错因复盘、备考规划和通用 RAG。
+
+用户必须在设置页配置自己的 OpenAI 兼容接口。API Key 不应写入仓库。
+
+## 8. 备考追踪与能力树
+
+### 8.1 kaogong-study-tracker
+
+上游项目以完整快照放在：
+
+```text
+src/main/skills/kaogong-study-tracker/
 ```
 
----
+固定 Commit：
 
-## 开发环境搭建
+```text
+cf9fafd3c607650f48470c0faced14a2d165cf39
+```
 
-### 前置要求
+该目录禁止修改。桌面端只通过适配层暴露状态、训练记录、总结和复盘 4 个核心动作。构建脚本会把快照复制到 `dist/main/skills/kaogong-study-tracker/`。
 
-- Node.js 18+（推荐 22）
-- Git
-- Windows 10/11
+### 8.2 human-skill-tree
 
-### 安装步骤
+能力树页面只吸收能力节点、层级和进度反馈的设计思路，代码为本项目独立实现。
+
+## 9. 数据兼容
+
+主数据库默认位于：
+
+```text
+%APPDATA%/gongkao-assistant/gongkao.db
+```
+
+备考追踪数据默认位于：
+
+```text
+%USERPROFILE%/.kaogong-study-tracker/data/
+```
+
+删除桌面页面不等于删除用户数据。旧表和旧字段暂时保留，后续如需物理迁移必须先提供备份、迁移脚本和回滚方案。
+
+## 10. 测试与防回退
+
+`tests/run-ipc-contract-tests.js` 覆盖：
+
+- IPC 兼容序列化
+- 复习调度
+- PDF 真题解析与草稿校验
+- 申论答题纸与花生十三提示词
+- 上游 Skill 源码/构建产物一致性
+- 备考追踪只暴露 4 个核心动作
+- 侧栏只保留 8 个主入口
+- 非核心路由、页面和依赖不得回流
+
+标准验证：
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/12sysw/gongkao-assistant.git
-cd gongkao-assistant
-
-# 2. 安装依赖
-npm install
-
-# 3. 启动开发模式
-npm run electron:dev
+npm run lint
+npm run test
+npm run build:all
+node scripts/verify-kaogong-study-tracker.js
+node scripts/verify-kaogong-study-tracker.js dist/main/skills/kaogong-study-tracker
 ```
 
-### 国内用户加速
+打包后执行：
 
 ```bash
-npm config set registry https://registry.npmmirror.com
-npm install
+node scripts/verify-packaged-study-tracker.js
 ```
 
----
-
-## 常用命令
-
-| 命令 | 作用 |
-|------|------|
-| `npm run dev` | 只启动前端开发服务器 |
-| `npm run build` | 构建前端代码 |
-| `npm run build:main` | 构建主进程代码 |
-| `npm run build:all` | 构建全部代码 |
-| `npm run electron:dev` | 开发模式运行（推荐） |
-| `npm run electron:build` | 构建安装包 |
-| `npm run lint` | TypeScript 类型检查 |
-| `npm run test` | IPC 契约测试 |
-
----
-
-## 功能模块说明
-
-### IPC 通信架构
-
-渲染进程通过 `window.api` 调用主进程功能：
-
-```
-渲染进程                    主进程
-(window.api)               (ipcMain.handle)
-    │                           │
-    ├── api.question.add() ──→  IPC.QUESTION_ADD
-    ├── api.wrongBook.getAll()→ IPC.WRONG_BOOK_GET_ALL
-    ├── api.kg.build() ──────→  IPC.KG_BUILD
-    ├── api.rag.query() ─────→  IPC.RAG_QUERY
-    ├── api.essay.review() ──→  IPC.ESSAY_REVIEW
-    ├── api.chat.generateUserSig() → IPC.CHAT_GENERATE_USER_SIG
-    └── api.update.check() ──→ IPC.UPDATE_CHECK
-```
-
-所有 IPC 通道定义在 `src/shared/ipc.ts`。
-
-### 数据库
-
-使用 better-sqlite3 + Drizzle ORM，数据库文件位于：
-
-```
-Windows: C:\Users\<用户名>\AppData\Roaming\gongkao-assistant\gongkao.db
-```
-
-主要数据表：
-- `questions` - 题目
-- `wrong_records` - 错题记录
-- `mind_maps` - 思维导图
-- `study_plans` - 学习计划
-- `daily_records` - 每日记录
-- `achievements` - 成就
-- `flashcards` - 记忆卡片
-- `pomodoro_records` - 番茄钟记录
-- `exam_config` - 考试配置
-- `encourage_quotes` - 鼓励语录
-- `kg_nodes` - 知识图谱节点
-- `kg_edges` - 知识图谱关系边
-
----
-
-## 知识图谱
-
-### 架构
-
-利用 LLM 从题库中提取知识点和关系，存入 `kg_nodes` / `kg_edges` 表，前端以 Canvas 力导向图渲染。
-
-```
-题库 → 按题型取样 → LLM 提取 JSON → 解析入库 → Canvas 渲染
-```
-
-### 前端交互
-
-- **力导向布局**：库仑斥力 + 弹簧引力 + 中心引力，模拟稳定后自动停帧
-- **缩放平移**：滚轮以鼠标位置为中心缩放，拖拽平移，键盘 +/- 缩放
-- **搜索高亮**：输入关键词匹配节点，橙色环标记
-- **节点交互**：拖拽移动、点击查看详情、选中高亮关联节点/边
-- **方向箭头**：边上绘制箭头表示关系方向（prerequisite/contains）
-- **HiDPI 适配**：`devicePixelRatio` + `ResizeObserver` 响应式
-
-### 性能优化
-
-- 颜色查找缓存（`COLOR_CACHE` Map）
-- 选中节点邻接预计算（`connectedIds` Set）
-- 物理模拟保活：拖拽节点时重启模拟
-- 稳定后停止 `requestAnimationFrame` 循环
-
-### LLM 调用
-
-- 流式 SSE 请求，避免服务端超时
-- 按 `config.llmApiUrl` / `config.llmModel` 配置
-- `max_tokens: 2500`，返回 20-35 个知识点节点
-
----
-
-## 申论 AI 批改
-
-### 流程
-
-```
-用户提交申论 → 发送至 LLM → 流式返回点评 → 实时渲染反馈
-```
-
-- 支持逐段点评和改进建议
-- 流式输出（SSE），避免长时间等待
-- 通过设置页配置 AI 服务商
-
----
-
-## RAG 知识库
-
-### 架构
-
-```
-题库 → 分块嵌入 → ChromaDB 向量存储 → 查询时检索相关片段 → 组装 prompt → LLM 回答
-```
-
-- ChromaDB 本地实例，嵌入维度与配置的 LLM 模型匹配
-- 相似度阈值过滤，Top-K 检索
-- 查询时自动注入检索到的参考内容
-
----
-
-## 聊天室功能
-
-### 架构
-
-```
-客户端 (Electron)
-  │
-  ├── 腾讯云 IM SDK (@tencentcloud/chat)
-  │     ├── 文字/图片/文件消息
-  │     ├── 消息撤回
-  │     └── 群组管理
-  │
-  └── 云函数 (SCF)
-        └── 生成 UserSig（登录凭证）
-```
-
-### 预设频道
-
-| 频道 ID | 名称 | 用途 |
-|---------|------|------|
-| gk001exchange | 行测交流 | 行测题目讨论 |
-| gk002essay | 申论讨论 | 申论写作交流 |
-| gk003interview | 面试经验 | 面试技巧分享 |
-| gk004general | 综合闲聊 | 备考日常交流 |
-
-### 关键文件
-
-| 文件 | 作用 |
-|------|------|
-| `src/renderer/lib/tencent-im.ts` | IM SDK 封装（登录、发消息、撤回等） |
-| `src/renderer/pages/ChatRoom.tsx` | 聊天室页面（登录、注册、消息列表） |
-| `src/renderer/stores/chat-store.ts` | 聊天状态管理（Zustand） |
-| `src/main/ipc/index.ts` | UserSig 云函数调用 |
-
-### 云函数部署
-
-代码位置：`scf-usersig/`
-
-部署步骤：
-1. 登录腾讯云 SCF 控制台
-2. 新建事件函数，Node.js 18，入口 `index.main_handler`
-3. 上传 `scf-usersig/` 目录（含 node_modules）
-4. 配置环境变量：`SDK_APP_ID`、`SECRET_KEY`
-5. 启用函数 URL（免鉴权）
-6. 将公网 URL 填入 `src/main/ipc/index.ts`
-
-### UserSig 自动续期
-
-- 每 6 小时自动刷新 UserSig
-- 防止 24 小时过期导致断线
-- 代码在 `ChatRoom.tsx` 的 `refreshTimerRef`
-
----
-
-## 外部 API 接口
-
-项目集成了 [UAPI](https://uapis.cn/) 公共接口平台，提供天气、语录、节假日、翻译等服务。
-
-接口基础地址：`https://uapis.cn/api/v1`
-
-### 已集成接口
-
-#### 1. 随机语录（Saying）
-
-```
-GET /api/v1/saying
-```
-
-返回随机励志语录，用于鼓励语录页面。
-
-**响应示例：**
-```json
-{
-  "text": "之所以会羡慕别人，是因为看到别人背上的梅干。"
-}
-```
-
-**使用位置：** `Encourage.tsx` 鼓励语录页面、`Dashboard.tsx` 仪表盘
-
----
-
-#### 2. 天气查询（Weather）
-
-```
-GET /api/v1/misc/weather?city={城市名}
-```
-
-查询指定城市的实时天气信息，包含天气预警。
-
-**响应示例：**
-```json
-{
-  "province": "北京市",
-  "city": "北京",
-  "weather": "多云",
-  "temperature": 22,
-  "wind_direction": "西风",
-  "wind_power": "4级",
-  "humidity": 34,
-  "alerts": [
-    {
-      "title": "大风蓝色预警",
-      "type": "大风",
-      "level": "蓝色",
-      "text": "市气象台发布大风蓝色预警..."
-    }
-  ]
-}
-```
-
-**使用位置：** `Dashboard.tsx` 仪表盘
-
----
-
-#### 3. 法定节假日（Holiday Calendar）
-
-```
-GET /api/v1/misc/holiday-calendar?year={年份}
-```
-
-获取指定年份的法定节假日、调休安排、农历信息。返回全年每天的详细数据。
-
-**响应字段：**
-- `is_holiday` - 是否为节假日
-- `is_workday` - 是否为工作日（含调休）
-- `legal_holiday_name` - 法定假日名称（元旦、春节、国庆等）
-- `lunar_month_name` / `lunar_day_name` - 农历日期
-- `solar_term` - 节气
-
-**使用位置：** `StudyPlan.tsx` 学习计划（自动标记法定假日）
-
----
-
-#### 4. 翻译（Translate）
-
-```
-POST /api/v1/translate/text
-Content-Type: application/json
-
-{
-  "text": "hello",
-  "ToLang": "zh"
-}
-```
-
-文本翻译，支持多语言互译。
-
-**响应示例：**
-```json
-{
-  "text": "hello",
-  "translate": "你好"
-}
-```
-
-**使用位置：** 申论素材翻译、行测常识补充
-
----
-
-#### 5. 答案之书（Answer Book）
-
-```
-GET /api/v1/answerbook/ask
-```
-
-返回随机答案，用于趣味互动和减压。
-
-**响应示例：**
-```json
-{
-  "question": "随机答案",
-  "answer": "答案会让你豁然开朗。"
-}
-```
-
-**使用位置：** `Encourage.tsx` 鼓励语录页面
-
----
-
-### 接口封装
-
-外部 API 统一封装在 `src/renderer/lib/uapi.ts`：
-
-```typescript
-const UAPI_BASE = 'https://uapis.cn/api/v1';
-
-// 获取随机语录
-export async function fetchSaying(): Promise<string> { ... }
-
-// 获取天气
-export async function fetchWeather(city: string): Promise<WeatherData> { ... }
-
-// 获取节假日
-export async function fetchHolidays(year: number): Promise<HolidayData[]> { ... }
-
-// 翻译
-export async function translateText(text: string, toLang: string): Promise<string> { ... }
-
-// 答案之书
-export async function fetchAnswer(): Promise<string> { ... }
-```
-
-### 注意事项
-
-- UAPI 为免费公共接口，无需 API Key
-- 接口有频率限制，建议本地缓存结果（天气缓存 30 分钟，节假日缓存 24 小时）
-- 若接口不可用，页面应降级显示本地数据或默认内容
-
----
-
-## 自动更新功能
-
-### 工作流程
-
-```
-发布新版本                    用户端
-   │                           │
-   ├── git tag v1.2.18         ├── 启动时检查更新
-   ├── git push --tags         ├── 发现新版本 → 弹窗提示
-   ├── GitHub Actions 自动打包  ├── 点击下载 → 后台下载
-   └── 发布到 GitHub Releases   └── 下载完成 → 点击安装 → 重启
-```
-
-### 相关文件
-
-| 文件 | 作用 |
-|------|------|
-| `src/main/updater.ts` | 更新器核心（仅打包后启用） |
-| `src/main/main.ts` | 启动时初始化更新器 |
-| `src/main/ipc/index.ts` | 注册更新 IPC 处理器 |
-| `src/main/preload.ts` | 暴露更新 API 给前端 |
-| `src/renderer/components/UpdateNotification.tsx` | 更新提示 UI |
-| `.github/workflows/build.yml` | GitHub Actions 自动打包 |
-
-### 发布新版本
-
-```bash
-# 1. 修改 package.json 版本号
-# 2. 提交
-git add package.json
-git commit -m "chore: bump version to x.y.z"
-
-# 3. 打 tag 并推送
-git tag vx.y.z
-git push origin master
-git push origin vx.y.z
-
-# 4. GitHub Actions 自动打包发布
-```
-
----
-
-## 打包与发布
-
-### 本地打包
-
-```bash
-npm run electron:build
-```
-
-产物在 `release/` 目录：
-- `公考小助手 x.y.z.exe` - 便携版（免安装）
-- `公考小助手 Setup x.y.z.exe` - 安装版
-
-### GitHub Actions 自动打包
-
-推送到 `v*` tag 后自动触发，流程：
-1. Windows 环境安装依赖
-2. 构建渲染进程和主进程
-3. 清理 release 目录
-4. electron-builder 打包
-5. 创建 GitHub Release 并上传 exe
-
----
-
-## 数据存储
-
-### 应用数据
-
-```
-C:\Users\<用户名>\AppData\Roaming\gongkao-assistant\
-├── gongkao.db              # SQLite 数据库
-├── gongkao.db-wal          # 数据库日志
-├── ai_config.json          # AI 配置
-└── mind_maps_fallback.json # 思维导图备份
-```
-
-### 数据导入导出
-
-通过设置页面可以：
-- **导出**：将所有数据导出为 JSON 文件
-- **导入**：从 JSON 文件恢复数据（会覆盖现有数据）
-
-### 备份建议
-
-重装系统前备份 `AppData\Roaming\gongkao-assistant\` 目录。
-
----
-
-## 常见问题
-
-### Q: npm install 报错
-
-```bash
-npm config set registry https://registry.npmmirror.com
-npm install
-```
-
-### Q: better-sqlite3 编译失败
-
-```bash
-npx electron-rebuild
-npm run electron:build
-```
-
-### Q: 开发模式白屏
-
-先编译主进程：
-```bash
-npm run build:main
-npm run electron:dev
-```
-
-### Q: 聊天室连接失败
-
-检查：
-1. `.env` 文件中 `VITE_TENCENT_SDK_APP_ID` 是否正确
-2. 云函数是否部署成功
-3. 云函数 URL 是否填入 `src/main/ipc/index.ts`
-
-### Q: 自动更新不工作
-
-- 开发模式下不会检查更新（设计如此）
-- 只有打包后的 exe 才会检查更新
-- 需要推送到 GitHub Releases 才能触发
-
-### Q: 天气/语录接口无响应
-
-- UAPI 为公共免费接口，偶有限流
-- 检查网络连接
-- 接口有降级处理，会显示默认内容
-
-### Q: 知识图谱构建失败
-
-- 确保已在设置页配置 AI 模型 API URL 和 Key
-- 构建使用流式请求，部分模型可能不支持 SSE
-- 题库需要先导入题目
-
----
-
-## 设计系统
-
-主色调：warm burnt-orange + 温暖中性色阶
-
-| Token | 用途 |
-|-------|------|
-| `brand-50`..`brand-900` | 主色调（按钮、链接） |
-| `surface-0`..`surface-950` | 中性色（背景、文字） |
-| `success` / `warning` / `danger` / `info` | 状态色 |
-
-字体：Outfit（标题）+ Plus Jakarta Sans（正文）
-
----
-
-## 版本历史
-
-| 版本 | 主要变更 |
-|------|----------|
-| v1.2.18 | 知识图谱增强：鼠标跟随缩放、搜索高亮、方向箭头、力模拟自动停帧、Toast 通知 |
-| v1.2.17 | 知识图谱 Canvas 闭包修复 |
-| v1.2.16 | 知识图谱功能上线（LLM 实体提取 + 力导向布局） |
-| v1.2.15 | 申论 AI 批改（流式反馈） |
-| v1.2.12 | 统一复习 + 推荐反馈循环 |
-| v1.2.4 | RAG 知识库、ChromaDB 向量搜索、套题使用真题 |
-| v1.2.3 | UAPI 天气/语录/答案之书集成 |
-| v1.2.1 | 初始文档版本 |
-
----
-
-**公考加油，上岸必胜！**
+## 11. 发布检查
+
+1. TypeScript 检查通过。
+2. IPC 与核心化防回退测试通过。
+3. Vite 构建不再生成已删除页面或 `chat-sdk` chunk。
+4. 上游备考追踪快照保持 28 个文件且 Commit 不变。
+5. 安装版和便携版均可启动。
+6. E 盘目标仓库中的用户未跟踪资料不得删除、覆盖或提交。

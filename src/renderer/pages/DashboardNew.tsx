@@ -23,7 +23,6 @@ import {
   useDailyStats,
   useWrongBookRecords,
   useFlashcards,
-  useStudyPlans,
   useDueReviews,
 } from '../hooks/use-api';
 
@@ -183,7 +182,6 @@ const Dashboard: React.FC = () => {
   const { data: stats } = useDailyStats();
   const { data: wrongRecords } = useWrongBookRecords();
   const { data: flashcards } = useFlashcards();
-  const { data: studyPlans } = useStudyPlans();
   const { data: dueReviews } = useDueReviews();
 
   // 计算统计数据
@@ -196,7 +194,6 @@ const Dashboard: React.FC = () => {
     return new Date(f.next_review) <= new Date();
   }).length || 0;
 
-  const activePlans = studyPlans?.filter((p) => p.status === 'in_progress').length || 0;
 
   // 今日学习时长（小时）
   const todayHours = (totalMinutes / 60).toFixed(1);
@@ -274,14 +271,14 @@ const Dashboard: React.FC = () => {
             color="bg-info-100 dark:bg-info-950"
           />
           <MiniStatCard
-            label="进行中计划"
-            value={activePlans}
+            label="今日复习任务"
+            value={dueReviews?.length || 0}
             icon={<CheckCircle2 className="w-5 h-5 text-success-600" />}
             color="bg-success-100 dark:bg-success-950"
           />
           <MiniStatCard
-            label="掌握度"
-            value="68%"
+            label="连续学习"
+            value={`${streak} 天`}
             icon={<Brain className="w-5 h-5 text-purple-600" />}
             color="bg-purple-100 dark:bg-purple-950"
           />
@@ -328,10 +325,10 @@ const Dashboard: React.FC = () => {
                 )}
                 {dueFlashcards > 0 && (
                   <TaskCard
-                    title="记忆卡片"
-                    description={`${dueFlashcards} 张卡片需要复习`}
+                    title="统一复习"
+                    description={`${dueFlashcards} 张记忆卡片已到复习时间`}
                     count={dueFlashcards}
-                    link="/flashcards"
+                    link="/review"
                     priority="medium"
                   />
                 )}
@@ -383,50 +380,24 @@ const Dashboard: React.FC = () => {
             transition={{ delay: 0.4 }}
             className="space-y-6"
           >
-            {/* Study Plan Progress */}
+            {/* Study tracking */}
             <Card variant="elevated" padding="lg">
-              <h3 className="text-lg font-semibold text-surface-900 dark:text-dark-50 mb-4">
-                学习计划
-              </h3>
-              {activePlans > 0 ? (
-                <div className="space-y-4">
-                  {studyPlans?.slice(0, 3).map((plan) => (
-                    <div key={plan.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-surface-700 dark:text-dark-200">
-                          {plan.title}
-                        </span>
-                        <span className="text-xs text-surface-500 dark:text-dark-400">
-                          75%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-surface-200 dark:bg-dark-800 rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: '75%' }}
-                          transition={{ duration: 1, delay: 0.5 }}
-                          className="h-full bg-gradient-to-r from-brand-500 to-brand-600"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  <Link to="/study-plan">
-                    <Button variant="outline" size="sm" fullWidth>
-                      查看全部计划
-                    </Button>
-                  </Link>
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-brand-100 p-2 text-brand-700 dark:bg-brand-950 dark:text-brand-300">
+                  <Target className="h-5 w-5" />
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Target className="w-12 h-12 mx-auto mb-3 text-surface-400 dark:text-dark-500" />
-                  <p className="text-sm text-surface-500 dark:text-dark-400 mb-3">
-                    还没有学习计划
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-lg font-semibold text-surface-900 dark:text-dark-50">备考追踪</h3>
+                  <p className="mt-1 text-sm leading-6 text-surface-500 dark:text-dark-400">
+                    集中记录训练、复盘结果和薄弱模块，明确下一步学习重点。
                   </p>
-                  <Link to="/study-plan">
-                    <Button size="sm">创建计划</Button>
-                  </Link>
                 </div>
-              )}
+              </div>
+              <Link to="/study-tracker" className="mt-5 block">
+                <Button variant="outline" size="sm" fullWidth>
+                  查看备考追踪
+                </Button>
+              </Link>
             </Card>
 
             {/* Achievements */}

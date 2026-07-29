@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArrowRight,
   BookOpen,
-  CalendarCheck,
   CheckCircle2,
   Clock3,
   Loader2,
@@ -27,7 +26,6 @@ import {
   useReviewSession,
   useReviewWrongRecord,
   useSaveReviewSession,
-  useStudyPlans,
 } from '../hooks/use-api';
 import { buildReviewRecommendations } from '../lib/review-recommendations';
 import { cn } from '../lib/utils';
@@ -53,15 +51,6 @@ type Flashcard = {
   mastered?: number | null;
 };
 
-type StudyPlan = {
-  id: number;
-  title?: string | null;
-  subject?: string | null;
-  target_date?: string | null;
-  priority?: 'low' | 'medium' | 'high' | null;
-  status?: 'pending' | 'in_progress' | 'completed' | null;
-  daily_minutes?: number | null;
-};
 
 type DailyStats = {
   streak?: number | null;
@@ -133,17 +122,6 @@ function getCategoryLabel(category: string | null | undefined) {
   return safeText(category, '未分类');
 }
 
-function getPriorityLabel(priority: StudyPlan['priority']) {
-  if (priority === 'high') return '高优先';
-  if (priority === 'low') return '低优先';
-  return '中优先';
-}
-
-function getPriorityClass(priority: StudyPlan['priority']) {
-  if (priority === 'high') return 'bg-danger-light text-danger-dark';
-  if (priority === 'low') return 'bg-success-light text-success-dark';
-  return 'bg-warning-light text-warning-dark';
-}
 
 function getDifficultyLabel(difficulty: Flashcard['difficulty']) {
   if (difficulty === 'easy') return '简单';
@@ -157,9 +135,6 @@ function formatReviewTime(value: string | null | undefined) {
   return text.replace('T', ' ').slice(0, 16);
 }
 
-function formatDate(value: string | null | undefined) {
-  return String(value ?? '').slice(0, 10) || '未设置';
-}
 
 function createEmptyReviewSession(todayKey: string): ReviewSession {
   return {
@@ -320,7 +295,6 @@ const ReviewHub: React.FC = () => {
   const dueReviewsQuery = useDueReviews();
   const dueFlashcardsQuery = useDueFlashcards(todayKey);
   const flashcardsQuery = useFlashcards();
-  const studyPlansQuery = useStudyPlans();
   const statsQuery = useDailyStats(30);
   const reviewSessionQuery = useReviewSession(todayKey);
   const recentSessionsQuery = useRecentReviewSessions(7);
@@ -347,26 +321,10 @@ const ReviewHub: React.FC = () => {
 
   const dueReviews = (dueReviewsQuery.data ?? []) as WrongRecord[];
   const flashcards = (flashcardsQuery.data ?? []) as Flashcard[];
-  const studyPlans = (studyPlansQuery.data ?? []) as StudyPlan[];
   const stats = (statsQuery.data ?? null) as DailyStats | null;
 
   const dueFlashcards = (dueFlashcardsQuery.data ?? []) as Flashcard[];
 
-  const activePlans = useMemo(
-    () => studyPlans.filter((plan) => (plan.status ?? 'pending') !== 'completed'),
-    [studyPlans]
-  );
-
-  const priorityPlans = useMemo(
-    () =>
-      [...activePlans]
-        .sort((a, b) => {
-          const priorityOrder = { high: 0, medium: 1, low: 2 };
-          return priorityOrder[a.priority ?? 'medium'] - priorityOrder[b.priority ?? 'medium'];
-        })
-        .slice(0, 4),
-    [activePlans]
-  );
 
   const reviewFlow = useMemo<ReviewTask[]>(
     () => [
@@ -393,10 +351,9 @@ const ReviewHub: React.FC = () => {
       buildReviewRecommendations({
         dueReviews,
         flashcards,
-        studyPlans,
         todayKey,
       }),
-    [dueReviews, flashcards, studyPlans, todayKey]
+    [dueReviews, flashcards, todayKey]
   );
 
   useEffect(() => {
@@ -434,7 +391,6 @@ const ReviewHub: React.FC = () => {
     dueReviewsQuery.isLoading ||
     dueFlashcardsQuery.isLoading ||
     flashcardsQuery.isLoading ||
-    studyPlansQuery.isLoading ||
     statsQuery.isLoading;
 
   const completedFlowCount =
@@ -561,10 +517,10 @@ const ReviewHub: React.FC = () => {
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">Review Flow</p>
             <h1 className="mt-2 text-2xl font-bold font-display">统一复习</h1>
             <p className="mt-2 text-sm text-white/75">
-              把今天该做的错题、卡片和计划收进一个入口，少切页面，直接开练。
+              把今天到期的错题和记忆卡片收进一个入口，按顺序清完再做新题。
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-3 gap-3">
             <div className="rounded-xl bg-white/10 px-4 py-3">
               <p className="text-xs text-white/60">待复习</p>
               <p className="mt-1 text-2xl font-bold font-display">{reviewFlow.length}</p>
@@ -577,10 +533,6 @@ const ReviewHub: React.FC = () => {
               <p className="text-xs text-white/60">卡片</p>
               <p className="mt-1 text-2xl font-bold font-display">{dueFlashcards.length}</p>
             </div>
-            <div className="rounded-xl bg-white/10 px-4 py-3">
-              <p className="text-xs text-white/60">进行中计划</p>
-              <p className="mt-1 text-2xl font-bold font-display">{activePlans.length}</p>
-            </div>
           </div>
         </div>
       </div>
@@ -589,7 +541,7 @@ const ReviewHub: React.FC = () => {
         <StatTile icon={Target} label="今日总任务" value={`${totalReviewItems}`} />
         <StatTile icon={CheckCircle2} label="连续学习" value={`${streak}天`} tone="success" />
         <StatTile icon={Clock3} label="近30天学习" value={`${(totalMinutes / 60).toFixed(1)}h`} tone="info" />
-        <StatTile icon={CalendarCheck} label="活跃计划" value={`${activePlans.length}`} />
+        <StatTile icon={PlayCircle} label="本轮已完成" value={`${completedFlowCount}`} />
       </div>
 
       {loading ? (
@@ -645,7 +597,7 @@ const ReviewHub: React.FC = () => {
                     <div className="space-y-2">
                       <p className="text-sm font-medium text-brand-700 dark:text-brand-400">今天的串行复习已经完成。</p>
                       <p className="text-sm text-brand-600 dark:text-brand-300">
-                        即使刷新页面，今天已完成的进度也会保留下来。接下来可以推进学习计划，或者记录学习成果。
+                        即使刷新页面，今天已完成的进度也会保留下来。接下来可以记录学习成果，或者开始一套模考。
                       </p>
                     </div>
                   ) : currentTask.kind === 'wrong' ? (
@@ -842,12 +794,12 @@ const ReviewHub: React.FC = () => {
                 <SectionHeader
                   title="卡片快刷"
                   subtitle={`今天该翻的记忆卡片 ${dueFlashcards.length} 张`}
-                  to="/flashcards"
-                  cta="去卡片页"
+                  to="/review"
+                  cta="继续复习"
                 />
                 {!currentFlashcard ? (
                   <div className="rounded-xl bg-success-light/60 dark:bg-success/20 p-4 text-sm text-success-dark dark:text-success">
-                    今天没有到期卡片，可以把精力放到新题和计划上。
+                    今天没有到期卡片，可以把精力放到新题或模考上。
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -933,42 +885,6 @@ const ReviewHub: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Card hover={false}>
-              <CardContent className="space-y-4">
-                <SectionHeader
-                  title="当前计划"
-                  subtitle={`优先盯住 ${priorityPlans.length} 个主线计划`}
-                  to="/study-plan"
-                  cta="去计划页"
-                />
-                {priorityPlans.length === 0 ? (
-                  <div className="rounded-xl bg-surface-50 dark:bg-surface-800 p-4 text-sm font-medium text-surface-500 dark:text-surface-400">
-                    还没有进行中的计划，可以去学习计划页建一个。
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {priorityPlans.map((plan) => (
-                      <div key={plan.id} className="rounded-xl border border-surface-100 dark:border-surface-700 bg-white dark:bg-surface-800 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className={cn('rounded-lg px-2 py-1 text-xs', getPriorityClass(plan.priority ?? 'medium'))}>
-                            {getPriorityLabel(plan.priority ?? 'medium')}
-                          </span>
-                          <span className="text-xs text-surface-400">
-                            {(plan.status ?? 'pending') === 'in_progress' ? '进行中' : '待开始'}
-                          </span>
-                        </div>
-                        <p className="mt-3 text-sm font-medium text-surface-900 dark:text-surface-0">
-                          {safeText(plan.title, '未命名计划')}
-                        </p>
-                        <p className="mt-2 text-xs text-surface-400">
-                          {safeText(plan.subject, '未分类')} · 每日 {Number(plan.daily_minutes ?? 0)} 分钟 · 截止 {formatDate(plan.target_date)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           <Card hover={false}>
@@ -987,11 +903,11 @@ const ReviewHub: React.FC = () => {
                 <p className="mt-1 text-sm text-surface-500">优先处理到期错题和高频失误。</p>
               </Link>
               <Link
-                to="/flashcards"
+                to="/question-bank"
                 className="rounded-xl border border-surface-100 dark:border-surface-700 bg-surface-0 dark:bg-surface-800 p-4 transition hover:border-brand-200 dark:hover:border-brand-700 hover:bg-brand-50 dark:hover:bg-brand-900/20"
               >
-                <p className="text-sm font-medium text-surface-900 dark:text-surface-0">卡片速刷</p>
-                <p className="mt-1 text-sm text-surface-500">快速过一轮记忆卡片，适合零碎时间。</p>
+                <p className="text-sm font-medium text-surface-900 dark:text-surface-0">真题练习</p>
+                <p className="mt-1 text-sm text-surface-500">复习完成后回到真题题库，把薄弱点转成输出。</p>
               </Link>
               <Link
                 to="/mock-exam"

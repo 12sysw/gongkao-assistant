@@ -418,6 +418,114 @@ run('study tracker exposes only the four core desktop actions', () => {
   assert.equal(sidebarSource.includes("path: '/study-tracker'"), true);
 });
 
+
+run('core desktop navigation keeps only eight primary entries', () => {
+  const projectRoot = path.join(__dirname, '..');
+  const sidebarSource = fs.readFileSync(
+    path.join(projectRoot, 'src', 'renderer', 'components', 'Sidebar.tsx'),
+    'utf8'
+  );
+  const primaryPaths = Array.from(sidebarSource.matchAll(/\{ path: '([^']+)', label:/g), (match) => match[1]);
+
+  assert.deepEqual(primaryPaths, [
+    '/',
+    '/review',
+    '/mock-exam',
+    '/question-bank',
+    '/essay-review',
+    '/rag-chat',
+    '/study-tracker',
+    '/settings',
+  ]);
+});
+
+run('non-core desktop routes and duplicate shells stay removed', () => {
+  const projectRoot = path.join(__dirname, '..');
+  const appSource = fs.readFileSync(path.join(projectRoot, 'src', 'renderer', 'App.tsx'), 'utf8');
+  const removedRoutes = [
+    '/pomodoro',
+    '/achievements',
+    '/chat',
+    '/mind-map',
+    '/knowledge-graph',
+    '/component-showcase',
+    '/brutal-report',
+    '/checkin',
+    '/encourage',
+  ];
+  const preservedSecondaryRoutes = [
+    '/wrong-book',
+    '/real-papers',
+    '/paper-import',
+    '/essay-practice',
+    '/skill-tree',
+  ];
+  const removedPages = [
+    'Achievements.tsx',
+    'AchievementsNew.tsx',
+    'BrutalReport.tsx',
+    'ChatRoom.tsx',
+    'ComponentShowcase.tsx',
+    'DailyCheckin.tsx',
+    'DailyCheckinNew.tsx',
+    'Dashboard.tsx',
+    'Encourage.tsx',
+    'EncourageNew.tsx',
+    'ExamPage.tsx',
+    'ExamResult.tsx',
+    'Flashcards.tsx',
+    'FlashcardsNew.tsx',
+    'KnowledgeBase.tsx',
+    'KnowledgeGraph.tsx',
+    'KnowledgeGraphNew.tsx',
+    'MindMap.tsx',
+    'MockExamNew.tsx',
+    'Pomodoro.tsx',
+    'PomodoroNew.tsx',
+    'QuestionBankNew.tsx',
+    'RagChatNew.tsx',
+    'SettingsNew.tsx',
+    'StudyPlan.tsx',
+    'StudyPlanNew.tsx',
+    'WrongBookNew.tsx',
+  ];
+
+  for (const route of removedRoutes) {
+    assert.equal(appSource.includes(`path="${route}"`), false, `${route} should not be registered`);
+  }
+  for (const route of preservedSecondaryRoutes) {
+    assert.equal(appSource.includes(`path="${route}"`), true, `${route} should remain available`);
+  }
+  for (const page of removedPages) {
+    assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'renderer', 'pages', page)), false, `${page} should stay deleted`);
+  }
+
+  const registeredRoutes = Array.from(appSource.matchAll(/<Route path="([^"]+)"/g), (match) => match[1]);
+  assert.equal(new Set(registeredRoutes).size, registeredRoutes.length, 'App routes should not be duplicated');
+});
+
+run('non-core renderer dependencies stay removed', () => {
+  const projectRoot = path.join(__dirname, '..');
+  const packageJson = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
+  const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+  const removedDependencies = [
+    '@radix-ui/react-dialog',
+    '@radix-ui/react-slot',
+    '@tencentcloud/chat',
+    'dayjs',
+    'react-hook-form',
+    'recharts',
+    'tim-upload-plugin',
+    'zod',
+  ];
+
+  for (const dependency of removedDependencies) {
+    assert.equal(dependencies[dependency], undefined, `${dependency} should stay removed`);
+  }
+  assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'renderer', 'lib', 'tencent-im.ts')), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'src', 'renderer', 'stores', 'chat-store.ts')), false);
+});
+
 if (process.exitCode) {
   process.exit(process.exitCode);
 }
