@@ -23,6 +23,7 @@ import { cn } from '../lib/utils';
 import {
   PAPER_QUESTION_TYPES,
   parsePaperText,
+  splitPaperTextForAi,
   splitDraftContent,
   validateDraft,
   type PaperQuestionDraft,
@@ -152,9 +153,15 @@ const PaperImportWorkbench: React.FC = () => {
     setBusy('ai');
     setProgress('AI 正在识别章节和题号…');
     try {
-      const result = await window.api.rag.parsePdfAi(rawText);
-      if (result.error) throw new Error(result.error);
-      const normalized = result.sections.flatMap((section) => section.questions.map((question) => ({
+      const chunks = splitPaperTextForAi(rawText, 8000);
+      const sections = [];
+      for (let index = 0; index < chunks.length; index += 1) {
+        setProgress(`AI 正在解析第 ${index + 1}/${chunks.length} 段…`);
+        const result = await window.api.rag.parsePdfAi(chunks[index]);
+        if (result.error) throw new Error(`第 ${index + 1}/${chunks.length} 段：${result.error}`);
+        sections.push(...result.sections);
+      }
+      const normalized = sections.flatMap((section) => section.questions.map((question) => ({
         ...newDraft(drafts.length),
         localId: `ai-${Date.now()}-${section.title}-${question.number}`,
         number: question.number.replace(/\D/g, '') || question.number,
