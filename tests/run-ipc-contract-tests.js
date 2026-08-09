@@ -13,7 +13,7 @@ const {
   toLegacyKnowledgePoint,
   toLegacyWrongRecord,
 } = require('../dist/main/main/ipc/contract-utils.js');
-const { parsePaperText, validateDraft } = require('../dist/main/shared/paper-import-parser.js');
+const { parsePaperText, splitPaperTextForAi, validateDraft } = require('../dist/main/shared/paper-import-parser.js');
 const { buildGongkaoEssayReviewPrompt } = require('../dist/main/main/ipc/gongkao-skill.js');
 const { buildEssayPaperHtml } = require('../dist/main/main/ipc/essay-paper.js');
 const { buildHuasheng13SystemPrompt, getHuasheng13Catalog, getHuasheng13Context } = require('../dist/main/main/ipc/huasheng13.js');
@@ -302,6 +302,29 @@ D. \u51ac
   assert.equal(drafts[0].options.length, 4);
   assert.equal(drafts[0].type, '\u884c\u6d4b-\u8a00\u8bed\u7406\u89e3');
   assert.deepEqual(validateDraft(drafts[0]), []);
+});
+
+run('paper import parser keeps inline options complete and excludes answer metadata', () => {
+  const drafts = parsePaperText(`1. 某题题干跨页后仍应完整。 A. 甲选项 B. 乙选项 C. 丙选项 D. 丁选项 答案：D 解析：这是完整解析。\n2. 下一题题干。 A. 一 B. 二 C. 三 D. 四 答案：A`);
+  assert.equal(drafts.length, 2);
+  assert.deepEqual(drafts[0].options, ['A. 甲选项', 'B. 乙选项', 'C. 丙选项', 'D. 丁选项']);
+  assert.equal(drafts[0].answer, 'D');
+  assert.equal(drafts[0].explanation, '这是完整解析。');
+  assert.equal(drafts[0].content.includes('答案'), false);
+});
+
+run('paper import AI chunks cover a long paper without dropping the tail', () => {
+  const text = Array.from({ length: 80 }, (_, index) => `${index + 1}. 第${index + 1}题题干 ${'材料'.repeat(80)}\nA. 甲 B. 乙 C. 丙 D. 丁`).join('\n');
+  const chunks = splitPaperTextForAi(text, 4000);
+  assert.equal(chunks.length > 1, true);
+  assert.equal(chunks.join('\n').includes('80. 第80题题干'), true);
+});
+
+run('paper import parser keeps shared material clean and ignores answer lists', () => {
+  const drafts = parsePaperText(`资料1：这是两道题共用的完整材料。\n1. 第一题？ A. 甲 B. 乙 C. 丙 D. 丁\n2. 第二题？ A. 一 B. 二 C. 三 D. 四\n答案汇总\n1. A\n2. B`);
+  assert.equal(drafts.length, 2);
+  assert.equal(drafts[0].material, '资料1：这是两道题共用的完整材料。');
+  assert.equal(drafts[1].material, '资料1：这是两道题共用的完整材料。');
 });
 
 run('essay review prompt enforces timing review and rewrite checklist', () => {

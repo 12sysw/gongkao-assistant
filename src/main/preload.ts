@@ -15,6 +15,7 @@ const api: Api = {
     getById: (id: number) => ipcRenderer.invoke(IPC.QUESTION_GET_BY_ID, id),
     update: (q) => ipcRenderer.invoke(IPC.QUESTION_UPDATE, q),
     delete: (id: number) => ipcRenderer.invoke(IPC.QUESTION_DELETE, id),
+    deleteAll: () => ipcRenderer.invoke(IPC.QUESTION_DELETE_ALL),
   },
   wrongBook: {
     add: (record) => ipcRenderer.invoke(IPC.WRONG_BOOK_ADD, record),

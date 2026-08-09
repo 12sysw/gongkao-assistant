@@ -555,6 +555,19 @@ export function useAddQuestion() {
   });
 }
 
+export function useDeleteAllQuestions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.question.deleteAll(),
+    onSuccess: () => Promise.all([
+      qc.invalidateQueries({ queryKey: ['questions'] }),
+      qc.invalidateQueries({ queryKey: ['wrongBookRecords'] }),
+      qc.invalidateQueries({ queryKey: ['dueReviews'] }),
+      qc.invalidateQueries({ queryKey: ['dailyStats'] }),
+    ]),
+  });
+}
+
 // ==================== 记忆卡片 ====================
 export function useAddFlashcard() {
   const qc = useQueryClient();

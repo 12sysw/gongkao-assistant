@@ -734,9 +734,20 @@ export function registerIpcHandlers() {
   }));
 
   ipcMain.handle(IPC.QUESTION_DELETE, safe((id: number) => {
+    db.delete(schema.wrongRecords).where(eq(schema.wrongRecords.questionId, id)).run();
     db.delete(schema.questions).where(eq(schema.questions.id, id)).run();
     return { success: true };
   }));
+
+  ipcMain.handle(IPC.QUESTION_DELETE_ALL, safe(() => sqlite.transaction(() => {
+    const wrongResult = sqlite.prepare('DELETE FROM wrong_records').run();
+    const questionResult = sqlite.prepare('DELETE FROM questions').run();
+    return {
+      success: true,
+      deletedQuestions: questionResult.changes,
+      deletedWrongRecords: wrongResult.changes,
+    };
+  })()));
 
   // ==================== 错题本 ====================
   ipcMain.handle(IPC.WRONG_BOOK_ADD, safe((record: any) => {

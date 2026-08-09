@@ -20,7 +20,9 @@ import {
   useDeleteRagDocBatch,
   useSyncQuestions,
   useQuestions,
+  useDeleteAllQuestions,
 } from '../hooks/use-api';
+import { toast } from 'sonner';
 import type { QuestionRecord, RagDoc } from '../../shared/ipc';
 
 interface DocGroup {
@@ -195,7 +197,24 @@ const QuestionBank: React.FC = () => {
   const { data: questions = [], isLoading: questionsLoading } = useQuestions();
   const deleteDocBatch = useDeleteRagDocBatch();
   const syncMutation = useSyncQuestions();
+  const deleteAllMutation = useDeleteAllQuestions();
   const isLoading = questionsLoading;
+
+  const handleDeleteAllQuestions = async () => {
+    if (questions.length === 0) return;
+    const confirmed = confirm(
+      `确定删除全部 ${questions.length} 道结构化题目吗？\n\n关联错题记录也会删除；PDF/RAG 原文不会删除，可重新同步。此操作无法撤销。`
+    );
+    if (!confirmed) return;
+    try {
+      const result = await deleteAllMutation.mutateAsync();
+      setExpandedQuestionId(null);
+      setVisibleQuestionCount(QUESTION_VISIBLE_BATCH);
+      toast.success(`已删除 ${result.deletedQuestions} 道题目和 ${result.deletedWrongRecords} 条关联错题`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '删除失败');
+    }
+  };
 
   const sources = useMemo(
     () => ['all', ...SOURCE_FILTERS],
@@ -361,6 +380,9 @@ const QuestionBank: React.FC = () => {
             题库管理
           </h1>
           <div className="flex items-center gap-2">
+            <button onClick={() => void handleDeleteAllQuestions()} disabled={questions.length === 0 || deleteAllMutation.isPending} className="flex items-center gap-2 px-3 py-2 text-sm border border-red-200 text-red-600 rounded-lg hover:bg-red-50 dark:border-red-900/60 dark:text-red-300 disabled:opacity-40">
+              <Trash2 className="w-4 h-4" />{deleteAllMutation.isPending ? '正在删除...' : '全部删除'}
+            </button>
             <button
               onClick={handleSyncQuestions}
               disabled={syncMutation.isPending}

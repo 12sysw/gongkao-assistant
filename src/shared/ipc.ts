@@ -9,6 +9,7 @@ export const IPC = {
   QUESTION_GET_BY_ID: 'question:get-by-id',
   QUESTION_UPDATE: 'question:update',
   QUESTION_DELETE: 'question:delete',
+  QUESTION_DELETE_ALL: 'question:delete-all',
 
   // 错题本
   WRONG_BOOK_ADD: 'wrong-book:add',
@@ -144,6 +145,7 @@ export type IpcChannel = typeof IPC[keyof typeof IPC];
 export type Unsubscribe = () => void;
 
 export type DeleteResult = { success: boolean };
+export type DeleteAllQuestionsResult = { success: boolean; deletedQuestions: number; deletedWrongRecords: number };
 
 export interface QuestionRecord {
   id: number;
@@ -688,6 +690,7 @@ export interface Api {
     getById: (id: number) => Promise<QuestionRecord | null>;
     update: (q: QuestionUpdate) => Promise<QuestionRecord>;
     delete: (id: number) => Promise<DeleteResult>;
+    deleteAll: () => Promise<DeleteAllQuestionsResult>;
   };
   wrongBook: {
     add: (record: WrongBookInput) => Promise<WrongBookRecord>;

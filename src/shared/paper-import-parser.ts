@@ -26,6 +26,8 @@ function normalizeText(text: string) {
   return String(text ?? '')
     .replace(/\r\n/g, '\n')
     .replace(/\u00a0|\u3000/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
     .replace(/^\s*--\s*\d+\s+of\s+\d+\s*--\s*$/gim, '')
     .replace(/^\s*第\s*\d+\s*页\s*(?:共\s*\d+\s*页)?\s*$/gm, '')
     .replace(/\n{3,}/g, '\n\n')
@@ -65,34 +67,75 @@ function extractAnswerMap(text: string) {
 }
 
 function cleanOption(label: string, value: string) {
-  return `${label}. ${value
-    .replace(/(?:【?答案】?|正确答案|参考答案|【?解析】?)\s*[:：]?[\s\S]*$/i, '')
-    .replace(/\n{2,}[\s\S]*$/g, '')
-    .trim()}`;
+  return `${label}. ${cleanBlock(value)}`;
+}
+
+function cleanBlock(value: string) {
+  return value
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function splitMetadata(body: string) {
+  const marker = /(?:^|\n|\s+)(?:【\s*)?(答案解析|参考解析|解析|正确答案|参考答案|答案)(?:\s*】)?\s*[:：]?\s*/gi;
+  const matches = [...body.matchAll(marker)];
+  if (matches.length === 0) return { questionBody: body, answer: '', explanation: '' };
+
+  const questionBody = body.slice(0, matches[0].index).trim();
+  let answer = '';
+  let explanation = '';
+  for (let index = 0; index < matches.length; index += 1) {
+    const match = matches[index];
+    const start = (match.index ?? 0) + match[0].length;
+    const end = index + 1 < matches.length ? matches[index + 1].index ?? body.length : body.length;
+    const value = cleanBlock(body.slice(start, end));
+    if (/答案/.test(match[1])) {
+      answer ||= value.match(/^\s*([A-D])(?=\s|[。；;，,、]|$)/i)?.[1]?.toUpperCase() ?? '';
+      if (/解析/.test(match[1])) {
+        explanation ||= value.replace(/^\s*[A-D](?=\s|[。；;，,、]|$)\s*/i, '').trim();
+      }
+    } else {
+      explanation ||= value;
+    }
+  }
+  return { questionBody, answer, explanation };
+}
+
+function extractMaterial(context: string) {
+  const normalized = cleanBlock(context);
+  const marker = normalized.search(/(?:给定资料|根据以下资料|阅读下列材料|资料\s*\d*|材料\s*\d*)\s*[:：]?/i);
+  if (marker < 0) return '';
+  const material = normalized.slice(marker).trim();
+  const questionStart = material.search(/\n\s*(?:第\s*)?\d{1,3}\s*(?:题|[.．、)）:：])\s*/);
+  return questionStart > 0 ? material.slice(0, questionStart).trim() : material;
 }
 
 function parseSegment(segment: string, number: string, context: string, answerMap: Map<string, string>, index: number): PaperQuestionDraft | null {
   const body = segment
     .replace(/^\s*(?:第\s*)?\d{1,3}\s*(?:题|[.．、)）:：])\s*/, '')
     .trim();
-  const optionPattern = /(?:^|\n|\s{2,})([A-D])\s*[.．、)）:：]\s*/g;
-  const matches = [...body.matchAll(optionPattern)];
+  const metadata = splitMetadata(body);
+  const optionPattern = /(?:^|\n|\s+)([A-D])\s*[.．、)）:：]\s*/g;
+  const matches = [...metadata.questionBody.matchAll(optionPattern)];
   const options: string[] = [];
-  let content = body;
+  let content = metadata.questionBody;
 
   if (matches.length >= 2) {
-    content = body.slice(0, matches[0].index).trim();
+    content = metadata.questionBody.slice(0, matches[0].index).trim();
     for (let i = 0; i < Math.min(matches.length, 4); i += 1) {
       const match = matches[i];
       const start = (match.index ?? 0) + match[0].length;
-      const end = i + 1 < matches.length ? matches[i + 1].index ?? body.length : body.length;
-      options.push(cleanOption(match[1].toUpperCase(), body.slice(start, end)));
+      const end = i + 1 < matches.length ? matches[i + 1].index ?? metadata.questionBody.length : metadata.questionBody.length;
+      options.push(cleanOption(match[1].toUpperCase(), metadata.questionBody.slice(start, end)));
     }
   }
 
-  const inlineAnswer = body.match(/(?:【?答案】?|正确答案|参考答案)\s*[:：]?\s*([A-D])/i)?.[1]?.toUpperCase();
-  const explanation = body.match(/(?:【?解析】?|答案解析)\s*[:：]?\s*([\s\S]+)$/i)?.[1]?.trim() ?? '';
-  const answer = inlineAnswer ?? answerMap.get(number) ?? '';
+  content = cleanBlock(content);
+  const answer = metadata.answer || answerMap.get(number) || '';
+  const explanation = metadata.explanation;
   const warnings: string[] = [];
   if (content.length < 5) warnings.push('题干过短');
   if (options.length > 0 && options.length < 4) warnings.push(`仅识别到 ${options.length} 个选项`);
@@ -105,7 +148,7 @@ function parseSegment(segment: string, number: string, context: string, answerMa
     enabled: true,
     number,
     type: inferType(`${context}\n${content}`, number),
-    material: '',
+    material: extractMaterial(context),
     content,
     options,
     answer,
@@ -118,10 +161,12 @@ export function parsePaperText(rawText: string): PaperQuestionDraft[] {
   const text = normalizeText(rawText);
   if (!text) return [];
   const answerMap = extractAnswerMap(text);
-  const starts = [...text.matchAll(/^\s*(?:第\s*)?(\d{1,3})\s*(?:题|[.．、)）:：])\s*/gm)]
+  const starts = [...text.matchAll(/^\s*(?:第\s*)?(\d{1,3})\s*(?:题|[.．、)）:：])\s*(?=\S)/gm)]
     .filter((match) => {
       const value = Number.parseInt(match[1], 10);
-      return value >= 1 && value <= 200;
+      if (value < 1 || value > 200) return false;
+      const after = text.slice((match.index ?? 0) + match[0].length).split('\n', 1)[0].trim();
+      return !/^[A-D](?:[。；;，,、]?\s*)$/i.test(after);
     });
 
   if (starts.length === 0) {
@@ -132,10 +177,31 @@ export function parsePaperText(rawText: string): PaperQuestionDraft[] {
   return starts.flatMap((start, index) => {
     const from = start.index ?? 0;
     const to = index + 1 < starts.length ? starts[index + 1].index ?? text.length : text.length;
-    const contextStart = Math.max(0, from - 260);
+    const contextStart = index === 0 ? 0 : Math.max(0, from - 2000);
     const draft = parseSegment(text.slice(from, to), start[1], text.slice(contextStart, from), answerMap, index);
     return draft ? [draft] : [];
   });
+}
+
+export function splitPaperTextForAi(rawText: string, maxChars = 12000) {
+  const text = normalizeText(rawText);
+  if (!text) return [];
+  const chunks: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = Math.min(text.length, start + maxChars);
+    if (end < text.length) {
+      const windowStart = Math.max(start + Math.floor(maxChars * 0.6), start);
+      const boundaryText = text.slice(windowStart, end);
+      const boundaries = [...boundaryText.matchAll(/\n\s*(?:第\s*)?\d{1,3}\s*(?:题|[.．、)）:：])\s*/g)];
+      const boundary = boundaries.at(-1);
+      if (boundary?.index !== undefined) end = windowStart + boundary.index;
+    }
+    if (end <= start) end = Math.min(text.length, start + maxChars);
+    chunks.push(text.slice(start, end).trim());
+    start = end;
+  }
+  return chunks.filter(Boolean);
 }
 
 export function splitDraftContent(draft: PaperQuestionDraft) {
